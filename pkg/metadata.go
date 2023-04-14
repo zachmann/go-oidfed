@@ -2,6 +2,9 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/lestrrat-go/jwx/jwk"
 )
@@ -13,6 +16,38 @@ type Metadata struct {
 	OAuthClient              *OAuthClientMetadata              `json:"oauth_client,omitempty"`
 	OAuthProtectedResource   *OAuthProtectedResourceMetadata   `json:"oauth_resource,omitempty"`
 	FederationEntity         *FederationEntityMetadata         `json:"federation_entity,omitempty"`
+}
+
+type policyApplicable interface {
+	ApplyPolicy(policy MetadataPolicy) (any, error)
+}
+
+func (m Metadata) ApplyPolicy(p MetadataPolicies) (*Metadata, error) {
+	t := reflect.TypeOf(m)
+	v := reflect.ValueOf(m)
+	out := &Metadata{}
+	for i := 0; i < t.NumField(); i++ {
+		policy, ok := reflect.ValueOf(p).Field(i).Interface().(MetadataPolicy)
+		if !ok {
+			fmt.Printf("skipping field '%s' because could not get policy\n", t.Field(i).Name) //TODO
+			continue
+		}
+		if policy == nil {
+			fmt.Printf("skipping field '%s' because policy not set \n", t.Field(i).Name) //TODO
+			continue
+		}
+		metadata, ok := v.Field(i).Interface().(policyApplicable)
+		if !ok {
+			fmt.Printf("skipping field '%s' because field does not have ApplyPolicy func\n", t.Field(i).Name) //TODO
+			continue
+		}
+		applied, err := metadata.ApplyPolicy(policy)
+		if err != nil {
+			return nil, err
+		}
+		reflect.ValueOf(out).Field(i).Set(reflect.ValueOf(applied))
+	}
+	return out, nil
 }
 
 type OpenIDRelyingPartyMetadata struct {
@@ -108,6 +143,32 @@ func (m *OpenIDRelyingPartyMetadata) UnmarshalJSON(data []byte) error {
 	}
 	*m = OpenIDRelyingPartyMetadata(mm)
 	return nil
+}
+
+func (m OpenIDRelyingPartyMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
+	t := reflect.TypeOf(m)
+	v := reflect.ValueOf(&m)
+	for i := 0; i < t.NumField(); i++ {
+		j, ok := t.Field(i).Tag.Lookup("json")
+		if !ok {
+			fmt.Printf("skipping field '%s' because could not get json tag\n", t.Field(i).Name) //TODO
+			continue
+		}
+		j = strings.TrimSuffix(j, ",omitempty")
+		p, ok := policy[j]
+		if !ok {
+			fmt.Printf("skipping field '%s' because no policy defined\n", t.Field(i).Name) //TODO
+			continue
+		}
+		f := v.Field(i)
+		value, err := p.ApplyTo(f.Interface(), fmt.Sprintf("%s.%s", "openid_relying_party", j))
+		if err != nil {
+			return nil, err
+		}
+		f.Set(reflect.ValueOf(value))
+	}
+
+	return m, nil
 }
 
 type OpenIDProviderMetadata struct {
