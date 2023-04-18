@@ -183,11 +183,17 @@ func entityStmtCacheGet(subID, issID string) *EntityStatement {
 	return stmt
 }
 
+var entityStatementObtainer internal.EntityStatementObtainer
+
+func init() {
+	entityStatementObtainer = internal.DefaultHttpEntityStatementObtainer
+}
+
 func getEntityConfiguration(entityID string) (*EntityStatement, error) {
 	if stmt := entityStmtCacheGet(entityID, entityID); stmt != nil {
 		return stmt, nil
 	}
-	body, err := internal.GetEntityConfiguration(entityID)
+	body, err := entityStatementObtainer.GetEntityConfiguration(entityID)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +209,7 @@ func fetchEntityStatement(fetchEndpoint, subID, issID string) (*EntityStatement,
 	if stmt := entityStmtCacheGet(subID, issID); stmt != nil {
 		return stmt, nil
 	}
-	body, err := internal.FetchEntityStatement(fetchEndpoint, subID, issID)
+	body, err := entityStatementObtainer.FetchEntityStatement(fetchEndpoint, subID, issID)
 	if err != nil {
 		return nil, err
 	}

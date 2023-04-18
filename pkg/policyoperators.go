@@ -69,13 +69,27 @@ var policyOperatorAdd = NewPolicyOperator(
 	PolicyOperatorAdd,
 	true,
 	func(a, b any, _ string) (any, error) {
+		if a == nil {
+			return b, nil
+		}
+		if b == nil {
+			return a, nil
+		}
 		return utils.ReflectUnion(a, b), nil
 	},
 	func(value, policyValue any, _ string) (any, error) {
+		if value == nil {
+			return policyValue, nil
+		}
+		if policyValue == nil {
+			return value, nil
+		}
 		v := utils.Slicify(value)
 		pv := utils.Slicify(policyValue)
 		for _, pvv := range pv {
-			v = append(v, pvv)
+			if !utils.ReflectSliceContains(pvv, v) {
+				v = append(v, pvv)
+			}
 		}
 		return v, nil
 	},
@@ -85,16 +99,34 @@ var policyOperatorSubsetOf = NewPolicyOperator(
 	PolicyOperatorSubsetOf,
 	false,
 	func(a, b any, _ string) (any, error) {
+		if a == nil {
+			return b, nil
+		}
+		if b == nil {
+			return a, nil
+		}
 		return utils.ReflectIntersect(a, b), nil
 	},
 	func(value, policyValue any, pathInfo string) (any, error) {
-		if reflect.ValueOf(value).IsZero() {
+		if policyValue == nil {
 			return value, nil
 		}
-		v := utils.Slicify(value)
 		p := utils.Slicify(policyValue)
+		if value == nil { // policyValue is not nil
+			if len(p) == 0 {
+				return value, nil
+			}
+			return value, errors.Errorf(
+				"policy operator check failed: '%s' not set, but must be subset of '%+q'",
+				pathInfo, policyValue,
+			)
+		}
+		v := utils.Slicify(value)
 		if len(v) != len(utils.ReflectIntersect(v, p)) {
-			return value, errors.Errorf("policy operator check failed: '%+v' is not a subset of '%+v'", v, p)
+			return value, errors.Errorf(
+				"policy operator check failed for '%s': '%+q' is not a subset of '%+q'",
+				pathInfo, v, p,
+			)
 		}
 		return value, nil
 	},
@@ -104,15 +136,33 @@ var policyOperatorOneOf = NewPolicyOperator(
 	PolicyOperatorOneOf,
 	false,
 	func(a, b any, _ string) (any, error) {
+		if a == nil {
+			return b, nil
+		}
+		if b == nil {
+			return a, nil
+		}
 		return utils.ReflectIntersect(a, b), nil
 	},
 	func(value, policyValue any, pathInfo string) (any, error) {
-		if reflect.ValueOf(value).IsZero() {
+		if policyValue == nil {
 			return value, nil
 		}
 		p := utils.Slicify(policyValue)
-		if utils.ReflectSliceContains(value, p) {
-			return value, errors.Errorf("policy operator check failed: '%+v' is not a one of '%+v'", value, p)
+		if value == nil { // policyValue is not nil
+			if len(p) == 0 {
+				return value, nil
+			}
+			return value, errors.Errorf(
+				"policy operator check failed: '%s' not set, but must be one of '%+q'",
+				pathInfo, policyValue,
+			)
+		}
+		if !utils.ReflectSliceContains(value, p) {
+			return value, errors.Errorf(
+				"policy operator check failed for '%s': '%+q' is not one of '%+q'",
+				pathInfo, value, p,
+			)
 		}
 		return value, nil
 	},
@@ -122,16 +172,35 @@ var policyOperatorSupersetOf = NewPolicyOperator(
 	PolicyOperatorSupersetOf,
 	false,
 	func(a, b any, _ string) (any, error) {
+		if a == nil {
+			return b, nil
+		}
+		if b == nil {
+			return a, nil
+		}
 		return utils.ReflectUnion(a, b), nil
 	},
 	func(value, policyValue any, pathInfo string) (any, error) {
-		if reflect.ValueOf(value).IsZero() {
+		if policyValue == nil {
 			return value, nil
 		}
-		v := utils.Slicify(value)
 		p := utils.Slicify(policyValue)
+		if value == nil { // policyValue is not nil
+			if len(p) == 0 {
+				return value, nil
+			}
+			return value, errors.Errorf(
+				"policy operator check failed: '%s' not set, but must be superset of '%+q'",
+				pathInfo, policyValue,
+			)
+		}
+
+		v := utils.Slicify(value)
 		if len(p) != len(utils.ReflectIntersect(v, p)) {
-			return value, errors.Errorf("policy operator check failed: '%+v' is not a superset of '%+v'", v, p)
+			return value, errors.Errorf(
+				"policy operator check failed for '%s': '%+q' is not a superset of '%+q'",
+				pathInfo, v, p,
+			)
 		}
 		return value, nil
 	},
@@ -141,7 +210,13 @@ var policyOperatorValue = NewPolicyOperator(
 	PolicyOperatorValue,
 	true,
 	func(a, b any, pathInfo string) (any, error) {
-		if reflect.DeepEqual(a, b) {
+		if a == nil {
+			return b, nil
+		}
+		if b == nil {
+			return a, nil
+		}
+		if utils.SliceEqual(a, b) {
 			return a, nil
 		}
 		return nil, errors.Errorf(
@@ -149,7 +224,7 @@ var policyOperatorValue = NewPolicyOperator(
 		)
 	},
 	func(value, policyValue any, pathInfo string) (any, error) {
-		if reflect.ValueOf(policyValue).IsZero() {
+		if policyValue == nil {
 			return value, nil
 		}
 		return policyValue, nil
@@ -160,7 +235,13 @@ var policyOperatorDefault = NewPolicyOperator(
 	PolicyOperatorDefault,
 	true,
 	func(a, b any, pathInfo string) (any, error) {
-		if reflect.DeepEqual(a, b) {
+		if a == nil {
+			return b, nil
+		}
+		if b == nil {
+			return a, nil
+		}
+		if utils.SliceEqual(a, b) {
 			return a, nil
 		}
 		return nil, errors.Errorf(
@@ -169,7 +250,7 @@ var policyOperatorDefault = NewPolicyOperator(
 		)
 	},
 	func(value, policyValue any, pathInfo string) (any, error) {
-		if reflect.ValueOf(value).IsZero() {
+		if value == nil || reflect.ValueOf(value).IsZero() {
 			return policyValue, nil
 		}
 		return value, nil
@@ -194,7 +275,10 @@ var policyOperatorEssential = NewPolicyOperator(
 		return ab || bb, nil
 	},
 	func(value, policyValue any, pathInfo string) (any, error) {
-		if essential, eok := policyValue.(bool); eok && essential && reflect.ValueOf(value).IsZero() {
+		if policyValue == nil {
+			return value, nil
+		}
+		if essential, eok := policyValue.(bool); eok && essential && (value == nil || reflect.ValueOf(value).IsZero()) {
 			return nil, errors.Errorf("metadata value for '%s' not set but required", pathInfo)
 		}
 		return value, nil

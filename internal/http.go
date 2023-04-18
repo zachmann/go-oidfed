@@ -11,7 +11,17 @@ import (
 
 const federationSuffix = "/.well-known/openid-federation"
 
-func GetEntityConfiguration(entityID string) ([]byte, error) {
+type EntityStatementObtainer interface {
+	GetEntityConfiguration(entityID string) ([]byte, error)
+	FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error)
+}
+
+type defaultHttpEntityStatementObtainer struct{}
+
+// DefaultHttpEntityStatementObtainer is the default EntityStatementObtainer to obtain entity statements through http
+var DefaultHttpEntityStatementObtainer defaultHttpEntityStatementObtainer
+
+func (o defaultHttpEntityStatementObtainer) GetEntityConfiguration(entityID string) ([]byte, error) {
 	url := entityID
 	if strings.HasSuffix(url, "/") {
 		url = url[:len(url)-1]
@@ -27,7 +37,7 @@ func GetEntityConfiguration(entityID string) ([]byte, error) {
 	return io.ReadAll(res.Body)
 }
 
-func FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error) {
+func (o defaultHttpEntityStatementObtainer) FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error) {
 	uri := fetchEndpoint
 	params := url.Values{}
 	params.Add("sub", subID)

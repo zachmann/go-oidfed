@@ -879,7 +879,7 @@ func TestPolicyVerifierPolicyVerifyOneOfStillHasValues(t *testing.T) {
 			policy: MetadataPolicyEntry{
 				PolicyOperatorOneOf: nil,
 			},
-			errExpected: false,
+			errExpected: true,
 		},
 		{
 			name:     "one of empty",
@@ -943,7 +943,7 @@ func TestPolicyVerifierPolicyVerifySubsetOfStillHasValues(t *testing.T) {
 			policy: MetadataPolicyEntry{
 				PolicyOperatorSubsetOf: nil,
 			},
-			errExpected: false,
+			errExpected: true,
 		},
 		{
 			name:     "subset empty",

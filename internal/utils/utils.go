@@ -83,6 +83,25 @@ func IsMap(v interface{}) bool {
 	return reflect.TypeOf(v).Kind() == reflect.Map
 }
 
+// SliceEqual checks if two slices contain the same elements; order does not matter,
+// assumes no duplicate entries in a slice
+func SliceEqual(a, b interface{}) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	as := Slicify(a)
+	bs := Slicify(b)
+	if len(as) != len(bs) {
+		return false
+	}
+	for _, aa := range as {
+		if !ReflectSliceContains(aa, bs) {
+			return false
+		}
+	}
+	return true
+}
+
 // InterfaceSlice converts a slice of any object to a slice of interfaces of those internal objects
 // if in is not an addressable item, it will panic
 func InterfaceSlice(in any) (o []any) {
@@ -96,6 +115,9 @@ func InterfaceSlice(in any) (o []any) {
 	return o
 }
 func Slicify(in any) []any {
+	if in == nil {
+		return nil
+	}
 	if IsSlice(in) {
 		return InterfaceSlice(in)
 	}
