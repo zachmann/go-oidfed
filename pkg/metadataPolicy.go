@@ -29,7 +29,7 @@ func (p MetadataPolicy) Verify(pathInfo string) error {
 }
 
 // MergeMetadataPolicies combines multiples MetadataPolicies from a chain into a single one
-func MergeMetadataPolicies(policies ...MetadataPolicies) (out MetadataPolicies, err error) {
+func MergeMetadataPolicies(policies ...*MetadataPolicies) (*MetadataPolicies, error) {
 	opEntries := make([]MetadataPolicy, 0)
 	rpEntries := make([]MetadataPolicy, 0)
 	asEntries := make([]MetadataPolicy, 0)
@@ -37,6 +37,9 @@ func MergeMetadataPolicies(policies ...MetadataPolicies) (out MetadataPolicies, 
 	prEntries := make([]MetadataPolicy, 0)
 	feEntries := make([]MetadataPolicy, 0)
 	for _, p := range policies {
+		if p == nil {
+			continue
+		}
 		opEntries = append(opEntries, p.OpenIDProvider)
 		rpEntries = append(rpEntries, p.RelyingParty)
 		asEntries = append(asEntries, p.OAuthAuthorizationServer)
@@ -44,31 +47,38 @@ func MergeMetadataPolicies(policies ...MetadataPolicies) (out MetadataPolicies, 
 		prEntries = append(prEntries, p.OAuthProtectedResource)
 		feEntries = append(feEntries, p.FederationEntity)
 	}
-	out.OpenIDProvider, err = CombineMetadataPolicy("openid_provider", opEntries...)
+	op, err := CombineMetadataPolicy("openid_provider", opEntries...)
 	if err != nil {
-		return
+		return nil, err
 	}
-	out.RelyingParty, err = CombineMetadataPolicy("openid_relying_party", rpEntries...)
+	rp, err := CombineMetadataPolicy("openid_relying_party", rpEntries...)
 	if err != nil {
-		return
+		return nil, err
 	}
-	out.OAuthAuthorizationServer, err = CombineMetadataPolicy("oauth_authorization_server", asEntries...)
+	as, err := CombineMetadataPolicy("oauth_authorization_server", asEntries...)
 	if err != nil {
-		return
+		return nil, err
 	}
-	out.OAuthClient, err = CombineMetadataPolicy("oauth_client", ocEntries...)
+	c, err := CombineMetadataPolicy("oauth_client", ocEntries...)
 	if err != nil {
-		return
+		return nil, err
 	}
-	out.OAuthProtectedResource, err = CombineMetadataPolicy("oauth_resource", prEntries...)
+	pr, err := CombineMetadataPolicy("oauth_resource", prEntries...)
 	if err != nil {
-		return
+		return nil, err
 	}
-	out.FederationEntity, err = CombineMetadataPolicy("federation_entity", feEntries...)
+	fed, err := CombineMetadataPolicy("federation_entity", feEntries...)
 	if err != nil {
-		return
+		return nil, err
 	}
-	return
+	return &MetadataPolicies{
+		OpenIDProvider:           op,
+		RelyingParty:             rp,
+		OAuthAuthorizationServer: as,
+		OAuthClient:              c,
+		OAuthProtectedResource:   pr,
+		FederationEntity:         fed,
+	}, nil
 }
 
 // CombineMetadataPolicy combines multiples MetadataPolicy into a single MetadataPolicy,

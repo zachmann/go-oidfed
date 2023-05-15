@@ -84,14 +84,7 @@ var policyOperatorAdd = NewPolicyOperator(
 		if policyValue == nil {
 			return value, nil
 		}
-		v := utils.Slicify(value)
-		pv := utils.Slicify(policyValue)
-		for _, pvv := range pv {
-			if !utils.ReflectSliceContains(pvv, v) {
-				v = append(v, pvv)
-			}
-		}
-		return v, nil
+		return utils.ReflectUnion(value, policyValue), nil
 	},
 )
 
@@ -113,7 +106,7 @@ var policyOperatorSubsetOf = NewPolicyOperator(
 		}
 		p := utils.Slicify(policyValue)
 		if value == nil { // policyValue is not nil
-			if len(p) == 0 {
+			if reflect.ValueOf(p).Len() == 0 {
 				return value, nil
 			}
 			return value, errors.Errorf(
@@ -122,7 +115,7 @@ var policyOperatorSubsetOf = NewPolicyOperator(
 			)
 		}
 		v := utils.Slicify(value)
-		if len(v) != len(utils.ReflectIntersect(v, p)) {
+		if reflect.ValueOf(v).Len() != reflect.ValueOf(utils.ReflectIntersect(v, p)).Len() {
 			return value, errors.Errorf(
 				"policy operator check failed for '%s': '%+q' is not a subset of '%+q'",
 				pathInfo, v, p,
@@ -150,7 +143,7 @@ var policyOperatorOneOf = NewPolicyOperator(
 		}
 		p := utils.Slicify(policyValue)
 		if value == nil { // policyValue is not nil
-			if len(p) == 0 {
+			if reflect.ValueOf(p).Len() == 0 {
 				return value, nil
 			}
 			return value, errors.Errorf(
@@ -186,7 +179,7 @@ var policyOperatorSupersetOf = NewPolicyOperator(
 		}
 		p := utils.Slicify(policyValue)
 		if value == nil { // policyValue is not nil
-			if len(p) == 0 {
+			if reflect.ValueOf(p).Len() == 0 {
 				return value, nil
 			}
 			return value, errors.Errorf(
@@ -196,7 +189,7 @@ var policyOperatorSupersetOf = NewPolicyOperator(
 		}
 
 		v := utils.Slicify(value)
-		if len(p) != len(utils.ReflectIntersect(v, p)) {
+		if !utils.ReflectIsSupersetOf(v, p) {
 			return value, errors.Errorf(
 				"policy operator check failed for '%s': '%+q' is not a superset of '%+q'",
 				pathInfo, v, p,

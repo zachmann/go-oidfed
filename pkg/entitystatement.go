@@ -3,8 +3,8 @@ package pkg
 import (
 	"crypto"
 	"encoding/json"
-	"fmt"
-	"strings"
+	"github.com/zachmann/go-oidcfed/internal/jwx"
+	"github.com/zachmann/go-oidcfed/internal/utils"
 	"time"
 
 	"github.com/fatih/structs"
@@ -14,62 +14,21 @@ import (
 	"github.com/pkg/errors"
 )
 
-func signEntityStatement(payload []byte, signingAlg jwa.SignatureAlgorithm, key crypto.Signer) ([]byte, error) {
-	headers := jws.NewHeaders()
-	if err := headers.Set(jws.TypeKey, "entity-statement+jwt"); err != nil {
-		return nil, err
-	}
-	return jws.Sign(payload, signingAlg, key, jws.WithHeaders(headers))
-}
-
+// EntityStatement is a type for holding an entity statement, more precisely an entity statement that was obtained
+// as a jwt and created by us
 type EntityStatement struct {
 	jwtMsg *jws.Message
 	EntityStatementPayload
 }
 
-func stringsEqaulIfSet(a, b string) bool {
-	return a != "" || b != "" || a == b
-}
-
-func verifySet(msg *jws.Message, keys jwk.Set) ([]byte, error) {
-	var alg jwa.SignatureAlgorithm
-	var kid string
-	if msg.Signatures() != nil {
-		head := msg.Signatures()[0].ProtectedHeaders()
-		alg = head.Algorithm()
-		kid = head.KeyID()
-	}
-	buf, err := msg.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	if alg == "" && kid == "" {
-		return jws.VerifySet(buf, keys)
-	}
-	for i := 0; i < keys.Len(); i++ {
-		k, ok := keys.Get(i)
-		if !ok {
-			continue
-		}
-		if !stringsEqaulIfSet(alg.String(), k.Algorithm()) {
-			continue
-		}
-		if !stringsEqaulIfSet(kid, k.KeyID()) {
-			continue
-		}
-		pay, err := jws.Verify(buf, alg, k)
-		if err == nil {
-			return pay, err
-		}
-	}
-	return nil, errors.New(`failed to verify message with any of the keys in the jwk.Set object`)
-}
-
+// Verify verifies that the EntityStatement jwt is valid
 func (e EntityStatement) Verify(keys jwk.Set) bool {
-	_, err := verifySet(e.jwtMsg, keys)
+	_, err := jwx.VerifyWithSet(e.jwtMsg, keys)
 	return err == nil
 }
 
+// EntityConfiguration is a type for holding an entity configuration, more precisely an entity statement from an entity
+// about itself that was created by us. To create a new EntityConfiguration use the NewEntityConfiguration function
 type EntityConfiguration struct {
 	EntityStatementPayload
 	key crypto.Signer
@@ -77,6 +36,7 @@ type EntityConfiguration struct {
 	alg jwa.SignatureAlgorithm
 }
 
+// JWT returns a signed jwt representation of the EntityConfiguration
 func (e *EntityConfiguration) JWT() (jwt []byte, err error) {
 	if e.jwt != nil {
 		jwt = e.jwt
@@ -90,11 +50,13 @@ func (e *EntityConfiguration) JWT() (jwt []byte, err error) {
 	if err != nil {
 		return
 	}
-	e.jwt, err = signEntityStatement(j, e.alg, e.key)
+	e.jwt, err = jwx.SignEntityStatement(j, e.alg, e.key)
 	jwt = e.jwt
 	return
 }
 
+// NewEntityConfiguration creates a new EntityConfiguration with the passed EntityStatementPayload and the passed
+// signing key and jwa.SignatureAlgorithm
 func NewEntityConfiguration(
 	payload EntityStatementPayload, privateSigningKey crypto.Signer,
 	signingAlg jwa.SignatureAlgorithm,
@@ -106,6 +68,8 @@ func NewEntityConfiguration(
 	}
 }
 
+// EntityStatementPayload is a type for holding the actual payload of an EntityStatement or EntityConfiguration;
+// additional fields can be set in the Extra claim
 type EntityStatementPayload struct {
 	Issuer                           string                   `json:"iss"`
 	Subject                          string                   `json:"sub"`
@@ -115,7 +79,7 @@ type EntityStatementPayload struct {
 	Audience                         string                   `json:"aud,omitempty"`
 	AuthorityHints                   []string                 `json:"authority_hints,omitempty"`
 	Metadata                         *Metadata                `json:"metadata,omitempty"`
-	MetadataPolicy                   MetadataPolicies         `json:"metadata_policy,omitempty"`
+	MetadataPolicy                   *MetadataPolicies        `json:"metadata_policy,omitempty"`
 	Constraints                      *ConstraintSpecification `json:"constraints,omitempty"`
 	CriticalExtensions               []string                 `json:"crit,omitempty"`
 	CriticalPolicyLanguageExtensions []string                 `json:"policy_language_crit,omitempty"`
@@ -125,6 +89,7 @@ type EntityStatementPayload struct {
 	Extra                            map[string]interface{}   `json:"-"`
 }
 
+// TimeValid checks if the EntityStatementPayload is already valid and not yet expired.
 func (e EntityStatementPayload) TimeValid() bool {
 	now := time.Now().Unix()
 	return e.IssuedAt <= now && e.ExpiresAt > now
@@ -145,6 +110,8 @@ func extraMarshalHelper(explicitFields []byte, extra map[string]interface{}) ([]
 	return json.Marshal(m)
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It also marshals extra fields.
 func (e EntityStatementPayload) MarshalJSON() ([]byte, error) {
 	type entityStatement EntityStatementPayload
 	explicitFields, err := json.Marshal(entityStatement(e))
@@ -152,22 +119,6 @@ func (e EntityStatementPayload) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return extraMarshalHelper(explicitFields, e.Extra)
-}
-
-func fieldTagNames(fields []*structs.Field, tag string) (names []string) {
-	for _, f := range fields {
-		if f == nil {
-			continue
-		}
-		t := f.Tag(tag)
-		if i := strings.IndexRune(t, ','); i > 0 {
-			t = t[:i]
-		}
-		if t != "" && t != "-" {
-			names = append(names, t)
-		}
-	}
-	return
 }
 
 func unmarshalWithExtra(data []byte, target interface{}) (map[string]interface{}, error) {
@@ -179,7 +130,7 @@ func unmarshalWithExtra(data []byte, target interface{}) (map[string]interface{}
 		return nil, err
 	}
 	s := structs.New(target)
-	for _, tag := range fieldTagNames(s.Fields(), "json") {
+	for _, tag := range utils.FieldTagNames(s.Fields(), "json") {
 		delete(extra, tag)
 	}
 	if len(extra) == 0 {
@@ -188,8 +139,9 @@ func unmarshalWithExtra(data []byte, target interface{}) (map[string]interface{}
 	return extra, nil
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It also unmarshalls additional fields into the Extra claim.
 func (e *EntityStatementPayload) UnmarshalJSON(data []byte) error {
-	fmt.Printf("----------\nUnmarshalling\n%s\n----------------\n", data)
 	type entityStatement EntityStatementPayload
 	ee := entityStatement(*e)
 	if ee.JWKS == nil {
@@ -204,19 +156,23 @@ func (e *EntityStatementPayload) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// ConstraintSpecification is type for holding constraints according to the oidc fed spec
 type ConstraintSpecification struct {
 	MaxPathLength          int               `json:"max_path_length,omitempty"`
 	NamingConstraints      NamingConstraints `json:"naming_constraints,omitempty"`
 	AllowedLeafEntityTypes []string          `json:"allowed_leaf_entity_types,omitempty"`
 }
 
+// NamingConstraints is a type for holding constraints about naming
 type NamingConstraints struct {
 	Permitted []string `json:"permitted,omitempty"`
 	Excluded  []string `json:"excluded,omitempty"`
 }
 
+// AllowedTrustMarkIssuers is type for defining which TrustMark can be issued by which entities
 type AllowedTrustMarkIssuers map[string][]string
 
+// ParseEntityStatement parses a jwt into an EntityStatement
 func ParseEntityStatement(statementJWT []byte) (*EntityStatement, error) {
 	m, err := jws.Parse(statementJWT)
 	if err != nil {

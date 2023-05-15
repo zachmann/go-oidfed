@@ -1129,7 +1129,7 @@ func TestPolicyOperatorSupersetOfApply(t *testing.T) {
 					if test.errExpected {
 						return
 					}
-					t.Errorf("did not expect error, but did not verify correctly")
+					t.Errorf("did not expect error, but did not verify correctly: %v", err)
 				} else if test.errExpected {
 					t.Errorf("expected error, but verified correctly")
 				}

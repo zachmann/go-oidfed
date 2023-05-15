@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"reflect"
+
 	"github.com/pkg/errors"
 
 	"github.com/zachmann/go-oidcfed/internal/utils"
@@ -33,18 +35,15 @@ func policyVerifierSubsetSupersetOf(p MetadataPolicyEntry, pathInfo string) erro
 	if !subset || !superset {
 		return nil
 	}
-	subsetVs := utils.Slicify(subsetV)
-	supersetVs := utils.Slicify(supersetV)
-	for _, super := range supersetVs {
-		if !utils.ReflectSliceContains(super, subsetVs) {
-			return errors.Errorf(
-				"after combining policies '%s' the '%s' operator value '%v' is not included in the '%s' operator",
-				pathInfo,
-				PolicyOperatorSupersetOf,
-				super,
-				PolicyOperatorSubsetOf,
-			)
-		}
+	if !utils.ReflectIsSubsetOf(supersetV, subsetV) {
+		return errors.Errorf(
+			"after combining policies '%s' the '%s' operator values '%v' are not all included in the '%s' operator '%v'",
+			pathInfo,
+			PolicyOperatorSupersetOf,
+			supersetV,
+			PolicyOperatorSubsetOf,
+			subsetV,
+		)
 	}
 	return nil
 }
@@ -55,18 +54,15 @@ func policyVerifyAddInSubset(p MetadataPolicyEntry, pathInfo string) error {
 	if !subset || !addSet {
 		return nil
 	}
-	subsetVs := utils.Slicify(subsetV)
-	addVs := utils.Slicify(addV)
-	for _, a := range addVs {
-		if !utils.ReflectSliceContains(a, subsetVs) {
-			return errors.Errorf(
-				"after combining policies '%s' the '%s' operator value '%v' is not included in the '%s' operator",
-				pathInfo,
-				PolicyOperatorAdd,
-				a,
-				PolicyOperatorSubsetOf,
-			)
-		}
+	if !utils.ReflectIsSubsetOf(addV, subsetV) {
+		return errors.Errorf(
+			"after combining policies '%s' the '%s' operator values '%v' are not all included in the '%s' operator '%v'",
+			pathInfo,
+			PolicyOperatorAdd,
+			addV,
+			PolicyOperatorSubsetOf,
+			subsetV,
+		)
 	}
 	return nil
 }
@@ -77,18 +73,15 @@ func policyVerifyDefaultInSubset(p MetadataPolicyEntry, pathInfo string) error {
 	if !subset || !defaultSet {
 		return nil
 	}
-	subsetVs := utils.Slicify(subsetV)
-	defaultVs := utils.Slicify(defaultV)
-	for _, d := range defaultVs {
-		if !utils.ReflectSliceContains(d, subsetVs) {
-			return errors.Errorf(
-				"after combining policies '%s' the '%s' operator value '%v' is not included in the '%s' operator",
-				pathInfo,
-				PolicyOperatorDefault,
-				d,
-				PolicyOperatorSubsetOf,
-			)
-		}
+	if !utils.ReflectIsSubsetOf(defaultV, subsetV) {
+		return errors.Errorf(
+			"after combining policies '%s' the '%s' operator values '%v' are not all included in the '%s' operator '%v'",
+			pathInfo,
+			PolicyOperatorDefault,
+			defaultV,
+			PolicyOperatorSubsetOf,
+			subsetV,
+		)
 	}
 	return nil
 }
@@ -100,14 +93,13 @@ func policyVerifyAddInOneOf(p MetadataPolicyEntry, pathInfo string) error {
 		return nil
 	}
 	addVs := utils.Slicify(addV)
-	if len(addVs) > 1 {
+	if reflect.ValueOf(addVs).Len() > 1 {
 		return errors.Errorf(
 			"cannot have multiple values in '%s' operator in combination with '%s' operator for '%s' policy",
 			PolicyOperatorAdd, PolicyOperatorOneOf, pathInfo,
 		)
 	}
-	oneOfVs := utils.Slicify(oneOfV)
-	if !utils.ReflectSliceContains(addVs[0], oneOfVs) {
+	if !utils.ReflectSliceContains(reflect.ValueOf(addVs).Index(0).Interface(), oneOfV) {
 		return errors.Errorf(
 			"after combining policies '%s' the '%s' operator value '%v' is not included in the '%s' operator",
 			pathInfo,
@@ -144,18 +136,15 @@ func policyVerifyDefaultSuperset(p MetadataPolicyEntry, pathInfo string) error {
 	if !superset || !defaultSet {
 		return nil
 	}
-	superVs := utils.Slicify(superV)
-	defaultVs := utils.Slicify(defaultV)
-	for _, s := range superVs {
-		if !utils.ReflectSliceContains(s, defaultVs) {
-			return errors.Errorf(
-				"after combining policies '%s' the '%s' operator value '%v' is not included in the '%s' operator",
-				pathInfo,
-				PolicyOperatorSupersetOf,
-				s,
-				PolicyOperatorDefault,
-			)
-		}
+	if !utils.ReflectIsSupersetOf(defaultV, superV) {
+		return errors.Errorf(
+			"after combining policies '%s' the '%s' operator values '%v' are not a superset of the '%s' operator '%v'",
+			pathInfo,
+			PolicyOperatorDefault,
+			defaultV,
+			PolicyOperatorSupersetOf,
+			superV,
+		)
 	}
 	return nil
 }
@@ -165,7 +154,7 @@ func policyVerifySubsetOfStillHasValues(p MetadataPolicyEntry, pathInfo string) 
 	if !subsetOfSet {
 		return nil
 	}
-	if len(utils.Slicify(subsetOf)) == 0 {
+	if subsetOf == nil || reflect.ValueOf(utils.Slicify(subsetOf)).Len() == 0 {
 		return errors.Errorf(
 			"policy_operator '%s' has no valid value after combining policies '%s'",
 			PolicyOperatorSubsetOf, pathInfo,
@@ -179,7 +168,7 @@ func policyVerifyOneOfStillHasValues(p MetadataPolicyEntry, pathInfo string) err
 	if !oneOfSet {
 		return nil
 	}
-	if len(utils.Slicify(oneOf)) == 0 {
+	if oneOf == nil || reflect.ValueOf(utils.Slicify(oneOf)).Len() == 0 {
 		return errors.Errorf(
 			"policy_operator '%s' has no valid value after combining policies '%s'",
 			PolicyOperatorOneOf, pathInfo,

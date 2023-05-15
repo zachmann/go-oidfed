@@ -229,7 +229,7 @@ func TestPolicyVerifierSubsetSupersetOf(t *testing.T) {
 					if test.errExpected {
 						t.Errorf("expected error, but verified correctly")
 					} else {
-						t.Errorf("did not expect error, but did not verify correctly")
+						t.Errorf("did not expect error, but did not verify correctly: %v", err)
 					}
 				}
 			},
@@ -355,7 +355,7 @@ func TestPolicyVerifyAddInSubset(t *testing.T) {
 					if test.errExpected {
 						t.Errorf("expected error, but verified correctly")
 					} else {
-						t.Errorf("did not expect error, but did not verify correctly")
+						t.Errorf("did not expect error, but did not verify correctly: %v", err)
 					}
 				}
 			},
@@ -721,7 +721,7 @@ func TestPolicyVerifyDefaultInSubset(t *testing.T) {
 					if test.errExpected {
 						t.Errorf("expected error, but verified correctly")
 					} else {
-						t.Errorf("did not expect error, but did not verify correctly")
+						t.Errorf("did not expect error, but did not verify correctly: %v", err)
 					}
 				}
 			},
@@ -846,7 +846,7 @@ func TestPolicyVerifyDefaultSuperset(t *testing.T) {
 					if test.errExpected {
 						t.Errorf("expected error, but verified correctly")
 					} else {
-						t.Errorf("did not expect error, but did not verify correctly")
+						t.Errorf("did not expect error, but did not verify correctly: %v", err)
 					}
 				}
 			},

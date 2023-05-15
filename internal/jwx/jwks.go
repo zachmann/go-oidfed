@@ -1,10 +1,11 @@
-package pkg
+package jwx
 
 import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 )
 
+// KeyToJWKS creates a jwk.Set from the passed publicKey and sets the algorithm key in the jwk.Key to the passed jwa.SignatureAlgorithm
 func KeyToJWKS(publicKey interface{}, alg jwa.SignatureAlgorithm) jwk.Set {
 	key, err := jwk.New(publicKey)
 	if err != nil {

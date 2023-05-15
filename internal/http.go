@@ -11,6 +11,7 @@ import (
 
 const federationSuffix = "/.well-known/openid-federation"
 
+// EntityStatementObtainer is interface for a type obtaining entity configurations and entity statements
 type EntityStatementObtainer interface {
 	GetEntityConfiguration(entityID string) ([]byte, error)
 	FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error)
@@ -21,13 +22,15 @@ type defaultHttpEntityStatementObtainer struct{}
 // DefaultHttpEntityStatementObtainer is the default EntityStatementObtainer to obtain entity statements through http
 var DefaultHttpEntityStatementObtainer defaultHttpEntityStatementObtainer
 
+// GetEntityConfiguration implements the EntityStatementObtainer interface
+// It returns the decoded entity configuration for a given entityID
 func (o defaultHttpEntityStatementObtainer) GetEntityConfiguration(entityID string) ([]byte, error) {
-	url := entityID
-	if strings.HasSuffix(url, "/") {
-		url = url[:len(url)-1]
+	uri := entityID
+	if strings.HasSuffix(uri, "/") {
+		uri = uri[:len(uri)-1]
 	}
-	url += federationSuffix
-	res, err := http.Get(url)
+	uri += federationSuffix
+	res, err := http.Get(uri)
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +40,8 @@ func (o defaultHttpEntityStatementObtainer) GetEntityConfiguration(entityID stri
 	return io.ReadAll(res.Body)
 }
 
+// FetchEntityStatement implements the EntityStatementObtainer interface
+// It fetches and returns the decoded entity statement about a given entityID issued by issID
 func (o defaultHttpEntityStatementObtainer) FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error) {
 	uri := fetchEndpoint
 	params := url.Values{}

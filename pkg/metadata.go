@@ -22,32 +22,61 @@ type policyApplicable interface {
 	ApplyPolicy(policy MetadataPolicy) (any, error)
 }
 
-func (m Metadata) ApplyPolicy(p MetadataPolicies) (*Metadata, error) {
+func (m Metadata) ApplyPolicy(p *MetadataPolicies) (*Metadata, error) {
+	if p == nil {
+		return &m, nil
+	}
 	t := reflect.TypeOf(m)
 	v := reflect.ValueOf(m)
 	out := &Metadata{}
 	for i := 0; i < t.NumField(); i++ {
-		policy, ok := reflect.ValueOf(p).Field(i).Interface().(MetadataPolicy)
-		if !ok {
-			fmt.Printf("skipping field '%s' because could not get policy\n", t.Field(i).Name) //TODO
-			continue
-		}
-		if policy == nil {
-			fmt.Printf("skipping field '%s' because policy not set \n", t.Field(i).Name) //TODO
-			continue
-		}
+		policy, policyOk := reflect.ValueOf(*p).Field(i).Interface().(MetadataPolicy)
 		metadata, ok := v.Field(i).Interface().(policyApplicable)
 		if !ok {
-			fmt.Printf("skipping field '%s' because field does not have ApplyPolicy func\n", t.Field(i).Name) //TODO
+			continue
+		}
+		if !policyOk || policy == nil {
+			reflect.Indirect(reflect.ValueOf(out)).Field(i).Set(reflect.ValueOf(metadata))
 			continue
 		}
 		applied, err := metadata.ApplyPolicy(policy)
 		if err != nil {
 			return nil, err
 		}
-		reflect.ValueOf(out).Field(i).Set(reflect.ValueOf(applied))
+		reflect.Indirect(reflect.ValueOf(out)).Field(i).Set(reflect.ValueOf(applied))
 	}
 	return out, nil
+}
+
+type metadatas interface {
+	OpenIDProviderMetadata | OpenIDRelyingPartyMetadata | OAuthAuthorizationServerMetadata | OAuthClientMetadata | OAuthProtectedResourceMetadata | FederationEntityMetadata
+}
+
+func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) (any, error) {
+	if policy == nil {
+		return metadata, nil
+	}
+	t := reflect.TypeOf(metadata)
+	v := reflect.ValueOf(&metadata)
+	for i := 0; i < t.NumField(); i++ {
+		j, ok := t.Field(i).Tag.Lookup("json")
+		if !ok {
+			continue
+		}
+		j = strings.TrimSuffix(j, ",omitempty")
+		p, ok := policy[j]
+		if !ok {
+			continue
+		}
+		f := reflect.Indirect(v).Field(i)
+		value, err := p.ApplyTo(f.Interface(), fmt.Sprintf("%s.%s", ownTag, j))
+		if err != nil {
+			return nil, err
+		}
+		f.Set(reflect.ValueOf(value))
+	}
+
+	return &metadata, nil
 }
 
 type OpenIDRelyingPartyMetadata struct {
@@ -146,29 +175,7 @@ func (m *OpenIDRelyingPartyMetadata) UnmarshalJSON(data []byte) error {
 }
 
 func (m OpenIDRelyingPartyMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
-	t := reflect.TypeOf(m)
-	v := reflect.ValueOf(&m)
-	for i := 0; i < t.NumField(); i++ {
-		j, ok := t.Field(i).Tag.Lookup("json")
-		if !ok {
-			fmt.Printf("skipping field '%s' because could not get json tag\n", t.Field(i).Name) //TODO
-			continue
-		}
-		j = strings.TrimSuffix(j, ",omitempty")
-		p, ok := policy[j]
-		if !ok {
-			fmt.Printf("skipping field '%s' because no policy defined\n", t.Field(i).Name) //TODO
-			continue
-		}
-		f := v.Field(i)
-		value, err := p.ApplyTo(f.Interface(), fmt.Sprintf("%s.%s", "openid_relying_party", j))
-		if err != nil {
-			return nil, err
-		}
-		f.Set(reflect.ValueOf(value))
-	}
-
-	return m, nil
+	return applyPolicy(m, policy, "openid_relying_party")
 }
 
 type OpenIDProviderMetadata struct {
@@ -275,8 +282,42 @@ func (m *OpenIDProviderMetadata) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (m OpenIDProviderMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
+	return applyPolicy(m, policy, "openid_provider")
+}
+
 type OAuthClientMetadata OpenIDRelyingPartyMetadata
 type OAuthAuthorizationServerMetadata OpenIDProviderMetadata
+
+func (m OAuthAuthorizationServerMetadata) MarshalJSON() ([]byte, error) {
+	return json.Marshal(OpenIDProviderMetadata(m))
+}
+func (m *OAuthAuthorizationServerMetadata) UnmarshalJSON(data []byte) error {
+	op := OpenIDProviderMetadata(*m)
+	if err := json.Unmarshal(data, &op); err != nil {
+		return err
+	}
+	*m = OAuthAuthorizationServerMetadata(op)
+	return nil
+}
+func (m OAuthAuthorizationServerMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
+	return applyPolicy(m, policy, "oauth_authorization_server")
+}
+
+func (m OAuthClientMetadata) MarshalJSON() ([]byte, error) {
+	return json.Marshal(OpenIDRelyingPartyMetadata(m))
+}
+func (m *OAuthClientMetadata) UnmarshalJSON(data []byte) error {
+	rp := OpenIDRelyingPartyMetadata(*m)
+	if err := json.Unmarshal(data, &rp); err != nil {
+		return err
+	}
+	*m = OAuthClientMetadata(rp)
+	return nil
+}
+func (m OAuthClientMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
+	return applyPolicy(m, policy, "oauth_client")
+}
 
 type OAuthProtectedResourceMetadata struct {
 	Resource                             string   `json:"resource,omitempty"`
@@ -325,6 +366,10 @@ func (m *OAuthProtectedResourceMetadata) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (m OAuthProtectedResourceMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
+	return applyPolicy(m, policy, "oauth_resource")
+}
+
 type FederationEntityMetadata struct {
 	FederationFetchEndpoint           string `json:"federation_fetch_endpoint,omitempty"`
 	FederationListEndpoint            string `json:"federation_list_endpoint,omitempty"`
@@ -359,4 +404,7 @@ func (m *FederationEntityMetadata) UnmarshalJSON(data []byte) error {
 	mm.Extra = extra
 	*m = FederationEntityMetadata(mm)
 	return nil
+}
+func (m FederationEntityMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
+	return applyPolicy(m, policy, "federation_entity")
 }

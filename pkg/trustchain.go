@@ -4,8 +4,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TrustChain is a slice of *EntityStatements
 type TrustChain []*EntityStatement
 
+// ExpiresAt returns the expiration time of the TrustChain as a UNIX time stamp
 func (c TrustChain) ExpiresAt() int64 {
 	if len(c) == 0 {
 		return 0
@@ -19,6 +21,8 @@ func (c TrustChain) ExpiresAt() int64 {
 	return exp
 }
 
+// Metadata returns the final Metadata for this TrustChain,
+// i.e. the Metadata of the leaf entity with MetadataPolicies of authorities applied to it.
 func (c TrustChain) Metadata() (*Metadata, error) {
 	if len(c) == 0 {
 		return nil, errors.New("trust chain empty")
@@ -27,7 +31,7 @@ func (c TrustChain) Metadata() (*Metadata, error) {
 		return c[0].Metadata, nil
 	}
 	combinedPolicy := c[len(c)-1].MetadataPolicy
-	metadataPolicies := make([]MetadataPolicies, len(c))
+	metadataPolicies := make([]*MetadataPolicies, len(c))
 	for i, stmt := range c {
 		metadataPolicies[i] = stmt.MetadataPolicy
 	}
@@ -35,5 +39,9 @@ func (c TrustChain) Metadata() (*Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	return c[0].Metadata.ApplyPolicy(combinedPolicy)
+	m := c[0].Metadata
+	if m == nil {
+		m = &Metadata{}
+	}
+	return m.ApplyPolicy(combinedPolicy)
 }
