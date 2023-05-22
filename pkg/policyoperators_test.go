@@ -336,7 +336,7 @@ func TestPolicyOperatorAddApply(t *testing.T) {
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
-				result, err := op.Apply(test.value, test.policyValue, test.pathInfo)
+				result, err := op.Apply(test.value, test.policyValue, false, test.pathInfo)
 				if err != nil {
 					if test.errExpected {
 						return
@@ -478,6 +478,7 @@ func TestPolicyOperatorSubsetOfMerge(t *testing.T) {
 func TestPolicyOperatorSubsetOfApply(t *testing.T) {
 	tests := []struct {
 		name        string
+		essential   bool
 		value       any
 		policyValue any
 		pathInfo    string
@@ -493,8 +494,29 @@ func TestPolicyOperatorSubsetOfApply(t *testing.T) {
 			errExpected: false,
 		},
 		{
+			name:        "both nil essential",
+			essential:   true,
+			value:       nil,
+			policyValue: nil,
+			pathInfo:    "test",
+			expected:    nil,
+			errExpected: false,
+		},
+		{
 			name:  "value nil",
 			value: nil,
+			policyValue: []string{
+				"a",
+				"b",
+			},
+			pathInfo:    "test",
+			expected:    nil,
+			errExpected: false,
+		},
+		{
+			name:      "value nil essential",
+			essential: true,
+			value:     nil,
 			policyValue: []string{
 				"a",
 				"b",
@@ -505,6 +527,21 @@ func TestPolicyOperatorSubsetOfApply(t *testing.T) {
 		},
 		{
 			name: "policy nil",
+			value: []string{
+				"a",
+				"b",
+			},
+			policyValue: nil,
+			pathInfo:    "test",
+			expected: []string{
+				"a",
+				"b",
+			},
+			errExpected: false,
+		},
+		{
+			name:      "policy nil essential",
+			essential: true,
 			value: []string{
 				"a",
 				"b",
@@ -556,7 +593,6 @@ func TestPolicyOperatorSubsetOfApply(t *testing.T) {
 			name: "no subset",
 			value: []string{
 				"a",
-				"b",
 				"c",
 				"d",
 			},
@@ -565,8 +601,12 @@ func TestPolicyOperatorSubsetOfApply(t *testing.T) {
 				"b",
 				"c",
 			},
-			pathInfo:    "test",
-			errExpected: true,
+			pathInfo: "test",
+			expected: []string{
+				"a",
+				"c",
+			},
+			errExpected: false,
 		},
 		{
 			name: "distinct",
@@ -579,6 +619,22 @@ func TestPolicyOperatorSubsetOfApply(t *testing.T) {
 				"d",
 			},
 			pathInfo:    "test",
+			expected:    nil,
+			errExpected: false,
+		},
+		{
+			name:      "distinct essential",
+			essential: true,
+			value: []string{
+				"a",
+				"b",
+			},
+			policyValue: []string{
+				"c",
+				"d",
+			},
+			pathInfo:    "test",
+			expected:    nil,
 			errExpected: true,
 		},
 	}
@@ -586,7 +642,7 @@ func TestPolicyOperatorSubsetOfApply(t *testing.T) {
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
-				result, err := op.Apply(test.value, test.policyValue, test.pathInfo)
+				result, err := op.Apply(test.value, test.policyValue, test.essential, test.pathInfo)
 				if err != nil {
 					if test.errExpected {
 						return
@@ -775,6 +831,7 @@ func TestPolicyOperatorOneOfMerge(t *testing.T) {
 func TestPolicyOperatorOneOfApply(t *testing.T) {
 	tests := []struct {
 		name        string
+		essential   bool
 		value       any
 		policyValue any
 		pathInfo    string
@@ -790,7 +847,25 @@ func TestPolicyOperatorOneOfApply(t *testing.T) {
 			errExpected: false,
 		},
 		{
+			name:        "both nil",
+			essential:   true,
+			value:       nil,
+			policyValue: nil,
+			pathInfo:    "test",
+			expected:    nil,
+			errExpected: false,
+		},
+		{
 			name:        "policy nil",
+			value:       "value",
+			policyValue: nil,
+			pathInfo:    "test",
+			expected:    "value",
+			errExpected: false,
+		},
+		{
+			name:        "policy nil; essential",
+			essential:   true,
 			value:       "value",
 			policyValue: nil,
 			pathInfo:    "test",
@@ -800,6 +875,18 @@ func TestPolicyOperatorOneOfApply(t *testing.T) {
 		{
 			name:  "value nil",
 			value: nil,
+			policyValue: []string{
+				"a",
+				"b",
+			},
+			pathInfo:    "test",
+			expected:    nil,
+			errExpected: false,
+		},
+		{
+			name:      "value nil; essential",
+			value:     nil,
+			essential: true,
 			policyValue: []string{
 				"a",
 				"b",
@@ -850,7 +937,7 @@ func TestPolicyOperatorOneOfApply(t *testing.T) {
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
-				result, err := op.Apply(test.value, test.policyValue, test.pathInfo)
+				result, err := op.Apply(test.value, test.policyValue, test.essential, test.pathInfo)
 				if err != nil {
 					if test.errExpected {
 						return
@@ -1019,6 +1106,7 @@ func TestPolicyOperatorSupersetOfMerge(t *testing.T) {
 func TestPolicyOperatorSupersetOfApply(t *testing.T) {
 	tests := []struct {
 		name        string
+		essential   bool
 		value       any
 		policyValue any
 		pathInfo    string
@@ -1034,7 +1122,30 @@ func TestPolicyOperatorSupersetOfApply(t *testing.T) {
 			errExpected: false,
 		},
 		{
+			name:        "both nil; essential",
+			essential:   true,
+			value:       nil,
+			policyValue: nil,
+			pathInfo:    "test",
+			expected:    nil,
+			errExpected: false,
+		},
+		{
 			name: "policy nil",
+			value: []string{
+				"a",
+				"b",
+			},
+			policyValue: nil,
+			pathInfo:    "test",
+			expected: []string{
+				"a",
+				"b",
+			},
+			errExpected: false,
+		},
+		{
+			name: "policy nil; essential",
 			value: []string{
 				"a",
 				"b",
@@ -1066,10 +1177,26 @@ func TestPolicyOperatorSupersetOfApply(t *testing.T) {
 			value:       nil,
 			policyValue: []string{"a"},
 			pathInfo:    "test",
+			errExpected: false,
+		},
+		{
+			name:        "value nil; essential",
+			essential:   true,
+			value:       nil,
+			policyValue: []string{"a"},
+			pathInfo:    "test",
 			errExpected: true,
 		},
 		{
 			name:        "value empty",
+			value:       []string{},
+			policyValue: []string{"a"},
+			pathInfo:    "test",
+			errExpected: true,
+		},
+		{
+			name:        "value empty; essential",
+			essential:   true,
 			value:       []string{},
 			policyValue: []string{"a"},
 			pathInfo:    "test",
@@ -1124,7 +1251,7 @@ func TestPolicyOperatorSupersetOfApply(t *testing.T) {
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
-				result, err := op.Apply(test.value, test.policyValue, test.pathInfo)
+				result, err := op.Apply(test.value, test.policyValue, test.essential, test.pathInfo)
 				if err != nil {
 					if test.errExpected {
 						return
@@ -1313,7 +1440,7 @@ func TestPolicyOperatorValueApply(t *testing.T) {
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
-				result, err := op.Apply(test.value, test.policyValue, test.pathInfo)
+				result, err := op.Apply(test.value, test.policyValue, false, test.pathInfo)
 				if err != nil {
 					if test.errExpected {
 						return
@@ -1522,7 +1649,7 @@ func TestPolicyOperatorDefaultApply(t *testing.T) {
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
-				result, err := op.Apply(test.value, test.policyValue, test.pathInfo)
+				result, err := op.Apply(test.value, test.policyValue, false, test.pathInfo)
 				if err != nil {
 					if test.errExpected {
 						return
@@ -1726,7 +1853,7 @@ func TestPolicyOperatorEssentialApply(t *testing.T) {
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
-				result, err := op.Apply(test.value, test.policyValue, test.pathInfo)
+				result, err := op.Apply(test.value, test.policyValue, false, test.pathInfo)
 				if err != nil {
 					if test.errExpected {
 						return

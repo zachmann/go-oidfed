@@ -167,6 +167,11 @@ func (p MetadataPolicyEntry) Verify(pathInfo string) error {
 func (p MetadataPolicyEntry) ApplyTo(value any, pathInfo string) (any, error) {
 	var err error
 	doTheChecks := false
+	essentialV, ok := p[PolicyOperatorEssential]
+	essential := false
+	if ok {
+		essential, _ = essentialV.(bool)
+	}
 	for i := 0; i < 2; i++ { // we go twice through the policies; first only applying modifiers, then the checks
 		for policyName, policyValue := range p {
 			operator, found := operators[policyName]
@@ -176,7 +181,7 @@ func (p MetadataPolicyEntry) ApplyTo(value any, pathInfo string) (any, error) {
 			if operator.IsModifier() == doTheChecks {
 				continue
 			}
-			value, err = operator.Apply(value, policyValue, pathInfo)
+			value, err = operator.Apply(value, policyValue, essential, pathInfo)
 			if err != nil {
 				return value, err
 			}

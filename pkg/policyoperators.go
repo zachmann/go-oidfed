@@ -10,7 +10,7 @@ import (
 
 type PolicyOperator interface {
 	Merge(a, b any, pathInfo string) (any, error)
-	Apply(value, policyValue any, pathInfo string) (any, error)
+	Apply(value, policyValue any, essential bool, pathInfo string) (any, error)
 	Name() PolicyOperatorName
 	IsModifier() bool
 }
@@ -35,7 +35,7 @@ type policyOperator struct {
 	name     PolicyOperatorName
 	modifier bool
 	merger   func(a, b any, pathInfo string) (any, error)
-	applier  func(value, policyValue any, pathInfo string) (any, error)
+	applier  func(value, policyValue any, essential bool, pathInfo string) (any, error)
 }
 
 func (op policyOperator) Name() PolicyOperatorName {
@@ -44,8 +44,8 @@ func (op policyOperator) Name() PolicyOperatorName {
 func (op policyOperator) Merge(a, b any, pathInfo string) (any, error) {
 	return op.merger(a, b, pathInfo)
 }
-func (op policyOperator) Apply(value, policyValue any, pathInfo string) (any, error) {
-	return op.applier(value, policyValue, pathInfo)
+func (op policyOperator) Apply(value, policyValue any, essential bool, pathInfo string) (any, error) {
+	return op.applier(value, policyValue, essential, pathInfo)
 }
 func (op policyOperator) IsModifier() bool {
 	return op.modifier
@@ -55,7 +55,7 @@ func NewPolicyOperator(
 	name PolicyOperatorName,
 	isModifier bool,
 	merger func(a, b any, pathInfo string) (any, error),
-	applier func(value, policyValue any, pathInfo string) (any, error),
+	applier func(value, policyValue any, essential bool, pathInfo string) (any, error),
 ) PolicyOperator {
 	return policyOperator{
 		name:     name,
@@ -77,7 +77,7 @@ var policyOperatorAdd = NewPolicyOperator(
 		}
 		return utils.ReflectUnion(a, b), nil
 	},
-	func(value, policyValue any, _ string) (any, error) {
+	func(value, policyValue any, _ bool, _ string) (any, error) {
 		if value == nil {
 			return policyValue, nil
 		}
@@ -90,7 +90,7 @@ var policyOperatorAdd = NewPolicyOperator(
 
 var policyOperatorSubsetOf = NewPolicyOperator(
 	PolicyOperatorSubsetOf,
-	false,
+	true,
 	func(a, b any, _ string) (any, error) {
 		if a == nil {
 			return b, nil
@@ -100,28 +100,32 @@ var policyOperatorSubsetOf = NewPolicyOperator(
 		}
 		return utils.ReflectIntersect(a, b), nil
 	},
-	func(value, policyValue any, pathInfo string) (any, error) {
+	func(value, policyValue any, essential bool, pathInfo string) (any, error) {
+		if value == nil && !essential {
+			return value, nil
+		}
 		if policyValue == nil {
 			return value, nil
 		}
 		p := utils.Slicify(policyValue)
-		if value == nil { // policyValue is not nil
-			if reflect.ValueOf(p).Len() == 0 {
-				return value, nil
-			}
+		if value == nil { // policyValue is not nil and value is essential
 			return value, errors.Errorf(
-				"policy operator check failed: '%s' not set, but must be subset of '%+q'",
+				"policy operator check failed: '%s' not set, but essential and must be one of '%+q'",
 				pathInfo, policyValue,
 			)
 		}
 		v := utils.Slicify(value)
-		if reflect.ValueOf(v).Len() != reflect.ValueOf(utils.ReflectIntersect(v, p)).Len() {
-			return value, errors.Errorf(
-				"policy operator check failed for '%s': '%+q' is not a subset of '%+q'",
-				pathInfo, v, p,
-			)
+		newValue := utils.ReflectIntersect(v, p)
+		if reflect.ValueOf(newValue).Len() == 0 {
+			newValue = nil
+			if essential {
+				return newValue, errors.Errorf(
+					"policy operator check failed for '%s': '%+q' is not subset of '%+q' but essential",
+					pathInfo, value, p,
+				)
+			}
 		}
-		return value, nil
+		return newValue, nil
 	},
 )
 
@@ -137,17 +141,17 @@ var policyOperatorOneOf = NewPolicyOperator(
 		}
 		return utils.ReflectIntersect(a, b), nil
 	},
-	func(value, policyValue any, pathInfo string) (any, error) {
+	func(value, policyValue any, essential bool, pathInfo string) (any, error) {
+		if value == nil && !essential {
+			return value, nil
+		}
 		if policyValue == nil {
 			return value, nil
 		}
 		p := utils.Slicify(policyValue)
-		if value == nil { // policyValue is not nil
-			if reflect.ValueOf(p).Len() == 0 {
-				return value, nil
-			}
+		if value == nil { // policyValue is not nil and value is essential
 			return value, errors.Errorf(
-				"policy operator check failed: '%s' not set, but must be one of '%+q'",
+				"policy operator check failed: '%s' not set, but essential and must be one of '%+q'",
 				pathInfo, policyValue,
 			)
 		}
@@ -173,17 +177,17 @@ var policyOperatorSupersetOf = NewPolicyOperator(
 		}
 		return utils.ReflectUnion(a, b), nil
 	},
-	func(value, policyValue any, pathInfo string) (any, error) {
+	func(value, policyValue any, essential bool, pathInfo string) (any, error) {
+		if value == nil && !essential {
+			return value, nil
+		}
 		if policyValue == nil {
 			return value, nil
 		}
 		p := utils.Slicify(policyValue)
-		if value == nil { // policyValue is not nil
-			if reflect.ValueOf(p).Len() == 0 {
-				return value, nil
-			}
+		if value == nil { // policyValue is not nil and value is essential
 			return value, errors.Errorf(
-				"policy operator check failed: '%s' not set, but must be superset of '%+q'",
+				"policy operator check failed: '%s' not set, but essential and must be superset of '%+q'",
 				pathInfo, policyValue,
 			)
 		}
@@ -216,7 +220,7 @@ var policyOperatorValue = NewPolicyOperator(
 			"conflicting values '%v' and '%v' when merging '%s' operator in '%s'", a, b, PolicyOperatorValue, pathInfo,
 		)
 	},
-	func(value, policyValue any, pathInfo string) (any, error) {
+	func(value, policyValue any, _ bool, pathInfo string) (any, error) {
 		if policyValue == nil {
 			return value, nil
 		}
@@ -242,7 +246,7 @@ var policyOperatorDefault = NewPolicyOperator(
 			pathInfo,
 		)
 	},
-	func(value, policyValue any, pathInfo string) (any, error) {
+	func(value, policyValue any, _ bool, pathInfo string) (any, error) {
 		if value == nil || reflect.ValueOf(value).IsZero() {
 			return policyValue, nil
 		}
@@ -267,7 +271,7 @@ var policyOperatorEssential = NewPolicyOperator(
 		}
 		return ab || bb, nil
 	},
-	func(value, policyValue any, pathInfo string) (any, error) {
+	func(value, policyValue any, _ bool, pathInfo string) (any, error) {
 		if policyValue == nil {
 			return value, nil
 		}
