@@ -12,12 +12,15 @@ import (
 	"github.com/zachmann/go-oidcfed/internal/utils"
 )
 
+// TrustResolver is type for resolving trust chains from a StartingEntity to one or multiple TrustAnchors
 type TrustResolver struct {
 	TrustAnchors   []string
 	StartingEntity string
 	trustTree      trustTree
 }
 
+// ResolveToValidChains starts the trust chain resolution process, building an internal trust tree,
+// verifies the signatures, integrity, and expirations and returns all possible valid TrustChains
 func (r *TrustResolver) ResolveToValidChains() TrustChains {
 	r.Resolve()
 	r.trustTree.debugprint(0)
@@ -25,6 +28,7 @@ func (r *TrustResolver) ResolveToValidChains() TrustChains {
 	return r.Chains()
 }
 
+// Resolve starts the trust chain resolution process, building an internal trust tree
 func (r *TrustResolver) Resolve() {
 	starting, err := getEntityConfiguration(r.StartingEntity)
 	if err != nil {
@@ -34,10 +38,12 @@ func (r *TrustResolver) Resolve() {
 	r.trustTree.resolve(r.TrustAnchors)
 }
 
+// VerifySignatures verifies the signatures of the internal trust tree
 func (r *TrustResolver) VerifySignatures() {
 	r.trustTree.verifySignatures(r.TrustAnchors)
 }
 
+// Chains returns the TrustChains in the itnernal trust tree
 func (r TrustResolver) Chains() (chains TrustChains) {
 	cs := r.trustTree.chains()
 	if cs == nil {
@@ -49,6 +55,7 @@ func (r TrustResolver) Chains() (chains TrustChains) {
 	return
 }
 
+// trustTree is a type for holding EntityStatements in a tree
 type trustTree struct {
 	Entity      *EntityStatement
 	Subordinate *EntityStatement
