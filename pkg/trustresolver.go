@@ -1,14 +1,10 @@
 package pkg
 
 import (
-	"encoding/base64"
-	"fmt"
-	"strings"
 	"time"
 
-	"github.com/patrickmn/go-cache"
-
 	"github.com/zachmann/go-oidcfed/internal"
+	"github.com/zachmann/go-oidcfed/internal/cache"
 	"github.com/zachmann/go-oidcfed/internal/utils"
 )
 
@@ -23,7 +19,6 @@ type TrustResolver struct {
 // verifies the signatures, integrity, and expirations and returns all possible valid TrustChains
 func (r *TrustResolver) ResolveToValidChains() TrustChains {
 	r.Resolve()
-	r.trustTree.debugprint(0)
 	r.VerifySignatures()
 	return r.Chains()
 }
@@ -60,24 +55,6 @@ type trustTree struct {
 	Entity      *EntityStatement
 	Subordinate *EntityStatement
 	Authorities []trustTree
-}
-
-// TODO remove
-func (t trustTree) debugprint(depth int) {
-	if t.Entity == nil {
-		return
-	}
-	p := t.Entity.Issuer
-	if t.Subordinate != nil {
-		p += fmt.Sprintf(" -> %s", t.Subordinate.Subject)
-	}
-	fmt.Printf("%s%s\n", strings.Repeat(" ", 4*depth), p)
-	for _, tt := range t.Authorities {
-		tt.debugprint(depth + 1)
-	}
-	if depth == 0 {
-		fmt.Println()
-	}
 }
 
 func (t *trustTree) resolve(anchors []string) {
@@ -163,23 +140,19 @@ func (t trustTree) chains() (chains []TrustChain) {
 	return
 }
 
-var entityStatementCache *cache.Cache
+var entityStatementObtainer internal.EntityStatementObtainer
 
 func init() {
-	entityStatementCache = cache.New(time.Hour, 27*time.Minute)
-}
-
-func cacheKey(subID, issID string) string {
-	return base64.URLEncoding.EncodeToString([]byte(subID)) + ":" + base64.URLEncoding.EncodeToString([]byte(issID))
+	entityStatementObtainer = internal.DefaultHttpEntityStatementObtainer
 }
 
 func entityStmtCacheSet(subID, issID string, stmt *EntityStatement) {
-	entityStatementCache.Set(
-		cacheKey(subID, issID), stmt, (time.Duration)(stmt.ExpiresAt-time.Now().Unix())*time.Second,
+	cache.Set(
+		cache.EntityStmtCacheKey(subID, issID), stmt, (time.Duration)(stmt.ExpiresAt-time.Now().Unix())*time.Second,
 	)
 }
 func entityStmtCacheGet(subID, issID string) *EntityStatement {
-	e, ok := entityStatementCache.Get(cacheKey(subID, issID))
+	e, ok := cache.Get(cache.EntityStmtCacheKey(subID, issID))
 	if !ok {
 		return nil
 	}
@@ -188,12 +161,6 @@ func entityStmtCacheGet(subID, issID string) *EntityStatement {
 		return nil
 	}
 	return stmt
-}
-
-var entityStatementObtainer internal.EntityStatementObtainer
-
-func init() {
-	entityStatementObtainer = internal.DefaultHttpEntityStatementObtainer
 }
 
 func getEntityConfiguration(entityID string) (*EntityStatement, error) {

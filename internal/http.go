@@ -15,6 +15,7 @@ const federationSuffix = "/.well-known/openid-federation"
 type EntityStatementObtainer interface {
 	GetEntityConfiguration(entityID string) ([]byte, error)
 	FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error)
+	ListEntities(listEndpoint, entityType string) ([]byte, error)
 }
 
 type defaultHttpEntityStatementObtainer struct{}
@@ -47,6 +48,23 @@ func (o defaultHttpEntityStatementObtainer) FetchEntityStatement(fetchEndpoint, 
 	params := url.Values{}
 	params.Add("sub", subID)
 	params.Add("iss", issID)
+	uri += "?" + params.Encode()
+	res, err := http.Get(uri)
+	if err != nil {
+		return nil, err
+	}
+	if status := res.StatusCode; status >= 300 {
+		return nil, errors.Errorf("could not obtain entity statement, received status code %d", status)
+	}
+	return io.ReadAll(res.Body)
+}
+
+// ListEntities implements the EntityStatementObtainer interface
+// It fetches and returns the entity list from the passed listendpoint
+func (o defaultHttpEntityStatementObtainer) ListEntities(listEndpoint, entityType string) ([]byte, error) {
+	uri := listEndpoint
+	params := url.Values{}
+	params.Add("entity_type", entityType)
 	uri += "?" + params.Encode()
 	res, err := http.Get(uri)
 	if err != nil {
