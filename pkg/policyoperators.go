@@ -224,7 +224,7 @@ var policyOperatorValue = NewPolicyOperator(
 		if policyValue == nil {
 			return value, nil
 		}
-		return policyValue, nil
+		return utils.ReflectSliceCast(policyValue, utils.Slicify(value)), nil
 	},
 )
 
@@ -248,7 +248,7 @@ var policyOperatorDefault = NewPolicyOperator(
 	},
 	func(value, policyValue any, _ bool, pathInfo string) (any, error) {
 		if value == nil || reflect.ValueOf(value).IsZero() {
-			return policyValue, nil
+			return utils.ReflectSliceCast(policyValue, utils.Slicify(value)), nil
 		}
 		return value, nil
 	},

@@ -3,9 +3,10 @@ package pkg
 import (
 	"crypto"
 	"encoding/json"
+	"time"
+
 	"github.com/zachmann/go-oidcfed/internal/jwx"
 	"github.com/zachmann/go-oidcfed/internal/utils"
-	"time"
 
 	"github.com/fatih/structs"
 	"github.com/lestrrat-go/jwx/jwa"
@@ -13,6 +14,8 @@ import (
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/pkg/errors"
 )
+
+const defaultEntityConfigurationLifetime = 86400 // 1d
 
 // EntityStatement is a type for holding an entity statement, more precisely an entity statement that was obtained
 // as a jwt and created by us

@@ -12,6 +12,58 @@ func SliceContains[C comparable](v C, slice []C) bool {
 	return false
 }
 
+func ReflectSliceCast(slice any, newType any) any {
+	if !IsSlice(slice) {
+		return slice
+	}
+	typeType := reflect.TypeOf(newType)
+	sliceV := reflect.ValueOf(slice)
+	out := reflect.MakeSlice(typeType, sliceV.Len(), sliceV.Len())
+	for i := 0; i < sliceV.Len(); i++ {
+		vv := sliceV.Index(i)
+		var v reflect.Value
+		// This is stupid and has faults, but I did not find a better way
+		switch typeType.Elem().Kind() {
+		case reflect.Bool:
+			v = reflect.ValueOf(vv.Interface().(bool))
+		case reflect.Int:
+			v = reflect.ValueOf(vv.Interface().(int))
+		case reflect.Int8:
+			v = reflect.ValueOf(vv.Interface().(int8))
+		case reflect.Int16:
+			v = reflect.ValueOf(vv.Interface().(int16))
+		case reflect.Int32:
+			v = reflect.ValueOf(vv.Interface().(int32))
+		case reflect.Int64:
+			v = reflect.ValueOf(vv.Interface().(int64))
+		case reflect.Uint:
+			v = reflect.ValueOf(vv.Interface().(uint))
+		case reflect.Uint8:
+			v = reflect.ValueOf(vv.Interface().(uint8))
+		case reflect.Uint16:
+			v = reflect.ValueOf(vv.Interface().(uint16))
+		case reflect.Uint32:
+			v = reflect.ValueOf(vv.Interface().(uint32))
+		case reflect.Uint64:
+			v = reflect.ValueOf(vv.Interface().(uint64))
+		case reflect.Uintptr:
+			v = reflect.ValueOf(vv.Interface().(*uint))
+		case reflect.Float32:
+			v = reflect.ValueOf(vv.Interface().(float32))
+		case reflect.Float64:
+			v = reflect.ValueOf(vv.Interface().(float64))
+		case reflect.Interface:
+			v = vv
+		case reflect.String:
+			v = reflect.ValueOf(vv.Interface().(string))
+		default:
+			v = vv.Convert(typeType.Elem())
+		}
+		out.Index(i).Set(v)
+	}
+	return out.Interface()
+}
+
 // ReflectSliceContains checks if a slice contains a value using reflection
 func ReflectSliceContains(v any, slice any) bool {
 	if !IsSlice(slice) {

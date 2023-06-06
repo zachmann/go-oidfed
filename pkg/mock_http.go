@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"encoding/json"
+
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/pkg/errors"
 )
@@ -54,6 +56,17 @@ func (d mockHttp) FetchEntityStatement(fetchEndpoint, subID, issID string) ([]by
 		return nil, errors.New("entity statement not found")
 	}
 	return data, nil
+}
+
+func (d mockHttp) ListEntities(listEndpoint, entityType string) ([]byte, error) {
+	//TODO entityType
+	var entities []string
+	for _, a := range d.entityStatements {
+		for sub, _ := range a {
+			entities = append(entities, sub)
+		}
+	}
+	return json.Marshal(entities)
 }
 
 func (d *mockHttp) AddRP(r mockRP) {

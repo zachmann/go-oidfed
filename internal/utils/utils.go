@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/fatih/structs"
 	"reflect"
 	"strings"
+
+	"github.com/fatih/structs"
 )
 
 // Equal compares multiple comparable values for equality
@@ -36,4 +37,14 @@ func FieldTagNames(fields []*structs.Field, tag string) (names []string) {
 		}
 	}
 	return
+}
+
+func FirstNonEmpty[C comparable](possibleValues ...C) C {
+	var nullValue C
+	for _, v := range possibleValues {
+		if v != nullValue {
+			return v
+		}
+	}
+	return nullValue
 }
