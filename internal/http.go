@@ -31,6 +31,7 @@ func (o defaultHttpEntityStatementObtainer) GetEntityConfiguration(entityID stri
 		uri = uri[:len(uri)-1]
 	}
 	uri += federationSuffix
+	Logf("Obtaining entity configuration from %+q", uri)
 	res, err := http.Get(uri)
 	if err != nil {
 		return nil, err

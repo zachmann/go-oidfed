@@ -15,7 +15,6 @@ func init() {
 
 const (
 	KeyEntityStatement = "entity_statement"
-	KeyListEndpoint    = "list_endpoint"
 )
 
 func Key(subsystem string, subkey string) string {
@@ -25,11 +24,6 @@ func Key(subsystem string, subkey string) string {
 func EntityStmtCacheKey(subID, issID string) string {
 	subkey := base64.URLEncoding.EncodeToString([]byte(subID)) + ":" + base64.URLEncoding.EncodeToString([]byte(issID))
 	return Key(KeyEntityStatement, subkey)
-}
-
-func ListingCacheKey(endpoint, entityType string) string {
-	subkey := base64.URLEncoding.EncodeToString([]byte(endpoint)) + ":" + entityType
-	return Key(KeyListEndpoint, subkey)
 }
 
 func Set(key string, value any, duration time.Duration) {

@@ -1,0 +1,11 @@
+server_addr: ":3333"
+entity_id: "https://gorp.fedservice.lh"
+organisation_name: go-oidcfed
+trust_anchors:
+  - "https://trust-anchor.spid-cie.fedservice.lh/"
+  - "https://swamid.fedservice.lh/"
+authority_hints:
+  - "https://trust-anchor.spid-cie.fedservice.lh/"
+key_storage: /keys
+filter_to_automatic_ops: false
+enable_debug_log: true

@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/zachmann/go-oidcfed/pkg"
 )
 
 type config struct {
@@ -15,6 +17,7 @@ type config struct {
 	ServerAddr       string   `yaml:"server_addr"`
 	KeyStorage       string   `yaml:"key_storage"`
 	OnlyAutomaticOPs bool     `yaml:"filter_to_automatic_ops"`
+	EnableDebugLog   bool     `yaml:"enable_debug_log"`
 }
 
 var conf *config
@@ -37,5 +40,8 @@ func mustLoadConfig() {
 	}
 	if !d.IsDir() {
 		log.Fatalf("key_storage '%s' must be a directory", conf.KeyStorage)
+	}
+	if conf.EnableDebugLog {
+		pkg.EnableDebugLogging()
 	}
 }

@@ -2,10 +2,12 @@ package jwx
 
 import (
 	"crypto"
+
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/pkg/errors"
+
 	"github.com/zachmann/go-oidcfed/internal/utils"
 )
 
@@ -49,6 +51,27 @@ func VerifyWithSet(msg *jws.Message, keys jwk.Set) ([]byte, error) {
 func SignEntityStatement(payload []byte, signingAlg jwa.SignatureAlgorithm, key crypto.Signer) ([]byte, error) {
 	headers := jws.NewHeaders()
 	if err := headers.Set(jws.TypeKey, "entity-statement+jwt"); err != nil {
+		return nil, err
+	}
+	return SignPayload(payload, signingAlg, key, headers)
+}
+
+// SignPayload signs a payload with the passed properties and adds the kid to the jwt header
+func SignPayload(payload []byte, signingAlg jwa.SignatureAlgorithm, key crypto.Signer, headers jws.Headers) (
+	[]byte,
+	error,
+) {
+	k, err := jwk.New(key)
+	if err != nil {
+		return nil, err
+	}
+	if err = jwk.AssignKeyID(k); err != nil {
+		return nil, err
+	}
+	if headers == nil {
+		headers = jws.NewHeaders()
+	}
+	if err = headers.Set(jws.KeyIDKey, k.KeyID()); err != nil {
 		return nil, err
 	}
 	return jws.Sign(payload, signingAlg, key, jws.WithHeaders(headers))

@@ -5,7 +5,7 @@ import (
 
 	arrayops "github.com/adam-hanna/arrayOperations"
 
-	"github.com/zachmann/go-oidcfed/internal/cache"
+	"github.com/zachmann/go-oidcfed/internal"
 	"github.com/zachmann/go-oidcfed/internal/utils"
 )
 
@@ -35,34 +35,41 @@ type FilterableVerifiedChainsOPDiscoverer struct {
 }
 
 func (d SimpleOPDiscoverer) Discover(authorities ...string) (opInfos []*OpenIDProviderMetadata) {
+	internal.Logf("Discovering OPs for authorities: %+q", authorities)
 	for _, a := range authorities {
-		var ops []string
+		internal.Logf("Discovering OPs and subordinates for: %+q", a)
 		stmt, err := getEntityConfiguration(a)
 		if err != nil {
+			internal.Logf("Could not get entity configuration: %s -> skipping", err.Error())
 			continue
 		}
 		if stmt.Metadata == nil || stmt.Metadata.FederationEntity == nil || stmt.Metadata.FederationEntity.
 			FederationListEndpoint == "" {
+			internal.Log("Could not get list endpoint from metadata -> skipping")
 			continue
 		}
 		thoseOPs, err := fetchList(stmt.Metadata.FederationEntity.FederationListEndpoint, "openid_provider")
 		if err == nil {
-			ops = arrayops.Union(ops, thoseOPs)
-		}
-		for _, op := range ops {
-			entityConfig, err := getEntityConfiguration(op)
-			if err != nil {
-				continue
+			internal.Logf("Found these (possible) OPs: %+q", thoseOPs)
+			for _, op := range thoseOPs {
+				internal.Logf("Checking OP: %+q", op)
+				entityConfig, err := getEntityConfiguration(op)
+				if err != nil {
+					internal.Logf("Could not get entity configuration: %s -> skipping", err.Error())
+					continue
+				}
+				if entityConfig.Metadata == nil || entityConfig.Metadata.OpenIDProvider == nil {
+					internal.Log("No OP metadata present -> skipping")
+					continue
+				}
+				opMetata := entityConfig.Metadata.OpenIDProvider
+				if opMetata.OrganizationName == "" && entityConfig.Metadata.FederationEntity != nil && entityConfig.
+					Metadata.FederationEntity.OrganizationName != "" {
+					opMetata.OrganizationName = entityConfig.Metadata.FederationEntity.OrganizationName
+				}
+				internal.Logf("Added OP %+q", op)
+				opInfos = append(opInfos, opMetata)
 			}
-			if entityConfig.Metadata == nil || entityConfig.Metadata.OpenIDProvider == nil {
-				continue
-			}
-			opMetata := entityConfig.Metadata.OpenIDProvider
-			if opMetata.OrganizationName == "" && entityConfig.Metadata.FederationEntity != nil && entityConfig.
-				Metadata.FederationEntity.OrganizationName != "" {
-				opMetata.OrganizationName = entityConfig.Metadata.FederationEntity.OrganizationName
-			}
-			opInfos = append(opInfos, opMetata)
 		}
 		subordinates, err := fetchList(stmt.Metadata.FederationEntity.FederationListEndpoint, "federation_entity")
 		if err != nil {
@@ -133,27 +140,7 @@ func (f opDiscoveryFilterExplicitRegistration) Filter(op *OpenIDProviderMetadata
 var OPDiscoveryFilterExplicitRegistration opDiscoveryFilterExplicitRegistration
 var OPDiscoveryFilterAutomaticRegistration opDiscoveryFilterAutomaticRegistration
 
-func listEndpointCacheSet(endpoint, entityType string, entities []string) {
-	cache.Set(
-		cache.ListingCacheKey(endpoint, entityType), entities, 0,
-	)
-}
-func listEndpointCacheGet(endpoint, entityType string) []string {
-	e, ok := cache.Get(cache.ListingCacheKey(endpoint, entityType))
-	if !ok {
-		return nil
-	}
-	entities, ok := e.([]string)
-	if !ok {
-		return nil
-	}
-	return entities
-}
-
 func fetchList(listEndpoint, entityType string) ([]string, error) {
-	if entities := listEndpointCacheGet(listEndpoint, entityType); entities != nil {
-		return entities, nil
-	}
 	body, err := entityStatementObtainer.ListEntities(listEndpoint, entityType)
 	if err != nil {
 		return nil, err
@@ -162,6 +149,5 @@ func fetchList(listEndpoint, entityType string) ([]string, error) {
 	if err = json.Unmarshal(body, &entities); err != nil {
 		return nil, err
 	}
-	listEndpointCacheSet(listEndpoint, entityType, entities)
 	return entities, nil
 }

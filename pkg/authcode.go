@@ -7,8 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jws"
 	"github.com/pkg/errors"
+
+	"github.com/zachmann/go-oidcfed/internal/jwx"
 )
 
 type RequestObjectProducer struct {
@@ -54,5 +55,28 @@ func (rop RequestObjectProducer) RequestObject(requestValues map[string]any) ([]
 		return nil, errors.Wrap(err, "could not marshal request object into JWT")
 	}
 
-	return jws.Sign(j, rop.alg, rop.key)
+	return jwx.SignPayload(j, rop.alg, rop.key, nil)
+}
+
+func (rop RequestObjectProducer) ClientAssertion(aud string) ([]byte, error) {
+	now := time.Now().Unix()
+	assertionValues := map[string]any{
+		"iss": rop.EntityID,
+		"sub": rop.EntityID,
+		"iat": now,
+		"exp": now + rop.lifetime,
+		"aud": aud,
+	}
+	jti, err := uuid.NewRandom()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create jti")
+	}
+	assertionValues["jti"] = jti.String()
+
+	j, err := json.Marshal(assertionValues)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not marshal client assertion into JWT")
+	}
+
+	return jwx.SignPayload(j, rop.alg, rop.key, nil)
 }

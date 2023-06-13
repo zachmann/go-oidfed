@@ -165,14 +165,17 @@ func entityStmtCacheGet(subID, issID string) *EntityStatement {
 
 func getEntityConfiguration(entityID string) (*EntityStatement, error) {
 	if stmt := entityStmtCacheGet(entityID, entityID); stmt != nil {
+		internal.Logf("Got entity configuration for %+q from cache", entityID)
 		return stmt, nil
 	}
 	body, err := entityStatementObtainer.GetEntityConfiguration(entityID)
 	if err != nil {
+		internal.Logf("Could not obtain entity configuration for %+q", entityID)
 		return nil, err
 	}
 	stmt, err := ParseEntityStatement(body)
 	if err != nil {
+		internal.Logf("Could not parse entity configuration: %s", body)
 		return nil, err
 	}
 	entityStmtCacheSet(entityID, entityID, stmt)

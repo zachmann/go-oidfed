@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -9,7 +9,9 @@ import (
 	"net/url"
 
 	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/jws"
 
+	"github.com/zachmann/go-oidcfed/examples/rp/pkce"
 	"github.com/zachmann/go-oidcfed/internal/utils"
 	"github.com/zachmann/go-oidcfed/pkg"
 )
@@ -25,6 +27,14 @@ const loginHtml = `<!DOCTYPE html>
   </select>
   <input type="submit" value="Login">
 </form>
+</body>
+</html>`
+
+const userHtml = `<!DOCTYPE html>
+<html>
+<body>
+<h3>Hello %s@%s</h3>
+<a href="/">Back to Login</a>
 </body>
 </html>`
 
@@ -44,7 +54,13 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, fmt.Sprintf(loginHtml, options))
 }
 
-var stateDB map[string]struct{}
+type stateData struct {
+	codeChallange *pkce.PKCE
+	tokenEndpoint string
+	issuer        string
+}
+
+var stateDB map[string]stateData
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	if authBuilder == nil {
@@ -65,17 +81,29 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	opMetadata := metadata.OpenIDProvider
-	state := make([]byte, 20)
-	if _, err = rand.Read(state); err != nil {
+	state := randASCIIString(32)
+	pkceChallenge := pkce.NewS256PKCE(randASCIIString(20))
+	stateDB[state] = stateData{
+		codeChallange: pkceChallenge,
+		tokenEndpoint: opMetadata.TokenEndpoint,
+		issuer:        opMetadata.Issuer,
+	}
+	challenge, err := pkceChallenge.Challenge()
+	if err != nil {
 		log.Fatal(err)
 	}
-	stateDB[string(state)] = struct{}{}
 	requestParams := map[string]any{
 		"aud":           opMetadata.Issuer,
 		"redirect_uri":  redirectURI,
 		"prompt":        "consent",
-		"state":         string(state),
+		"state":         state,
 		"response_type": "code",
+		"scope": []string{
+			"openid",
+		},
+		"nonce":                 randASCIIString(32),
+		"code_challenge":        challenge,
+		"code_challenge_method": pkce.TransformationS256.String(),
 	}
 	requestObject, err := authBuilder.RequestObject(requestParams)
 	if err != nil {
@@ -88,8 +116,78 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	q := url.Values{}
 	q.Set("request", string(requestObject))
 	q.Set("client_id", conf.EntityID)
+	q.Set("response_type", "code")
 	u.RawQuery = q.Encode()
 	http.Redirect(w, r, u.String(), http.StatusSeeOther)
+}
+
+func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
+	state := r.URL.Query().Get("state")
+	e := r.URL.Query().Get("error")
+	errorDescription := r.URL.Query().Get("error_description")
+	if e != "" {
+		if errorDescription != "" {
+			e += ": " + errorDescription
+		}
+		w.WriteHeader(444)
+		io.WriteString(w, e)
+		return
+	}
+	stateInfo, found := stateDB[state]
+	if !found {
+		w.WriteHeader(444)
+		io.WriteString(w, "state mismatch")
+		return
+	}
+	clientAssertion, err := authBuilder.ClientAssertion(stateInfo.tokenEndpoint)
+	if err != nil {
+		log.Fatal(err)
+	}
+	params := url.Values{}
+	params.Set("grant_type", "authorization_code")
+	params.Set("code_verifier", stateInfo.codeChallange.Verifier())
+	params.Set("code", code)
+	params.Set("redirect_uri", redirectURI)
+	params.Set("client_id", conf.EntityID)
+	params.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+	params.Set("client_assertion", string(clientAssertion))
+	res, err := http.PostForm(stateInfo.tokenEndpoint, params)
+	if err != nil {
+		w.WriteHeader(500)
+		io.WriteString(w, err.Error())
+		return
+	}
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		w.WriteHeader(500)
+		io.WriteString(w, err.Error())
+		return
+	}
+	resData := map[string]any{}
+	err = json.Unmarshal(body, &resData)
+	if err != nil {
+		w.WriteHeader(500)
+		io.WriteString(w, err.Error())
+		return
+	}
+	msg, err := jws.ParseString(resData["id_token"].(string))
+	if err != nil {
+		w.WriteHeader(500)
+		io.WriteString(w, err.Error())
+		return
+	}
+	delete(stateDB, state)
+	msgData := map[string]any{}
+	err = json.Unmarshal(msg.Payload(), &msgData)
+	if err != nil {
+		w.WriteHeader(500)
+		io.WriteString(w, err.Error())
+		return
+	}
+
+	w.WriteHeader(res.StatusCode)
+	io.WriteString(w, fmt.Sprintf(userHtml, msgData["sub"], msgData["iss"]))
 }
 
 var authBuilder *pkg.RequestObjectProducer
@@ -135,10 +233,11 @@ func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
 
 func initServer() {
 	redirectURI = fmt.Sprintf("%s/%s", conf.EntityID, "redirect")
-	stateDB = make(map[string]struct{})
+	stateDB = make(map[string]stateData)
 
 	http.HandleFunc("/", handleHome)
 	http.HandleFunc("/login", handleLogin)
+	http.HandleFunc("/redirect", handleCodeExchange)
 	http.HandleFunc("/.well-known/openid-federation", handleEntityConfiguration)
 
 	fmt.Printf("Serving on %s\n", conf.ServerAddr)
