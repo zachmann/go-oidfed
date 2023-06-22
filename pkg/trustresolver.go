@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/zachmann/go-oidcfed/internal"
-	"github.com/zachmann/go-oidcfed/internal/cache"
 	"github.com/zachmann/go-oidcfed/internal/utils"
+	"github.com/zachmann/go-oidcfed/pkg/cache"
 )
 
 // TrustResolver is type for resolving trust chains from a StartingEntity to one or multiple TrustAnchors

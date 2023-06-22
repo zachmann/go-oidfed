@@ -7,10 +7,19 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-var cacheCache *cache.Cache
+type Cache interface {
+	Get(key string) (any, bool)
+	Set(key string, value any, expiration time.Duration)
+}
+
+var cacheCache Cache
 
 func init() {
-	cacheCache = cache.New(time.Hour, 27*time.Minute)
+	SetCache(cache.New(time.Hour, 27*time.Minute))
+}
+
+func SetCache(cache Cache) {
+	cacheCache = cache
 }
 
 const (
