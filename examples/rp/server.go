@@ -117,6 +117,8 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	q.Set("request", string(requestObject))
 	q.Set("client_id", conf.EntityID)
 	q.Set("response_type", "code")
+	q.Set("scope", "openid")
+	q.Set("redirect_uri", redirectURI)
 	u.RawQuery = q.Encode()
 	http.Redirect(w, r, u.String(), http.StatusSeeOther)
 }
@@ -201,7 +203,7 @@ func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
 		metadata := &pkg.Metadata{
 			RelyingParty: &pkg.OpenIDRelyingPartyMetadata{
 				Scope:                   "openid profile email",
-				RedirectURIS:            []string{},
+				RedirectURIS:            []string{redirectURI},
 				ResponseTypes:           []string{"code"},
 				GrantTypes:              []string{"authorization_code"},
 				ApplicationType:         "web",
