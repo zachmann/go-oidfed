@@ -7,11 +7,12 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"fmt"
-	"github.com/zachmann/go-oidcfed/internal/jwx"
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
+
+	"github.com/zachmann/go-oidcfed/internal/jwx"
 )
 
 type mockRP struct {
