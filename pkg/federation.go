@@ -14,7 +14,7 @@ type FederationLeaf struct {
 	EntityID              string
 	Metadata              *Metadata
 	AuthorityHints        []string
-	TrustAnchors          []string
+	TrustAnchors          TrustAnchors
 	configurationLifetime int64
 	key                   crypto.Signer
 	alg                   jwa.SignatureAlgorithm
@@ -23,7 +23,8 @@ type FederationLeaf struct {
 
 // NewFederationLeaf creates a new FederationLeaf with the passed properties
 func NewFederationLeaf(
-	entityID string, authorityHints, trustAnchors []string, metadata *Metadata, privateSigningKey crypto.Signer,
+	entityID string, authorityHints []string, trustAnchors TrustAnchors, metadata *Metadata,
+	privateSigningKey crypto.Signer,
 	signingAlg jwa.SignatureAlgorithm, configurationLifetime int64,
 ) (*FederationLeaf, error) {
 	if configurationLifetime <= 0 {

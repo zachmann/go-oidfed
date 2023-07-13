@@ -19,11 +19,22 @@ type SimpleOPDiscoverer struct{}
 
 // VerifiedChainsOPDiscoverer is an OPDiscoverer that compared to VerifiedOPDiscoverer additionally verifies that there
 // is a valid TrustChain between the op and one of the specified trust anchors
-type VerifiedChainsOPDiscoverer struct {
-}
+type VerifiedChainsOPDiscoverer struct{}
 
 type OPDiscoveryFilter interface {
 	Filter(*OpenIDProviderMetadata) bool
+}
+
+type opDiscoveryFilter struct {
+	filter func(*OpenIDProviderMetadata) bool
+}
+
+func (f opDiscoveryFilter) Filter(metadata *OpenIDProviderMetadata) bool {
+	return f.filter(metadata)
+}
+
+func NewOPDiscoveryFilter(filter func(metadata *OpenIDProviderMetadata) bool) OPDiscoveryFilter {
+	return opDiscoveryFilter{filter: filter}
 }
 
 type filterableVerifiedChainsOPDiscoverer struct {
@@ -34,11 +45,11 @@ type FilterableVerifiedChainsOPDiscoverer struct {
 	Filters []OPDiscoveryFilter
 }
 
-func (d SimpleOPDiscoverer) Discover(authorities ...string) (opInfos []*OpenIDProviderMetadata) {
+func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	internal.Logf("Discovering OPs for authorities: %+q", authorities)
 	for _, a := range authorities {
-		internal.Logf("Discovering OPs and subordinates for: %+q", a)
-		stmt, err := getEntityConfiguration(a)
+		internal.Logf("Discovering OPs and subordinates for: %+q", a.EntityID)
+		stmt, err := getEntityConfiguration(a.EntityID)
 		if err != nil {
 			internal.Logf("Could not get entity configuration: %s -> skipping", err.Error())
 			continue
@@ -75,17 +86,17 @@ func (d SimpleOPDiscoverer) Discover(authorities ...string) (opInfos []*OpenIDPr
 		if err != nil {
 			continue
 		}
-		sOPs := d.Discover(subordinates...)
+		sOPs := d.Discover(NewTrustAnchorsFromEntityIDs(subordinates...)...)
 		opInfos = arrayops.Union(opInfos, sOPs)
 	}
 	return
 }
 
-func (d VerifiedChainsOPDiscoverer) Discover(authorities ...string) (ops []*OpenIDProviderMetadata) {
+func (d VerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (ops []*OpenIDProviderMetadata) {
 	return FilterableVerifiedChainsOPDiscoverer{}.Discover(authorities...)
 }
 
-func (d filterableVerifiedChainsOPDiscoverer) Discover(authorities ...string) (opInfos []*OpenIDProviderMetadata) {
+func (d filterableVerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	in := SimpleOPDiscoverer{}.Discover(authorities...)
 	for _, op := range in {
 		var approved bool
@@ -100,7 +111,7 @@ func (d filterableVerifiedChainsOPDiscoverer) Discover(authorities ...string) (o
 	}
 	return
 }
-func (d FilterableVerifiedChainsOPDiscoverer) Discover(authorities ...string) (opInfos []*OpenIDProviderMetadata) {
+func (d FilterableVerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	discoverer := filterableVerifiedChainsOPDiscoverer{
 		Filters: append(
 			[]OPDiscoveryFilter{
@@ -114,7 +125,7 @@ func (d FilterableVerifiedChainsOPDiscoverer) Discover(authorities ...string) (o
 }
 
 type OPDiscoveryFilterVerifiedChains struct {
-	TrustAnchors []string
+	TrustAnchors TrustAnchors
 }
 
 func (f OPDiscoveryFilterVerifiedChains) Filter(op *OpenIDProviderMetadata) bool {
@@ -150,4 +161,26 @@ func fetchList(listEndpoint, entityType string) ([]string, error) {
 		return nil, err
 	}
 	return entities, nil
+}
+
+func OPDiscoveryFilterSupportedGrantTypesIncludes(neededGrantTypes ...string) OPDiscoveryFilter {
+	return NewOPDiscoveryFilter(
+		func(op *OpenIDProviderMetadata) bool {
+			if op == nil {
+				return false
+			}
+			return utils.ReflectIsSubsetOf(neededGrantTypes, op.GrantTypesSupported)
+		},
+	)
+}
+
+func OPDiscoveryFilterSupportedScopesIncludes(neededScopes ...string) OPDiscoveryFilter {
+	return NewOPDiscoveryFilter(
+		func(op *OpenIDProviderMetadata) bool {
+			if op == nil {
+				return false
+			}
+			return utils.ReflectIsSubsetOf(neededScopes, op.ScopesSupported)
+		},
+	)
 }

@@ -26,9 +26,15 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 		{
 			name: "empty starting entity",
 			resolver: TrustResolver{
-				TrustAnchors: []string{
-					ta1.EntityID,
-					ta2.EntityID,
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: ta1.EntityID,
+						JWKS:     ta1.jwks,
+					},
+					TrustAnchor{
+						EntityID: ta2.EntityID,
+						JWKS:     ta2.jwks,
+					},
 				},
 				StartingEntity: "",
 			},
@@ -36,14 +42,19 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 		{
 			name: "empty TAs",
 			resolver: TrustResolver{
-				TrustAnchors:   []string{},
+				TrustAnchors:   TrustAnchors{},
 				StartingEntity: rp1.EntityID,
 			},
 		},
 		{
 			name: "rp1: ta1",
 			resolver: TrustResolver{
-				TrustAnchors:   []string{ta1.EntityID},
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: ta1.EntityID,
+						JWKS:     ta1.jwks,
+					},
+				},
 				StartingEntity: rp1.EntityID,
 			},
 			expectedChains: ta1Chains,
@@ -51,7 +62,12 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 		{
 			name: "rp1: ta2",
 			resolver: TrustResolver{
-				TrustAnchors:   []string{ta2.EntityID},
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: ta2.EntityID,
+						JWKS:     ta2.jwks,
+					},
+				},
 				StartingEntity: rp1.EntityID,
 			},
 			expectedChains: ta2Chains,
@@ -59,9 +75,15 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 		{
 			name: "rp1: ta1,ta2",
 			resolver: TrustResolver{
-				TrustAnchors: []string{
-					ta1.EntityID,
-					ta2.EntityID,
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: ta1.EntityID,
+						JWKS:     ta1.jwks,
+					},
+					TrustAnchor{
+						EntityID: ta2.EntityID,
+						JWKS:     ta2.jwks,
+					},
 				},
 				StartingEntity: rp1.EntityID,
 			},

@@ -3,14 +3,37 @@ package pkg
 import (
 	"time"
 
+	"github.com/lestrrat-go/jwx/jwk"
+
 	"github.com/zachmann/go-oidcfed/internal"
 	"github.com/zachmann/go-oidcfed/internal/utils"
 	"github.com/zachmann/go-oidcfed/pkg/cache"
 )
 
+type TrustAnchor struct {
+	EntityID string  `yaml:"entity_id" json:"entity_id"`
+	JWKS     jwk.Set `yaml:"jwks" json:"jwks"`
+}
+
+type TrustAnchors []TrustAnchor
+
+func (anchors TrustAnchors) EntityIDs() (entityIDs []string) {
+	for _, ta := range anchors {
+		entityIDs = append(entityIDs, ta.EntityID)
+	}
+	return
+}
+
+func NewTrustAnchorsFromEntityIDs(anchorIDs ...string) (anchors TrustAnchors) {
+	for _, id := range anchorIDs {
+		anchors = append(anchors, TrustAnchor{EntityID: id})
+	}
+	return
+}
+
 // TrustResolver is type for resolving trust chains from a StartingEntity to one or multiple TrustAnchors
 type TrustResolver struct {
-	TrustAnchors   []string
+	TrustAnchors   []TrustAnchor
 	StartingEntity string
 	trustTree      trustTree
 }
@@ -57,11 +80,11 @@ type trustTree struct {
 	Authorities []trustTree
 }
 
-func (t *trustTree) resolve(anchors []string) {
+func (t *trustTree) resolve(anchors TrustAnchors) {
 	if t.Entity == nil {
 		return
 	}
-	if utils.SliceContains(t.Entity.Issuer, anchors) {
+	if utils.SliceContains(t.Entity.Issuer, anchors.EntityIDs()) {
 		return
 	}
 	if len(t.Entity.AuthorityHints) > 0 {
@@ -97,9 +120,18 @@ func (t *trustTree) resolve(anchors []string) {
 	}
 }
 
-func (t *trustTree) verifySignatures(anchors []string) bool {
-	if t.Subordinate != nil && utils.SliceContains(t.Subordinate.Issuer, anchors) {
-		return true
+func (t *trustTree) verifySignatures(anchors TrustAnchors) bool {
+	if t.Subordinate != nil {
+		for _, ta := range anchors {
+			if utils.Equal(ta.EntityID, t.Entity.Issuer, t.Entity.Subject, t.Subordinate.Issuer) {
+				// t is about a TA
+				jwks := ta.JWKS
+				if jwks == nil {
+					jwks = t.Entity.JWKS
+				}
+				return t.Entity.Verify(jwks) && t.Subordinate.Verify(jwks)
+			}
+		}
 	}
 	iValid := 0
 	for _, tt := range t.Authorities {
