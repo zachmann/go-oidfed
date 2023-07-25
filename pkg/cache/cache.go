@@ -24,6 +24,7 @@ func SetCache(cache Cache) {
 
 const (
 	KeyEntityStatement = "entity_statement"
+	KeyOPMetadata      = "op_metadata"
 )
 
 func Key(subsystem string, subkey string) string {

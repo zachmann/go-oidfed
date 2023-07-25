@@ -56,7 +56,6 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 
 type stateData struct {
 	codeChallange *pkce.PKCE
-	tokenEndpoint string
 	issuer        string
 }
 
@@ -67,60 +66,28 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		authBuilder = pkg.NewRequestObjectProducer(conf.EntityID, getKey("oidc"), jwa.ES512, 60)
 	}
 	op := r.URL.Query().Get("op")
-	resolver := pkg.TrustResolver{
-		TrustAnchors:   conf.TrustAnchors,
-		StartingEntity: op,
-	}
-	chains := resolver.ResolveToValidChains()
-	chains = chains.Filter(pkg.TrustChainsFilterMinPathLength)
-	chain := chains[0]
-	metadata, err := chain.Metadata()
-	if err != nil {
-		w.WriteHeader(400)
-		io.WriteString(w, err.Error())
-		return
-	}
-	opMetadata := metadata.OpenIDProvider
 	state := randASCIIString(32)
 	pkceChallenge := pkce.NewS256PKCE(randASCIIString(20))
 	stateDB[state] = stateData{
 		codeChallange: pkceChallenge,
-		tokenEndpoint: opMetadata.TokenEndpoint,
-		issuer:        opMetadata.Issuer,
+		issuer:        op,
 	}
 	challenge, err := pkceChallenge.Challenge()
 	if err != nil {
 		log.Fatal(err)
 	}
-	requestParams := map[string]any{
-		"aud":           opMetadata.Issuer,
-		"redirect_uri":  redirectURI,
-		"prompt":        "consent",
-		"state":         state,
-		"response_type": "code",
-		"scope": []string{
-			"openid",
-		},
-		"nonce":                 randASCIIString(32),
-		"code_challenge":        challenge,
-		"code_challenge_method": pkce.TransformationS256.String(),
-	}
-	requestObject, err := authBuilder.RequestObject(requestParams)
+
+	params := url.Values{}
+	params.Set("nonce", randASCIIString(32))
+	params.Set("code_challenge", challenge)
+	params.Set("code_challenge_method", pkce.TransformationS256.String())
+	params.Set("prompt", "consent")
+
+	authURL, err := fedLeaf().GetAuthorizationURL(op, redirectURI, state, "openid", params)
 	if err != nil {
 		log.Fatal(err)
 	}
-	u, err := url.Parse(opMetadata.AuthorizationEndpoint)
-	if err != nil {
-		log.Fatal(err)
-	}
-	q := url.Values{}
-	q.Set("request", string(requestObject))
-	q.Set("client_id", conf.EntityID)
-	q.Set("response_type", "code")
-	q.Set("scope", "openid")
-	q.Set("redirect_uri", redirectURI)
-	u.RawQuery = q.Encode()
-	http.Redirect(w, r, u.String(), http.StatusSeeOther)
+	http.Redirect(w, r, authURL, http.StatusSeeOther)
 }
 
 func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
@@ -142,38 +109,26 @@ func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "state mismatch")
 		return
 	}
-	clientAssertion, err := authBuilder.ClientAssertion(stateInfo.tokenEndpoint)
-	if err != nil {
-		log.Fatal(err)
-	}
 	params := url.Values{}
-	params.Set("grant_type", "authorization_code")
 	params.Set("code_verifier", stateInfo.codeChallange.Verifier())
-	params.Set("code", code)
-	params.Set("redirect_uri", redirectURI)
-	params.Set("client_id", conf.EntityID)
-	params.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
-	params.Set("client_assertion", string(clientAssertion))
-	res, err := http.PostForm(stateInfo.tokenEndpoint, params)
+
+	tokenRes, errRes, err := fedLeaf().CodeExchange(stateInfo.issuer, code, redirectURI, params)
 	if err != nil {
 		w.WriteHeader(500)
 		io.WriteString(w, err.Error())
 		return
 	}
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		w.WriteHeader(500)
-		io.WriteString(w, err.Error())
+	if errRes != nil {
+		e = errRes.Error
+		if errRes.ErrorDescription != "" {
+			e += ": " + errRes.ErrorDescription
+		}
+		w.WriteHeader(444)
+		io.WriteString(w, e)
 		return
 	}
-	resData := map[string]any{}
-	err = json.Unmarshal(body, &resData)
-	if err != nil {
-		w.WriteHeader(500)
-		io.WriteString(w, err.Error())
-		return
-	}
-	msg, err := jws.ParseString(resData["id_token"].(string))
+
+	msg, err := jws.ParseString(tokenRes.IDToken)
 	if err != nil {
 		w.WriteHeader(500)
 		io.WriteString(w, err.Error())
@@ -188,18 +143,15 @@ func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(res.StatusCode)
+	w.WriteHeader(200)
 	io.WriteString(w, fmt.Sprintf(userHtml, msgData["sub"], msgData["iss"]))
 }
 
 var authBuilder *pkg.RequestObjectProducer
-var fedLeaf *pkg.FederationLeaf
+var _fedLeaf *pkg.FederationLeaf
 
-var redirectURI string
-
-func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
-	var err error
-	if fedLeaf == nil {
+func fedLeaf() *pkg.FederationLeaf {
+	if _fedLeaf == nil {
 		metadata := &pkg.Metadata{
 			RelyingParty: &pkg.OpenIDRelyingPartyMetadata{
 				Scope:                   "openid profile email",
@@ -216,15 +168,24 @@ func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
 				OrganizationName: conf.OrganisationName,
 			},
 		}
-		fedLeaf, err = pkg.NewFederationLeaf(
+		var err error
+		_fedLeaf, err = pkg.NewFederationLeaf(
 			conf.EntityID, conf.AuthorityHints, conf.TrustAnchors, metadata, getKey("fed"),
-			jwa.ES512, 86400,
+			jwa.ES512, 86400, getKey("oidc"), jwa.ES512,
 		)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-	c := fedLeaf.EntityConfiguration()
+	return _fedLeaf
+}
+
+var redirectURI string
+
+func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	c := fedLeaf().EntityConfiguration()
 	jwt, err := c.JWT()
 	if err != nil {
 		log.Fatal(err)
