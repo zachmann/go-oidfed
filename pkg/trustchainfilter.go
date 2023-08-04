@@ -83,7 +83,7 @@ func (f trustChainsFilterPathLength) Filter(chains TrustChains) (final TrustChai
 				min = l
 			}
 		}
-		f.maxPathLen = min
+		f.maxPathLen = min // skipcq RVV-B0006
 	}
 	for _, c := range chains {
 		if len(c) <= f.maxPathLen {
