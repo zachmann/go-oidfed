@@ -5,3 +5,7 @@ name = "go"
 
   [analyzers.meta]
   import_root = "github.com/zachmann/go-oidcfed"
+
+[[analyzers]]
+name = "test-coverage"
+enabled = true
