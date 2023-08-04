@@ -104,7 +104,7 @@ func (f FederationLeaf) ResolveOPMetadata(issuer string) (*OpenIDProviderMetadat
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	delta := time.Unix(chain.ExpiresAt(), 0).Sub(time.Now()) - time.Minute // we subtract a one-minute puffer
+	delta := time.Until(time.Unix(chain.ExpiresAt(), 0)) - time.Minute // we subtract a one-minute puffer
 	if delta > 0 {
 		cache.Set(cache.Key(cache.KeyOPMetadata, issuer), m.OpenIDProvider, delta)
 	}

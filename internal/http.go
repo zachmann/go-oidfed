@@ -26,11 +26,7 @@ var DefaultHttpEntityStatementObtainer defaultHttpEntityStatementObtainer
 // GetEntityConfiguration implements the EntityStatementObtainer interface
 // It returns the decoded entity configuration for a given entityID
 func (defaultHttpEntityStatementObtainer) GetEntityConfiguration(entityID string) ([]byte, error) {
-	uri := entityID
-	if strings.HasSuffix(uri, "/") {
-		uri = uri[:len(uri)-1]
-	}
-	uri += federationSuffix
+	uri := strings.TrimSuffix(entityID, "/") + federationSuffix
 	Logf("Obtaining entity configuration from %+q", uri)
 	res, err := http.Get(uri)
 	if err != nil {
