@@ -30,7 +30,6 @@ func (c TrustChain) Metadata() (*Metadata, error) {
 	if len(c) == 1 {
 		return c[0].Metadata, nil
 	}
-	combinedPolicy := c[len(c)-1].MetadataPolicy
 	metadataPolicies := make([]*MetadataPolicies, len(c))
 	for i, stmt := range c {
 		metadataPolicies[i] = stmt.MetadataPolicy
