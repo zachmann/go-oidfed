@@ -92,7 +92,7 @@ func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*Ope
 	return
 }
 
-func (d VerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (ops []*OpenIDProviderMetadata) {
+func (VerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (ops []*OpenIDProviderMetadata) {
 	return FilterableVerifiedChainsOPDiscoverer{}.Discover(authorities...)
 }
 
@@ -138,13 +138,13 @@ func (f OPDiscoveryFilterVerifiedChains) Filter(op *OpenIDProviderMetadata) bool
 
 type opDiscoveryFilterAutomaticRegistration struct{}
 
-func (f opDiscoveryFilterAutomaticRegistration) Filter(op *OpenIDProviderMetadata) bool {
+func (opDiscoveryFilterAutomaticRegistration) Filter(op *OpenIDProviderMetadata) bool {
 	return utils.SliceContains(ClientRegistrationTypeAutomatic, op.ClientRegistrationTypesSupported)
 }
 
 type opDiscoveryFilterExplicitRegistration struct{}
 
-func (f opDiscoveryFilterExplicitRegistration) Filter(op *OpenIDProviderMetadata) bool {
+func (opDiscoveryFilterExplicitRegistration) Filter(op *OpenIDProviderMetadata) bool {
 	return utils.SliceContains(ClientRegistrationTypeExplicit, op.ClientRegistrationTypesSupported)
 }
 

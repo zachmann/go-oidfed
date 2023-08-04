@@ -25,7 +25,7 @@ var DefaultHttpEntityStatementObtainer defaultHttpEntityStatementObtainer
 
 // GetEntityConfiguration implements the EntityStatementObtainer interface
 // It returns the decoded entity configuration for a given entityID
-func (o defaultHttpEntityStatementObtainer) GetEntityConfiguration(entityID string) ([]byte, error) {
+func (defaultHttpEntityStatementObtainer) GetEntityConfiguration(entityID string) ([]byte, error) {
 	uri := strings.TrimSuffix(entityID, "/") + federationSuffix
 	Logf("Obtaining entity configuration from %+q", uri)
 	res, err := http.Get(uri)
@@ -40,7 +40,7 @@ func (o defaultHttpEntityStatementObtainer) GetEntityConfiguration(entityID stri
 
 // FetchEntityStatement implements the EntityStatementObtainer interface
 // It fetches and returns the decoded entity statement about a given entityID issued by issID
-func (o defaultHttpEntityStatementObtainer) FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error) {
+func (defaultHttpEntityStatementObtainer) FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error) {
 	uri := fetchEndpoint
 	params := url.Values{}
 	params.Add("sub", subID)
@@ -58,7 +58,7 @@ func (o defaultHttpEntityStatementObtainer) FetchEntityStatement(fetchEndpoint, 
 
 // ListEntities implements the EntityStatementObtainer interface
 // It fetches and returns the entity list from the passed listendpoint
-func (o defaultHttpEntityStatementObtainer) ListEntities(listEndpoint, entityType string) ([]byte, error) {
+func (defaultHttpEntityStatementObtainer) ListEntities(listEndpoint, entityType string) ([]byte, error) {
 	uri := listEndpoint
 	params := url.Values{}
 	params.Add("entity_type", entityType)
