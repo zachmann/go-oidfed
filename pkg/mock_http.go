@@ -62,7 +62,7 @@ func (d mockHttp) ListEntities(listEndpoint, entityType string) ([]byte, error) 
 	//TODO entityType
 	var entities []string
 	for _, a := range d.entityStatements {
-		for sub, _ := range a {
+		for sub := range a {
 			entities = append(entities, sub)
 		}
 	}
