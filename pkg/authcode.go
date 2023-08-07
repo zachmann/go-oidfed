@@ -65,6 +65,9 @@ func NewRequestObjectProducer(
 }
 
 func (rop RequestObjectProducer) RequestObject(requestValues map[string]any) ([]byte, error) {
+	if requestValues == nil {
+		return nil, errors.New("request must contain 'aud' claim with OPs issuer identifier url")
+	}
 	if _, audFound := requestValues["aud"]; !audFound {
 		return nil, errors.New("request must contain 'aud' claim with OPs issuer identifier url")
 	}
