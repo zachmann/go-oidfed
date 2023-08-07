@@ -18,6 +18,7 @@ import (
 type mockAuthority struct {
 	EntityID      string
 	FetchEndpoint string
+	ListEndpoint  string
 	authorities   []string
 	subordinates  []mockSubordinateInfo
 	jwks          jwk.Set
@@ -44,6 +45,7 @@ func newMockAuthority(entityID string, metadataPolicies *MetadataPolicies) mockA
 	a := mockAuthority{
 		EntityID:      entityID,
 		FetchEndpoint: fmt.Sprintf("%s/fetch", entityID),
+		ListEndpoint:  fmt.Sprintf("%s/list", entityID),
 		policies:      metadataPolicies,
 		signer:        sk,
 		signingAlg:    jwa.ES512,
@@ -67,6 +69,7 @@ func (a mockAuthority) EntityStatementPayload() EntityStatementPayload {
 			FederationEntity: &FederationEntityMetadata{
 				OrganizationName:        fmt.Sprintf("Organization %d", mathrand.Int()%100),
 				FederationFetchEndpoint: a.FetchEndpoint,
+				FederationListEndpoint:  a.ListEndpoint,
 			},
 		},
 	}

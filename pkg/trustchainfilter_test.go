@@ -10,6 +10,41 @@ var rp1 = newMockRP(
 	"https://rp1.example.com",
 	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{ClientRegistrationTypeAutomatic}},
 )
+
+var op1 = newMockOP(
+	"https://op1.example.com",
+	&OpenIDProviderMetadata{
+		ClientRegistrationTypesSupported: []string{ClientRegistrationTypeAutomatic},
+		ScopesSupported: []string{
+			"openid",
+			"profile",
+			"email",
+			"address",
+		},
+	},
+)
+var op2 = newMockOP(
+	"https://op2.example.com",
+	&OpenIDProviderMetadata{
+		ClientRegistrationTypesSupported: []string{ClientRegistrationTypeAutomatic},
+		ScopesSupported: []string{
+			"openid",
+			"profile",
+		},
+	},
+)
+var op3 = newMockOP(
+	"https://op3.example.com",
+	&OpenIDProviderMetadata{
+		ClientRegistrationTypesSupported: []string{ClientRegistrationTypeAutomatic},
+		ScopesSupported: []string{
+			"openid",
+			"profile",
+			"email",
+		},
+	},
+)
+
 var ia1 = newMockAuthority("https://ia.example.com", nil)
 var ia2 = newMockAuthority(
 	"https://ia.example.org", &MetadataPolicies{
@@ -21,26 +56,35 @@ var ia2 = newMockAuthority(
 	},
 )
 var ta1 = newMockAuthority("https://ta.example.com", nil)
-var ta2 = newMockAuthority("https://ta.foundation.example.org", &MetadataPolicies{
-	RelyingParty: MetadataPolicy{
-		"contacts": MetadataPolicyEntry{
-			PolicyOperatorAdd: "ta@foundation.example.org",
-		},
-		"client_registration_types": MetadataPolicyEntry{
-			PolicyOperatorEssential: true,
+var ta2 = newMockAuthority(
+	"https://ta.foundation.example.org", &MetadataPolicies{
+		RelyingParty: MetadataPolicy{
+			"contacts": MetadataPolicyEntry{
+				PolicyOperatorAdd: "ta@foundation.example.org",
+			},
+			"client_registration_types": MetadataPolicyEntry{
+				PolicyOperatorEssential: true,
+			},
 		},
 	},
-})
+)
 
 func init() {
 	ia1.RegisterSubordinate(&rp1)
 	ia2.RegisterSubordinate(&rp1)
+	ia1.RegisterSubordinate(&op1)
+	ia2.RegisterSubordinate(&op1)
+	ia1.RegisterSubordinate(&op3)
+	ia2.RegisterSubordinate(&op2)
 	ia2.RegisterSubordinate(&ia1)
 	ta1.RegisterSubordinate(&ia1)
 	ta1.RegisterSubordinate(&ia2)
 	ta2.RegisterSubordinate(&ia2)
 
 	mockupData.AddRP(rp1)
+	mockupData.AddOP(op1)
+	mockupData.AddOP(op2)
+	mockupData.AddOP(op3)
 	mockupData.AddAuthority(ia1)
 	mockupData.AddAuthority(ia2)
 	mockupData.AddAuthority(ta1)

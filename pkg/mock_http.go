@@ -11,10 +11,15 @@ var mockupData mockHttp
 
 type mockHttp struct {
 	entityConfigurations map[string][]byte
+	entityListings       map[string]mockList
 	entityStatements     map[string]mockFetch
 }
 
 type mockFetch map[string]map[string][]byte
+type mockList []struct {
+	EntityID   string
+	EntityType string
+}
 
 func (d *mockHttp) addEntityConfiguration(entityid string, data []byte) {
 	if d.entityConfigurations == nil {
@@ -33,6 +38,27 @@ func (d *mockHttp) addEntityStatement(fetchEndpoint, iss, sub string, data []byt
 		d.entityStatements[fetchEndpoint][iss] = make(map[string][]byte)
 	}
 	d.entityStatements[fetchEndpoint][iss][sub] = data
+}
+func (d *mockHttp) addToListEndpoint(listEndpoint, entityID, entityType string) {
+	if d.entityListings == nil {
+		d.entityListings = make(map[string]mockList)
+	}
+	listing := d.entityListings[listEndpoint]
+	for _, l := range listing {
+		if l.EntityID == entityID {
+			return
+		}
+	}
+	listing = append(
+		listing, struct {
+			EntityID   string
+			EntityType string
+		}{
+			EntityID:   entityID,
+			EntityType: entityType,
+		},
+	)
+	d.entityListings[listEndpoint] = listing
 }
 
 func (d mockHttp) GetEntityConfiguration(entityID string) ([]byte, error) {
@@ -59,11 +85,11 @@ func (d mockHttp) FetchEntityStatement(fetchEndpoint, subID, issID string) ([]by
 }
 
 func (d mockHttp) ListEntities(listEndpoint, entityType string) ([]byte, error) {
-	//TODO entityType
 	var entities []string
-	for _, a := range d.entityStatements {
-		for sub := range a {
-			entities = append(entities, sub)
+	listing := d.entityListings[listEndpoint]
+	for _, l := range listing {
+		if entityType == "" || l.EntityType == "" || entityType == l.EntityType {
+			entities = append(entities, l.EntityID)
 		}
 	}
 	return json.Marshal(entities)
@@ -76,6 +102,14 @@ func (d *mockHttp) AddRP(r mockRP) {
 		panic(err)
 	}
 	d.addEntityConfiguration(r.EntityID, data)
+}
+func (d *mockHttp) AddOP(o mockOP) {
+	ec := o.EntityConfiguration()
+	data, err := ec.JWT()
+	if err != nil {
+		panic(err)
+	}
+	d.addEntityConfiguration(o.EntityID, data)
 }
 
 func (d *mockHttp) AddAuthority(a mockAuthority) {
@@ -101,5 +135,6 @@ func (d *mockHttp) AddAuthority(a mockAuthority) {
 			panic(err)
 		}
 		d.addEntityStatement(a.FetchEndpoint, a.EntityID, sub.entityID, data)
+		d.addToListEndpoint(a.ListEndpoint, sub.entityID, "")
 	}
 }
