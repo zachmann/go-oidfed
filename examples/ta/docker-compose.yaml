@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  gorp:
+    image: myoidc/oidcfed-gota
+    volumes:
+      - ./example-config:/data
+      - ./mkcertRootCA.pem:/usr/local/share/ca-certificates/mkcertRootCA.crt:ro
+    networks:
+      - default
+      - traefik
+    labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik
+        - traefik.http.routers.gorp-http.rule=Host("go-ia.fedservice.lh")
+        - traefik.http.routers.gorp-http.entrypoints=http
+        - traefik.http.routers.gorp-http.middlewares=https-redirect
+        - traefik.http.routers.gorp-https.rule=Host("go-ia.fedservice.lh")
+        - traefik.http.routers.gorp-https.entrypoints=https
+        - traefik.http.routers.gorp-https.tls=true
+        - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
+        - traefik.http.middlewares.https-redirect.redirectscheme.permanent=true
+        - traefik.http.services.gorp.loadbalancer.server.port=3333
+    ports:
+      - "8765:8765"
+
+networks:
+  default:
+  traefik:
+    external: true

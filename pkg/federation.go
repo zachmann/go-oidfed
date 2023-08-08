@@ -11,27 +11,33 @@ import (
 	"github.com/zachmann/go-oidcfed/pkg/cache"
 )
 
-// FederationLeaf is a type for a leaf entity and holds all relevant information about it; it can also be used to
-// create an EntityConfiguration about it or to start OIDC flows
-type FederationLeaf struct {
+// FederationEntity is a type for an entity participating in federations.
+// It holds all relevant information about the federation entity and can be used to create
+// an EntityConfiguration about it
+type FederationEntity struct {
 	EntityID              string
 	Metadata              *Metadata
 	AuthorityHints        []string
-	TrustAnchors          TrustAnchors
 	configurationLifetime int64
 	federationKey         crypto.Signer
 	alg                   jwa.SignatureAlgorithm
 	jwks                  jwk.Set
-	oidcROProducer        *RequestObjectProducer
 }
 
-// NewFederationLeaf creates a new FederationLeaf with the passed properties
-func NewFederationLeaf(
-	entityID string, authorityHints []string, trustAnchors TrustAnchors, metadata *Metadata,
+// FederationLeaf is a type for a leaf entity and holds all relevant information about it; it can also be used to
+// create an EntityConfiguration about it or to start OIDC flows
+type FederationLeaf struct {
+	FederationEntity
+	TrustAnchors   TrustAnchors
+	oidcROProducer *RequestObjectProducer
+}
+
+// NewFederationEntity creates a new FederationEntity with the passed properties
+func NewFederationEntity(
+	entityID string, authorityHints []string, metadata *Metadata,
 	privateSigningKey crypto.Signer,
 	signingAlg jwa.SignatureAlgorithm, configurationLifetime int64,
-	oidcSigningKey crypto.Signer, oidcSigningAlg jwa.SignatureAlgorithm,
-) (*FederationLeaf, error) {
+) (*FederationEntity, error) {
 	if configurationLifetime <= 0 {
 		configurationLifetime = defaultEntityConfigurationLifetime
 	}
@@ -50,21 +56,39 @@ func NewFederationLeaf(
 	}
 	jwks := jwk.NewSet()
 	jwks.Add(key)
-	return &FederationLeaf{
+	return &FederationEntity{
 		EntityID:              entityID,
 		Metadata:              metadata,
 		AuthorityHints:        authorityHints,
-		TrustAnchors:          trustAnchors,
 		federationKey:         privateSigningKey,
 		alg:                   signingAlg,
 		configurationLifetime: configurationLifetime,
 		jwks:                  jwks,
-		oidcROProducer:        NewRequestObjectProducer(entityID, oidcSigningKey, oidcSigningAlg, 60),
+	}, nil
+}
+
+// NewFederationLeaf creates a new FederationLeaf with the passed properties
+func NewFederationLeaf(
+	entityID string, authorityHints []string, trustAnchors TrustAnchors, metadata *Metadata,
+	privateSigningKey crypto.Signer,
+	signingAlg jwa.SignatureAlgorithm, configurationLifetime int64,
+	oidcSigningKey crypto.Signer, oidcSigningAlg jwa.SignatureAlgorithm,
+) (*FederationLeaf, error) {
+	fed, err := NewFederationEntity(
+		entityID, authorityHints, metadata, privateSigningKey, signingAlg, configurationLifetime,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &FederationLeaf{
+		FederationEntity: *fed,
+		TrustAnchors:     trustAnchors,
+		oidcROProducer:   NewRequestObjectProducer(entityID, oidcSigningKey, oidcSigningAlg, 60),
 	}, nil
 }
 
 // EntityConfiguration returns an EntityConfiguration for this FederationLeaf
-func (f FederationLeaf) EntityConfiguration() *EntityConfiguration {
+func (f FederationEntity) EntityConfiguration() *EntityConfiguration {
 	now := time.Now().Unix()
 	payload := EntityStatementPayload{
 		Issuer:         f.EntityID,
@@ -76,6 +100,13 @@ func (f FederationLeaf) EntityConfiguration() *EntityConfiguration {
 		Metadata:       f.Metadata,
 	}
 	return NewEntityConfiguration(payload, f.federationKey, f.alg)
+}
+
+// SignEntityStatement creates a signed JWT for the given EntityStatementPayload; this function is intended to be
+// used on TA/IA
+func (f FederationEntity) SignEntityStatement(payload EntityStatementPayload) ([]byte, error) {
+	c := NewEntityConfiguration(payload, f.federationKey, f.alg)
+	return c.JWT()
 }
 
 func (f FederationLeaf) RequestObjectProducer() *RequestObjectProducer {
