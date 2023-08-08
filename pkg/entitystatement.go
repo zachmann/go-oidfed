@@ -81,6 +81,7 @@ type EntityStatementPayload struct {
 	JWKS                             jwk.Set                  `json:"jwks"`
 	Audience                         string                   `json:"aud,omitempty"`
 	AuthorityHints                   []string                 `json:"authority_hints,omitempty"`
+	SourceEndpoint                   string                   `json:"source_endpoint,omitempty"`
 	Metadata                         *Metadata                `json:"metadata,omitempty"`
 	MetadataPolicy                   *MetadataPolicies        `json:"metadata_policy,omitempty"`
 	Constraints                      *ConstraintSpecification `json:"constraints,omitempty"`
