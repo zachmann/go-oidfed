@@ -8,8 +8,8 @@
 [//]: # ([![Release date]&#40;https://img.shields.io/github/release-date/zachmann/go-oidcfed.svg&#41;]&#40;https://github.com/zachmann/go-oidcfed/releases/latest&#41;)
 [//]: # ([![Release version]&#40;https://img.shields.io/github/release/zachmann/go-oidcfed.svg&#41;]&#40;https://github.com/zachmann/go-oidcfed/releases/latest&#41;)
 
-This repository holds an implementation of [OpenID Connect Federation](https://openid.bitbucket.
-io/connect/openid-connect-federation-1_0.html) in the `go` language with the goal to enable go applications to make 
+This repository holds an implementation of
+[OpenID Connect Federation](https://openid.bitbucket.io/connect/openid-connect-federation-1_0.html) in the `go` language with the goal to enable go applications to make 
 use of OIDC federations.
 
 The implementation mainly focuses on the Relying Party side, but can also be utilized for other entity types.
