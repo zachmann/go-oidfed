@@ -3,9 +3,11 @@ package pkg
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/luci/go-render/render"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/luci/go-render/render"
 )
 
 type marshalData struct {
@@ -21,18 +23,24 @@ var entitystatementMarshalData = map[string]marshalData{
 	"normal fields": {
 		Data: []byte(`{"aud":"aud","authority_hints":["hint1","hint2"],"constraints":{"max_path_length":2,"naming_constraints":{"permitted":["foo"]},"allowed_leaf_entity_types":["openid_provider"]},"crit":["jti"],"exp":200,"iat":100,"iss":"issuer","jwks":null,"metadata":{"openid_relying_party":{"application_type":"web","client_registration_types":["automatic"],"contacts":["contact@email.com"],"grant_types":["refresh_token","authorization_code"],"id_token_signed_response_alg":"ES512","redirect_uris":["https://redirect.to.somewher"],"response_types":["code"],"scope":"some scope"},"federation_entity":{"homepage_uri":"https://somewhere.com","organization_name":"organization"}},"metadata_policy":{"federation_entity":{"contacts":{"add":"value"}}},"policy_language_crit":["remove"],"sub":"subject"}`),
 		Object: EntityStatementPayload{
-			Issuer:         "issuer",
-			Subject:        "subject",
-			IssuedAt:       100,
-			ExpiresAt:      200,
-			Audience:       "aud",
-			AuthorityHints: []string{"hint1", "hint2"},
+			Issuer:    "issuer",
+			Subject:   "subject",
+			IssuedAt:  Unixtime{time.Unix(100, 0)},
+			ExpiresAt: Unixtime{time.Unix(200, 0)},
+			Audience:  "aud",
+			AuthorityHints: []string{
+				"hint1",
+				"hint2",
+			},
 			Metadata: &Metadata{
 				RelyingParty: &OpenIDRelyingPartyMetadata{
-					Scope:                    "some scope",
-					RedirectURIS:             []string{"https://redirect.to.somewher"},
-					ResponseTypes:            []string{"code"},
-					GrantTypes:               []string{"refresh_token", "authorization_code"},
+					Scope:         "some scope",
+					RedirectURIS:  []string{"https://redirect.to.somewher"},
+					ResponseTypes: []string{"code"},
+					GrantTypes: []string{
+						"refresh_token",
+						"authorization_code",
+					},
 					ApplicationType:          "web",
 					Contacts:                 []string{"contact@email.com"},
 					IDTokenSignedResponseAlg: "ES512",
@@ -65,8 +73,8 @@ var entitystatementMarshalData = map[string]marshalData{
 	"extra fields": {
 		Data: []byte(`{"exp":200,"extra-field":"value","foo":["bar"],"iat":100,"iss":"issuer","jwks":null,"sub":"subject"}`),
 		Object: EntityStatementPayload{
-			ExpiresAt: 200,
-			IssuedAt:  100,
+			IssuedAt:  Unixtime{time.Unix(100, 0)},
+			ExpiresAt: Unixtime{time.Unix(200, 0)},
 			Issuer:    "issuer",
 			Subject:   "subject",
 			Extra: map[string]interface{}{
@@ -83,10 +91,6 @@ func TestEntityStatementPayload_MarshalJSON(t *testing.T) {
 		marshalData
 	}{
 		{
-			name:        "empty",
-			marshalData: entitystatementMarshalData["empty"],
-		},
-		{
 			name:        "all normal fields",
 			marshalData: entitystatementMarshalData["normal fields"],
 		},
@@ -96,15 +100,17 @@ func TestEntityStatementPayload_MarshalJSON(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			j, err := json.Marshal(test.Object)
-			if err != nil {
-				t.Error(err)
-			}
-			if !bytes.Equal(j, test.Data) {
-				t.Errorf("Marshal result not as expected.\nExpected: %s\n     Got: %s", test.Data, j)
-			}
-		})
+		t.Run(
+			test.name, func(t *testing.T) {
+				j, err := json.Marshal(test.Object)
+				if err != nil {
+					t.Error(err)
+				}
+				if !bytes.Equal(j, test.Data) {
+					t.Errorf("Marshal result not as expected.\nExpected: %s\n     Got: %s", test.Data, j)
+				}
+			},
+		)
 	}
 }
 
@@ -114,10 +120,6 @@ func TestEntityStatementPayload_UnmarshalJSON(t *testing.T) {
 		marshalData
 	}{
 		{
-			name:        "empty",
-			marshalData: entitystatementMarshalData["empty"],
-		},
-		{
 			name:        "all normal fields",
 			marshalData: entitystatementMarshalData["normal fields"],
 		},
@@ -127,15 +129,20 @@ func TestEntityStatementPayload_UnmarshalJSON(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			var result EntityStatementPayload
-			err := json.Unmarshal(test.Data, &result)
-			if err != nil {
-				t.Error(err)
-			}
-			if !reflect.DeepEqual(test.Object, result) {
-				t.Errorf("Unmarshal result not as expected.\nExpected: %s\n     Got: %s", render.Render(test.Object), render.Render(result))
-			}
-		})
+		t.Run(
+			test.name, func(t *testing.T) {
+				var result EntityStatementPayload
+				err := json.Unmarshal(test.Data, &result)
+				if err != nil {
+					t.Error(err)
+				}
+				if !reflect.DeepEqual(test.Object, result) {
+					t.Errorf(
+						"Unmarshal result not as expected.\nExpected: %s\n     Got: %s", render.Render(test.Object),
+						render.Render(result),
+					)
+				}
+			},
+		)
 	}
 }

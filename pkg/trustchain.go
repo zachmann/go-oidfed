@@ -8,13 +8,13 @@ import (
 type TrustChain []*EntityStatement
 
 // ExpiresAt returns the expiration time of the TrustChain as a UNIX time stamp
-func (c TrustChain) ExpiresAt() int64 {
+func (c TrustChain) ExpiresAt() Unixtime {
 	if len(c) == 0 {
-		return 0
+		return Unixtime{}
 	}
 	exp := c[0].ExpiresAt
 	for i := 1; i < len(c); i++ {
-		if e := c[i].ExpiresAt; e < exp {
+		if e := c[i].ExpiresAt; e.Before(exp.Time) {
 			exp = e
 		}
 	}

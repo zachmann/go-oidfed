@@ -123,12 +123,12 @@ func FetchEntityStatement(sub string) ([]byte, int, error) {
 	if err != nil {
 		return nil, http.StatusNotFound, err
 	}
-	now := time.Now().Unix()
+	now := time.Now()
 	payload := pkg.EntityStatementPayload{
 		Issuer:         config.Get().EntityID,
 		Subject:        info.EntityID,
-		IssuedAt:       now,
-		ExpiresAt:      now + (config.Get().ConfigurationLifetime),
+		IssuedAt:       pkg.Unixtime{Time: now},
+		ExpiresAt:      pkg.Unixtime{Time: now.Add(time.Second * time.Duration(config.Get().ConfigurationLifetime))},
 		JWKS:           info.JWKS,
 		SourceEndpoint: routes.FetchEndpointURI,
 		MetadataPolicy: config.Get().MetadataPolicy,

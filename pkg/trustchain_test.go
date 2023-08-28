@@ -3,51 +3,68 @@ package pkg
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestTrustChains_ExpiresAt(t *testing.T) {
 	tests := []struct {
 		name            string
 		chain           TrustChain
-		expiresExpected int64
+		expiresExpected Unixtime
 	}{
 		{
 			name:            "emtpy",
 			chain:           TrustChain{},
-			expiresExpected: 0,
+			expiresExpected: Unixtime{},
 		},
 		{
 			name: "single",
 			chain: TrustChain{
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: 5}},
+				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: Unixtime{time.Unix(5, 0)}}},
 			},
-			expiresExpected: 5,
+			expiresExpected: Unixtime{time.Unix(5, 0)},
 		},
 		{
 			name: "first min",
 			chain: TrustChain{
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: 5}},
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: 10}},
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: 100}},
+				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: Unixtime{time.Unix(5, 0)}}},
+				&EntityStatement{
+					EntityStatementPayload: EntityStatementPayload{
+						ExpiresAt: Unixtime{time.Unix(10, 0)},
+					},
+				},
+				&EntityStatement{
+					EntityStatementPayload: EntityStatementPayload{
+						ExpiresAt: Unixtime{time.Unix(100, 0)},
+					},
+				},
 			},
-			expiresExpected: 5,
+			expiresExpected: Unixtime{time.Unix(5, 0)},
 		},
 		{
 			name: "other min",
 			chain: TrustChain{
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: 10}},
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: 5}},
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: 100}},
+				&EntityStatement{
+					EntityStatementPayload: EntityStatementPayload{
+						ExpiresAt: Unixtime{time.Unix(10, 0)},
+					},
+				},
+				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: Unixtime{time.Unix(5, 0)}}},
+				&EntityStatement{
+					EntityStatementPayload: EntityStatementPayload{
+						ExpiresAt: Unixtime{time.Unix(100, 0)},
+					},
+				},
 			},
-			expiresExpected: 5,
+			expiresExpected: Unixtime{time.Unix(5, 0)},
 		},
 	}
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
 				expires := test.chain.ExpiresAt()
-				if expires != test.expiresExpected {
-					t.Errorf("ExpiresAT() gives %d, but %d expected ", expires, test.expiresExpected)
+				if !expires.Equal(test.expiresExpected.Time) {
+					t.Errorf("ExpiresAT() gives %v, but %v expected ", expires, test.expiresExpected)
 				}
 			},
 		)
@@ -58,7 +75,9 @@ func TestTrustChain_Metadata(t *testing.T) {
 	chainRPIA2TA1Metadata := rp1.EntityStatementPayload().Metadata
 	chainRPIA2TA1Metadata.RelyingParty.Contacts = append(chainRPIA2TA1Metadata.RelyingParty.Contacts, "ia@example.org")
 	chainRPIA2TA2Metadata := chainRPIA2TA1Metadata
-	chainRPIA2TA2Metadata.RelyingParty.Contacts = append(chainRPIA2TA2Metadata.RelyingParty.Contacts, "ta@foundation.example.org")
+	chainRPIA2TA2Metadata.RelyingParty.Contacts = append(
+		chainRPIA2TA2Metadata.RelyingParty.Contacts, "ta@foundation.example.org",
+	)
 
 	tests := []struct {
 		name             string

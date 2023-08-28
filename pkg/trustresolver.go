@@ -180,7 +180,7 @@ func init() {
 
 func entityStmtCacheSet(subID, issID string, stmt *EntityStatement) {
 	cache.Set(
-		cache.EntityStmtCacheKey(subID, issID), stmt, (time.Duration)(stmt.ExpiresAt-time.Now().Unix())*time.Second,
+		cache.EntityStmtCacheKey(subID, issID), stmt, time.Until(stmt.ExpiresAt.Time),
 	)
 }
 func entityStmtCacheGet(subID, issID string) *EntityStatement {

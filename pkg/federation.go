@@ -89,12 +89,12 @@ func NewFederationLeaf(
 
 // EntityConfiguration returns an EntityConfiguration for this FederationLeaf
 func (f FederationEntity) EntityConfiguration() *EntityConfiguration {
-	now := time.Now().Unix()
+	now := time.Now()
 	payload := EntityStatementPayload{
 		Issuer:         f.EntityID,
 		Subject:        f.EntityID,
-		IssuedAt:       now,
-		ExpiresAt:      now + f.configurationLifetime,
+		IssuedAt:       Unixtime{now},
+		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(f.configurationLifetime))},
 		JWKS:           f.jwks,
 		AuthorityHints: f.AuthorityHints,
 		Metadata:       f.Metadata,
@@ -135,7 +135,7 @@ func (f FederationLeaf) ResolveOPMetadata(issuer string) (*OpenIDProviderMetadat
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	delta := time.Until(time.Unix(chain.ExpiresAt(), 0)) - time.Minute // we subtract a one-minute puffer
+	delta := time.Until(chain.ExpiresAt().Add(-time.Minute)) // we subtract a one-minute puffer
 	if delta > 0 {
 		cache.Set(cache.Key(cache.KeyOPMetadata, issuer), m.OpenIDProvider, delta)
 	}

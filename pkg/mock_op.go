@@ -41,13 +41,13 @@ func newMockOP(entityID string, metadata *OpenIDProviderMetadata) mockOP {
 }
 
 func (op mockOP) EntityStatementPayload() EntityStatementPayload {
-	now := time.Now().Unix()
+	now := time.Now()
 	orgID := md5.Sum([]byte(op.EntityID))
 	payload := EntityStatementPayload{
 		Issuer:         op.EntityID,
 		Subject:        op.EntityID,
-		IssuedAt:       now,
-		ExpiresAt:      now + mockStmtLifetime,
+		IssuedAt:       Unixtime{now},
+		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:           op.jwks,
 		Audience:       "",
 		AuthorityHints: op.authorities,

@@ -40,13 +40,13 @@ func newMockRP(entityID string, metadata *OpenIDRelyingPartyMetadata) mockRP {
 }
 
 func (rp mockRP) EntityStatementPayload() EntityStatementPayload {
-	now := time.Now().Unix()
+	now := time.Now()
 	orgID := md5.Sum([]byte(rp.EntityID))
 	payload := EntityStatementPayload{
 		Issuer:         rp.EntityID,
 		Subject:        rp.EntityID,
-		IssuedAt:       now,
-		ExpiresAt:      now + mockStmtLifetime,
+		IssuedAt:       Unixtime{now},
+		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:           rp.jwks,
 		Audience:       "",
 		AuthorityHints: rp.authorities,

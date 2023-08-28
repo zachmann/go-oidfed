@@ -55,12 +55,12 @@ func newMockAuthority(entityID string, metadataPolicies *MetadataPolicies) mockA
 }
 
 func (a mockAuthority) EntityStatementPayload() EntityStatementPayload {
-	now := time.Now().Unix()
+	now := time.Now()
 	payload := EntityStatementPayload{
 		Issuer:         a.EntityID,
 		Subject:        a.EntityID,
-		IssuedAt:       now,
-		ExpiresAt:      now + mockStmtLifetime,
+		IssuedAt:       Unixtime{now},
+		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:           a.jwks,
 		Audience:       "",
 		AuthorityHints: a.authorities,
@@ -77,7 +77,7 @@ func (a mockAuthority) EntityStatementPayload() EntityStatementPayload {
 }
 
 func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntityStatementPayload {
-	now := time.Now().Unix()
+	now := time.Now()
 	var jwks jwk.Set
 	for _, s := range a.subordinates {
 		if s.entityID == subID {
@@ -87,8 +87,8 @@ func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntitySta
 	payload := EntityStatementPayload{
 		Issuer:         a.EntityID,
 		Subject:        subID,
-		IssuedAt:       now,
-		ExpiresAt:      now + mockStmtLifetime,
+		IssuedAt:       Unixtime{now},
+		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:           jwks,
 		MetadataPolicy: a.policies,
 	}
