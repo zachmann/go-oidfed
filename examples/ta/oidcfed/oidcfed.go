@@ -24,7 +24,7 @@ var entityStatementObtainer = internal.DefaultHttpEntityStatementObtainer
 
 func Init() {
 	initKey()
-	store = make(storage.JWKSFileStorage)
+	store = storage.NewBadgerStorage()
 	if err := store.Load(); err != nil {
 		log.Fatal(err)
 	}
