@@ -2,11 +2,11 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 
 	"github.com/zachmann/go-oidcfed/examples/ta/config"
 	"github.com/zachmann/go-oidcfed/examples/ta/oidcfed"
@@ -58,7 +58,8 @@ func addRoutes(s fiber.Router) {
 				EntityType string `json:"entity_type" xml:"entity_type" form:"entity_type"`
 			}{}
 			if err := ctx.BodyParser(&req); err != nil {
-				return err
+				ctx.Status(http.StatusBadRequest)
+				return ctx.SendString(err.Error())
 			}
 			status, err := oidcfed.EnrollEntity(req.Subject, req.EntityType)
 			ctx.Status(status)
@@ -73,7 +74,8 @@ func addRoutes(s fiber.Router) {
 			entityType := ctx.Query("entity_type")
 			list, err := oidcfed.ListSubordinates(entityType)
 			if err != nil {
-				return err
+				ctx.Status(http.StatusInternalServerError)
+				return ctx.SendString(err.Error())
 			}
 			return ctx.JSON(list)
 		},
@@ -94,7 +96,7 @@ func addRoutes(s fiber.Router) {
 				if status != 0 {
 					ctx.Status(status)
 				}
-				return err
+				return ctx.SendString(err.Error())
 			}
 			ctx.Status(status)
 			return ctx.Send(data)
