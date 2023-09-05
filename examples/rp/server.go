@@ -154,7 +154,7 @@ func fedLeaf() *pkg.FederationLeaf {
 	if _fedLeaf == nil {
 		metadata := &pkg.Metadata{
 			RelyingParty: &pkg.OpenIDRelyingPartyMetadata{
-				Scope:                   "openid profile email",
+				Scope:                   "openid",
 				RedirectURIS:            []string{redirectURI},
 				ResponseTypes:           []string{"code"},
 				GrantTypes:              []string{"authorization_code"},
