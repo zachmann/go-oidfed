@@ -69,6 +69,23 @@ func addRoutes(s fiber.Router) {
 			return nil
 		},
 	)
+	s.Post(
+		routes.DisenrollEndpointPath, func(ctx *fiber.Ctx) error {
+			req := struct {
+				Subject string `json:"sub" xml:"sub" form:"sub"`
+			}{}
+			if err := ctx.BodyParser(&req); err != nil {
+				ctx.Status(http.StatusBadRequest)
+				return ctx.SendString(err.Error())
+			}
+			status, err := oidcfed.DisenrollEntity(req.Subject)
+			ctx.Status(status)
+			if err != nil {
+				return ctx.SendString(err.Error())
+			}
+			return nil
+		},
+	)
 	s.Get(
 		routes.ListEndpointPath, func(ctx *fiber.Ctx) error {
 			entityType := ctx.Query("entity_type")

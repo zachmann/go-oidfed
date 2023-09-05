@@ -87,6 +87,15 @@ func addToSliceIfNotExists[C comparable](item C, slice []C) []C {
 	return slice
 }
 
+func removeFromSlice[C comparable](item C, slice []C) (out []C) {
+	for _, i := range slice {
+		if i != item {
+			out = append(out, i)
+		}
+	}
+	return
+}
+
 func (store *BadgerStorage) Write(entityID string, info SubordinateInfo) error {
 
 	data, err := json.Marshal(info)
@@ -108,6 +117,22 @@ func (store *BadgerStorage) Write(entityID string, info SubordinateInfo) error {
 		},
 	)
 	return err
+}
+
+func (store *BadgerStorage) Delete(entityID string) error {
+	return store.storage.Update(
+		func(txn *badger.Txn) error {
+			if err := txn.Delete([]byte(entityID)); err != nil {
+				return err
+			}
+			store.mutex.Lock()
+			defer store.mutex.Unlock()
+			for t, e := range store.entityIDs {
+				store.entityIDs[t] = removeFromSlice(entityID, e)
+			}
+			return nil
+		},
+	)
 }
 
 func (store *BadgerStorage) Read(entityID string) (info SubordinateInfo, err error) {

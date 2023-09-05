@@ -34,7 +34,10 @@ func Init() {
 			FederationFetchEndpoint: routes.FetchEndpointURI,
 			FederationListEndpoint:  routes.ListEndpointURI,
 			OrganizationName:        config.Get().OrganizationName,
-			Extra:                   map[string]interface{}{"enrollment_endpoint": routes.EnrollEndpointURI},
+			Extra: map[string]interface{}{
+				"enrollment_endpoint":    routes.EnrollEndpointURI,
+				"disenrollment_endpoint": routes.DisenrollEndpointURI,
+			},
 		},
 	}
 	fedEntity, err = pkg.NewFederationEntity(
@@ -109,6 +112,13 @@ func EnrollEntity(entityID, entityType string) (int, error) {
 			EntityID:   entityID,
 		},
 	); err != nil {
+		return http.StatusInternalServerError, err
+	}
+	return http.StatusOK, nil
+}
+
+func DisenrollEntity(entityID string) (int, error) {
+	if err := store.Delete(entityID); err != nil {
 		return http.StatusInternalServerError, err
 	}
 	return http.StatusOK, nil

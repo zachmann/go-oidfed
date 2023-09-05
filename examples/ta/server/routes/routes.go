@@ -12,12 +12,14 @@ const (
 	ListEndpointPath            = "/list"
 	FetchEndpointPath           = "/fetch"
 	EnrollEndpointPath          = "/enroll"
+	DisenrollEndpointPath       = "/disenroll"
 )
 
 var (
-	ListEndpointURI   string
-	FetchEndpointURI  string
-	EnrollEndpointURI string
+	ListEndpointURI      string
+	FetchEndpointURI     string
+	EnrollEndpointURI    string
+	DisenrollEndpointURI string
 )
 
 func Init() {
@@ -32,6 +34,10 @@ func Init() {
 		log.Fatal(err)
 	}
 	EnrollEndpointURI, err = url.JoinPath(baseURI, EnrollEndpointPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	DisenrollEndpointURI, err = url.JoinPath(baseURI, DisenrollEndpointPath)
 	if err != nil {
 		log.Fatal(err)
 	}

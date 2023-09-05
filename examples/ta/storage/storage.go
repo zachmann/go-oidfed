@@ -31,6 +31,7 @@ func (info *SubordinateInfo) UnmarshalJSON(src []byte) error {
 type JWKStorageBackend interface {
 	Write(entityID string, info SubordinateInfo) error
 	Read(entityID string) (SubordinateInfo, error)
+	Delete(entityID string) error
 	ListSubordinates(entityType string) ([]string, error)
 	Load() error
 }
