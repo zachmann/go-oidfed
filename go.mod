@@ -1,6 +1,6 @@
 module github.com/zachmann/go-oidcfed
 
-go 1.19
+go 1.22
 
 require (
 	github.com/adam-hanna/arrayOperations v1.0.1
