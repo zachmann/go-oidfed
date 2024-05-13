@@ -8,7 +8,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
 
-	"github.com/zachmann/go-oidcfed/pkg/cache"
+	"github.com/zachmann/go-oidfed/pkg/cache"
 )
 
 // FederationEntity is a type for an entity participating in federations.

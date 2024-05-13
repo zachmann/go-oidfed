@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"github.com/zachmann/go-oidcfed/internal"
+	"github.com/zachmann/go-oidfed/internal"
 )
 
 func EnableDebugLogging() {

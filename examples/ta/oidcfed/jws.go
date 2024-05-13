@@ -1,4 +1,4 @@
-package oidcfed
+package oidfed
 
 import (
 	"crypto"
@@ -14,7 +14,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 
-	"github.com/zachmann/go-oidcfed/examples/ta/config"
+	"github.com/zachmann/go-oidfed/examples/ta/config"
 )
 
 func mustNewKey() *ecdsa.PrivateKey {

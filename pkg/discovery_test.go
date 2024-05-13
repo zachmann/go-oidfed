@@ -3,8 +3,8 @@ package pkg
 import (
 	"testing"
 
-	"github.com/zachmann/go-oidcfed/internal"
-	"github.com/zachmann/go-oidcfed/internal/utils"
+	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
 func TestSimpleOPDiscoverer_Discover(t *testing.T) {

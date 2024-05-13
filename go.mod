@@ -1,4 +1,4 @@
-module github.com/zachmann/go-oidcfed
+module github.com/zachmann/go-oidfed
 
 go 1.22
 

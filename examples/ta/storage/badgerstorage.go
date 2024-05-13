@@ -10,8 +10,8 @@ import (
 
 	"github.com/dgraph-io/badger/v4"
 
-	"github.com/zachmann/go-oidcfed/examples/ta/config"
-	"github.com/zachmann/go-oidcfed/internal/utils"
+	"github.com/zachmann/go-oidfed/examples/ta/config"
+	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
 type BadgerStorage struct {

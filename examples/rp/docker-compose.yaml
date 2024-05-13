@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   gorp:
-    image: myoidc/oidcfed-gorp
+    image: myoidc/oidfed-gorp
     volumes:
       - ./config.yaml:/config.yaml
       - ./keys:/keys

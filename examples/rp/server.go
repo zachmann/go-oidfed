@@ -11,9 +11,9 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jws"
 
-	"github.com/zachmann/go-oidcfed/examples/rp/pkce"
-	"github.com/zachmann/go-oidcfed/internal/utils"
-	"github.com/zachmann/go-oidcfed/pkg"
+	"github.com/zachmann/go-oidfed/examples/rp/pkce"
+	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/zachmann/go-oidfed/pkg"
 )
 
 const loginHtml = `<!DOCTYPE html>
@@ -159,7 +159,7 @@ func fedLeaf() *pkg.FederationLeaf {
 				ResponseTypes:           []string{"code"},
 				GrantTypes:              []string{"authorization_code"},
 				ApplicationType:         "web",
-				ClientName:              "example go oidcfed rp",
+				ClientName:              "example go oidfed rp",
 				JWKS:                    getJWKS("oidc"),
 				OrganizationName:        conf.OrganisationName,
 				ClientRegistrationTypes: []string{"automatic"},

@@ -1,12 +1,11 @@
-module github.com/zachmann/go-oidcfed/examples/rp
+module github.com/zachmann/go-oidfed/examples/rp
 
-go 1.19
+go 1.22
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/lestrrat-go/jwx v1.2.26
 	github.com/pkg/errors v0.9.1
-	github.com/zachmann/go-oidcfed v0.0.0-20230807103142-d37a8f3b6c99
 	gopkg.in/yaml.v3 v3.0.1
 )
 

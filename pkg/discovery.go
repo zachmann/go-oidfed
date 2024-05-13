@@ -5,8 +5,8 @@ import (
 
 	arrayops "github.com/adam-hanna/arrayOperations"
 
-	"github.com/zachmann/go-oidcfed/internal"
-	"github.com/zachmann/go-oidcfed/internal/utils"
+	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
 type OPDiscoverer interface {

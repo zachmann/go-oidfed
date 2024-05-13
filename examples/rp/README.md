@@ -1,5 +1,5 @@
-# Example RP using go-oidcfed library
-This is an example RP that uses the go-oidcfed library from this repository.
+# Example RP using go-oidfed library
+This is an example RP that uses the go-oidfed library from this repository.
 
 It is very rudimentary and by no-means meant as a production RP. It's just for demonstration purposes.
 

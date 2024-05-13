@@ -8,7 +8,7 @@ import (
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/pkg/errors"
 
-	"github.com/zachmann/go-oidcfed/internal/utils"
+	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
 // VerifyWithSet uses a jwk.Set to verify a *jws.Message, returning the decoded payload or an error

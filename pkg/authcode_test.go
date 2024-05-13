@@ -6,7 +6,7 @@ import (
 
 	"github.com/lestrrat-go/jwx/jws"
 
-	"github.com/zachmann/go-oidcfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/internal/jwx"
 )
 
 func TestRequestObjectProducer_RequestObject(t *testing.T) {

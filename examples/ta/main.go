@@ -3,10 +3,10 @@ package main
 import (
 	"os"
 
-	"github.com/zachmann/go-oidcfed/examples/ta/config"
-	"github.com/zachmann/go-oidcfed/examples/ta/oidcfed"
-	"github.com/zachmann/go-oidcfed/examples/ta/server"
-	"github.com/zachmann/go-oidcfed/examples/ta/server/routes"
+	"github.com/zachmann/go-oidfed/examples/ta/config"
+	"github.com/zachmann/go-oidfed/examples/ta/oidfed"
+	"github.com/zachmann/go-oidfed/examples/ta/server"
+	"github.com/zachmann/go-oidfed/examples/ta/server/routes"
 )
 
 func main() {
@@ -16,7 +16,7 @@ func main() {
 	}
 	config.Load(configFile)
 	routes.Init()
-	oidcfed.Init()
+	oidfed.Init()
 	server.Init()
 	server.Start()
 }

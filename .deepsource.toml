@@ -4,7 +4,7 @@ version = 1
 name = "go"
 
   [analyzers.meta]
-  import_root = "github.com/zachmann/go-oidcfed"
+  import_root = "github.com/zachmann/go-oidfed"
 
 [[analyzers]]
 name = "test-coverage"

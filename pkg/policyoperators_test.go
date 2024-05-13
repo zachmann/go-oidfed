@@ -3,7 +3,7 @@ package pkg
 import (
 	"testing"
 
-	"github.com/zachmann/go-oidcfed/internal/utils"
+	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
 func TestPolicyOperatorAddMerge(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/zachmann/go-oidcfed/examples/ta/config"
+	"github.com/zachmann/go-oidfed/examples/ta/config"
 )
 
 const (

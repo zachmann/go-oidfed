@@ -6,8 +6,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/zachmann/go-oidcfed/internal/jwx"
-	"github.com/zachmann/go-oidcfed/internal/utils"
+	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/internal/utils"
 
 	"github.com/fatih/structs"
 	"github.com/lestrrat-go/jwx/jwa"

@@ -13,7 +13,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/pkg/errors"
 
-	"github.com/zachmann/go-oidcfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/internal/jwx"
 )
 
 type OIDCErrorResponse struct {

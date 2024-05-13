@@ -8,9 +8,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/zachmann/go-oidcfed/examples/ta/config"
-	"github.com/zachmann/go-oidcfed/examples/ta/oidcfed"
-	"github.com/zachmann/go-oidcfed/examples/ta/server/routes"
+	"github.com/zachmann/go-oidfed/examples/ta/config"
+	"github.com/zachmann/go-oidfed/examples/ta/oidfed"
+	"github.com/zachmann/go-oidfed/examples/ta/server/routes"
 )
 
 var server *fiber.App
@@ -48,7 +48,7 @@ func sendJWTAble(ctx *fiber.Ctx, j jwtAble) error {
 func addRoutes(s fiber.Router) {
 	s.Get(
 		routes.FederationConfigurationPath, func(ctx *fiber.Ctx) error {
-			return sendJWTAble(ctx, oidcfed.GetEntityConfiguration())
+			return sendJWTAble(ctx, oidfed.GetEntityConfiguration())
 		},
 	)
 	s.Post(
@@ -61,7 +61,7 @@ func addRoutes(s fiber.Router) {
 				ctx.Status(http.StatusBadRequest)
 				return ctx.SendString(err.Error())
 			}
-			status, err := oidcfed.EnrollEntity(req.Subject, req.EntityType)
+			status, err := oidfed.EnrollEntity(req.Subject, req.EntityType)
 			ctx.Status(status)
 			if err != nil {
 				return ctx.SendString(err.Error())
@@ -78,7 +78,7 @@ func addRoutes(s fiber.Router) {
 				ctx.Status(http.StatusBadRequest)
 				return ctx.SendString(err.Error())
 			}
-			status, err := oidcfed.DisenrollEntity(req.Subject)
+			status, err := oidfed.DisenrollEntity(req.Subject)
 			ctx.Status(status)
 			if err != nil {
 				return ctx.SendString(err.Error())
@@ -89,7 +89,7 @@ func addRoutes(s fiber.Router) {
 	s.Get(
 		routes.ListEndpointPath, func(ctx *fiber.Ctx) error {
 			entityType := ctx.Query("entity_type")
-			list, err := oidcfed.ListSubordinates(entityType)
+			list, err := oidfed.ListSubordinates(entityType)
 			if err != nil {
 				ctx.Status(http.StatusInternalServerError)
 				return ctx.SendString(err.Error())
@@ -106,9 +106,9 @@ func addRoutes(s fiber.Router) {
 			}
 			sub := ctx.Query("sub")
 			if sub == "" {
-				return sendJWTAble(ctx, oidcfed.GetEntityConfiguration())
+				return sendJWTAble(ctx, oidfed.GetEntityConfiguration())
 			}
-			data, status, err := oidcfed.FetchEntityStatement(sub)
+			data, status, err := oidfed.FetchEntityStatement(sub)
 			if err != nil {
 				if status != 0 {
 					ctx.Status(status)

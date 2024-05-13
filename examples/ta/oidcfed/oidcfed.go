@@ -1,4 +1,4 @@
-package oidcfed
+package oidfed
 
 import (
 	"log"
@@ -8,12 +8,12 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/pkg/errors"
 
-	"github.com/zachmann/go-oidcfed/examples/ta/config"
-	"github.com/zachmann/go-oidcfed/examples/ta/server/routes"
-	"github.com/zachmann/go-oidcfed/examples/ta/storage"
-	"github.com/zachmann/go-oidcfed/internal"
-	"github.com/zachmann/go-oidcfed/internal/utils"
-	"github.com/zachmann/go-oidcfed/pkg"
+	"github.com/zachmann/go-oidfed/examples/ta/config"
+	"github.com/zachmann/go-oidfed/examples/ta/server/routes"
+	"github.com/zachmann/go-oidfed/examples/ta/storage"
+	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/zachmann/go-oidfed/pkg"
 )
 
 var fedEntity *pkg.FederationEntity

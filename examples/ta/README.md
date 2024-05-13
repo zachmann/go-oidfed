@@ -1,5 +1,5 @@
-# Example TA/IA using go-oidcfed library
-This is an example Trust Anchor / Intermediate Authority that uses the go-oidcfed library from this repository.
+# Example TA/IA using go-oidfed library
+This is an example Trust Anchor / Intermediate Authority that uses the go-oidfed library from this repository.
 
 It is not production-ready, but serves as a demonstration.
 

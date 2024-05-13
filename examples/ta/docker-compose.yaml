@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   gota:
-    image: myoidc/oidcfed-gota
+    image: myoidc/oidfed-gota
     volumes:
       - ./example-config:/data
       - ./mkcertRootCA.pem:/usr/local/share/ca-certificates/mkcertRootCA.crt:ro

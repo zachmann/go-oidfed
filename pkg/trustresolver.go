@@ -5,9 +5,9 @@ import (
 
 	"github.com/lestrrat-go/jwx/jwk"
 
-	"github.com/zachmann/go-oidcfed/internal"
-	"github.com/zachmann/go-oidcfed/internal/utils"
-	"github.com/zachmann/go-oidcfed/pkg/cache"
+	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/zachmann/go-oidfed/pkg/cache"
 )
 
 type TrustAnchor struct {
