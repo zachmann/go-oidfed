@@ -12,7 +12,7 @@ func SliceContains[C comparable](v C, slice []C) bool {
 	return false
 }
 
-func ReflectSliceCast(slice any, newType any) any {
+func ReflectSliceCast(slice, newType any) any {
 	if !IsSlice(slice) {
 		return slice
 	}
@@ -65,7 +65,7 @@ func ReflectSliceCast(slice any, newType any) any {
 }
 
 // ReflectSliceContains checks if a slice contains a value using reflection
-func ReflectSliceContains(v any, slice any) bool {
+func ReflectSliceContains(v, slice any) bool {
 	if !IsSlice(slice) {
 		return false
 	}

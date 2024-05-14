@@ -27,7 +27,7 @@ const (
 	KeyOPMetadata      = "op_metadata"
 )
 
-func Key(subsystem string, subkey string) string {
+func Key(subsystem, subkey string) string {
 	return subsystem + ":" + subkey
 }
 

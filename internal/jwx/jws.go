@@ -40,7 +40,7 @@ func VerifyWithSet(msg *jws.Message, keys jwk.Set) ([]byte, error) {
 		}
 		pay, err := jws.Verify(buf, alg, k)
 		if err == nil {
-			return pay, err
+			return pay, nil
 		}
 	}
 	return nil, errors.New(`failed to verify message with any of the keys in the jwk.Set object`)

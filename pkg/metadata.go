@@ -49,15 +49,15 @@ func (m Metadata) ApplyPolicy(p *MetadataPolicies) (*Metadata, error) {
 }
 
 type metadatas interface {
-	OpenIDProviderMetadata | OpenIDRelyingPartyMetadata | OAuthAuthorizationServerMetadata | OAuthClientMetadata | OAuthProtectedResourceMetadata | FederationEntityMetadata
+	*OpenIDProviderMetadata | *OpenIDRelyingPartyMetadata | *OAuthAuthorizationServerMetadata | *OAuthClientMetadata | *OAuthProtectedResourceMetadata | *FederationEntityMetadata
 }
 
 func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) (any, error) {
 	if policy == nil {
 		return metadata, nil
 	}
-	t := reflect.TypeOf(metadata)
-	v := reflect.ValueOf(&metadata)
+	v := reflect.ValueOf(metadata)
+	t := v.Elem().Type()
 	for i := 0; i < t.NumField(); i++ {
 		j, ok := t.Field(i).Tag.Lookup("json")
 		if !ok {
@@ -76,7 +76,7 @@ func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) 
 		f.Set(reflect.ValueOf(value))
 	}
 
-	return &metadata, nil
+	return metadata, nil
 }
 
 type OpenIDRelyingPartyMetadata struct {
@@ -175,7 +175,7 @@ func (m *OpenIDRelyingPartyMetadata) UnmarshalJSON(data []byte) error {
 }
 
 func (m OpenIDRelyingPartyMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
-	return applyPolicy(m, policy, "openid_relying_party")
+	return applyPolicy(&m, policy, "openid_relying_party")
 }
 
 type OpenIDProviderMetadata struct {
@@ -283,7 +283,7 @@ func (m *OpenIDProviderMetadata) UnmarshalJSON(data []byte) error {
 }
 
 func (m OpenIDProviderMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
-	return applyPolicy(m, policy, "openid_provider")
+	return applyPolicy(&m, policy, "openid_provider")
 }
 
 type OAuthClientMetadata OpenIDRelyingPartyMetadata
@@ -301,7 +301,7 @@ func (m *OAuthAuthorizationServerMetadata) UnmarshalJSON(data []byte) error {
 	return nil
 }
 func (m OAuthAuthorizationServerMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
-	return applyPolicy(m, policy, "oauth_authorization_server")
+	return applyPolicy(&m, policy, "oauth_authorization_server")
 }
 
 func (m OAuthClientMetadata) MarshalJSON() ([]byte, error) {
@@ -316,7 +316,7 @@ func (m *OAuthClientMetadata) UnmarshalJSON(data []byte) error {
 	return nil
 }
 func (m OAuthClientMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
-	return applyPolicy(m, policy, "oauth_client")
+	return applyPolicy(&m, policy, "oauth_client")
 }
 
 type OAuthProtectedResourceMetadata struct {
@@ -367,7 +367,7 @@ func (m *OAuthProtectedResourceMetadata) UnmarshalJSON(data []byte) error {
 }
 
 func (m OAuthProtectedResourceMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
-	return applyPolicy(m, policy, "oauth_resource")
+	return applyPolicy(&m, policy, "oauth_resource")
 }
 
 type FederationEntityMetadata struct {
@@ -406,5 +406,5 @@ func (m *FederationEntityMetadata) UnmarshalJSON(data []byte) error {
 	return nil
 }
 func (m FederationEntityMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
-	return applyPolicy(m, policy, "federation_entity")
+	return applyPolicy(&m, policy, "federation_entity")
 }

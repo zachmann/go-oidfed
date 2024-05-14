@@ -82,7 +82,7 @@ func (u *Unixtime) UnmarshalJSON(src []byte) error {
 		return err
 	}
 	sec, dec := math.Modf(f)
-	(*u).Time = time.Unix(int64(sec), int64(dec*(1e9)))
+	u.Time = time.Unix(int64(sec), int64(dec*(1e9)))
 	return nil
 }
 func (u Unixtime) MarshalJSON() ([]byte, error) {
