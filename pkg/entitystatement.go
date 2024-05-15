@@ -92,23 +92,24 @@ func (u Unixtime) MarshalJSON() ([]byte, error) {
 // EntityStatementPayload is a type for holding the actual payload of an EntityStatement or EntityConfiguration;
 // additional fields can be set in the Extra claim
 type EntityStatementPayload struct {
-	Issuer                           string                   `json:"iss"`
-	Subject                          string                   `json:"sub"`
-	IssuedAt                         Unixtime                 `json:"iat"`
-	ExpiresAt                        Unixtime                 `json:"exp"`
-	JWKS                             jwk.Set                  `json:"jwks"`
-	Audience                         string                   `json:"aud,omitempty"`
-	AuthorityHints                   []string                 `json:"authority_hints,omitempty"`
-	SourceEndpoint                   string                   `json:"source_endpoint,omitempty"`
-	Metadata                         *Metadata                `json:"metadata,omitempty"`
-	MetadataPolicy                   *MetadataPolicies        `json:"metadata_policy,omitempty"`
-	Constraints                      *ConstraintSpecification `json:"constraints,omitempty"`
-	CriticalExtensions               []string                 `json:"crit,omitempty"`
-	CriticalPolicyLanguageExtensions []string                 `json:"policy_language_crit,omitempty"`
-	TrustMarks                       []TrustMark              `json:"trust_marks,omitempty"`
-	TrustMarksIssuers                *AllowedTrustMarkIssuers `json:"trust_marks_issuers,omitempty"`
-	TrustAnchorID                    string                   `json:"trust_anchor_id,omitempty"`
-	Extra                            map[string]interface{}   `json:"-"`
+	Issuer             string                   `json:"iss"`
+	Subject            string                   `json:"sub"`
+	IssuedAt           Unixtime                 `json:"iat"`
+	ExpiresAt          Unixtime                 `json:"exp"`
+	JWKS               jwk.Set                  `json:"jwks"`
+	Audience           string                   `json:"aud,omitempty"`
+	AuthorityHints     []string                 `json:"authority_hints,omitempty"`
+	Metadata           *Metadata                `json:"metadata,omitempty"`
+	MetadataPolicy     *MetadataPolicies        `json:"metadata_policy,omitempty"`
+	Constraints        *ConstraintSpecification `json:"constraints,omitempty"`
+	CriticalExtensions []string                 `json:"crit,omitempty"`
+	MetadataPolicyCrit []PolicyOperatorName     `json:"metadata_policy_crit,omitempty"`
+	TrustMarks         []TrustMark              `json:"trust_marks,omitempty"`
+	TrustMarkIssuers   AllowedTrustMarkIssuers  `json:"trust_mark_issuers,omitempty"`
+	TrustMarkOwners    TrustMarkOwners          `json:"trust_mark_owners,omitempty"`
+	SourceEndpoint     string                   `json:"source_endpoint,omitempty"`
+	TrustAnchorID      string                   `json:"trust_anchor_id,omitempty"`
+	Extra              map[string]interface{}   `json:"-"`
 }
 
 // TimeValid checks if the EntityStatementPayload is already valid and not yet expired.
@@ -182,7 +183,7 @@ func (e *EntityStatementPayload) UnmarshalJSON(data []byte) error {
 type ConstraintSpecification struct {
 	MaxPathLength          int               `json:"max_path_length,omitempty"`
 	NamingConstraints      NamingConstraints `json:"naming_constraints,omitempty"`
-	AllowedLeafEntityTypes []string          `json:"allowed_leaf_entity_types,omitempty"`
+	AllowedLeafEntityTypes []string          `json:"allowed_entity_types,omitempty"`
 }
 
 // NamingConstraints is a type for holding constraints about naming
@@ -193,6 +194,29 @@ type NamingConstraints struct {
 
 // AllowedTrustMarkIssuers is type for defining which TrustMark can be issued by which entities
 type AllowedTrustMarkIssuers map[string][]string
+
+// TrustMarkOwners defines owners for TrustMarks
+type TrustMarkOwners map[string]TrustMarkOwnerSpec
+
+// TrustMarkOwnerSpec describes the owner of a trust mark
+type TrustMarkOwnerSpec struct {
+	ID   string  `json:"sub"`
+	JWKS jwk.Set `json:"jwks"`
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (tmo *TrustMarkOwnerSpec) UnmarshalJSON(data []byte) error {
+	type trustMarkOwner TrustMarkOwnerSpec
+	o := trustMarkOwner(*tmo)
+	if o.JWKS == nil {
+		o.JWKS = jwk.NewSet()
+	}
+	if err := json.Unmarshal(data, &o); err != nil {
+		return err
+	}
+	*tmo = TrustMarkOwnerSpec(o)
+	return nil
+}
 
 // ParseEntityStatement parses a jwt into an EntityStatement
 func ParseEntityStatement(statementJWT []byte) (*EntityStatement, error) {

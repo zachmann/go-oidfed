@@ -21,7 +21,7 @@ var entitystatementMarshalData = map[string]marshalData{
 		Object: EntityStatementPayload{},
 	},
 	"normal fields": {
-		Data: []byte(`{"aud":"aud","authority_hints":["hint1","hint2"],"constraints":{"max_path_length":2,"naming_constraints":{"permitted":["foo"]},"allowed_leaf_entity_types":["openid_provider"]},"crit":["jti"],"exp":200,"iat":100,"iss":"issuer","jwks":null,"metadata":{"openid_relying_party":{"application_type":"web","client_registration_types":["automatic"],"contacts":["contact@email.com"],"grant_types":["refresh_token","authorization_code"],"id_token_signed_response_alg":"ES512","redirect_uris":["https://redirect.to.somewher"],"response_types":["code"],"scope":"some scope"},"federation_entity":{"homepage_uri":"https://somewhere.com","organization_name":"organization"}},"metadata_policy":{"federation_entity":{"contacts":{"add":"value"}}},"policy_language_crit":["remove"],"sub":"subject"}`),
+		Data: []byte(`{"aud":"aud","authority_hints":["hint1","hint2"],"constraints":{"max_path_length":2,"naming_constraints":{"permitted":["foo"]},"allowed_entity_types":["openid_provider"]},"crit":["jti"],"exp":200,"iat":100,"iss":"issuer","jwks":null,"metadata":{"openid_relying_party":{"application_type":"web","client_registration_types":["automatic"],"contacts":["contact@email.com"],"grant_types":["refresh_token","authorization_code"],"id_token_signed_response_alg":"ES512","redirect_uris":["https://redirect.to.somewher"],"response_types":["code"],"scope":"some scope"},"federation_entity":{"homepage_uri":"https://somewhere.com","organization_name":"organization"}},"metadata_policy":{"federation_entity":{"contacts":{"add":"value"}}},"metadata_policy_crit":["remove"],"sub":"subject"}`),
 		Object: EntityStatementPayload{
 			Issuer:    "issuer",
 			Subject:   "subject",
@@ -65,9 +65,9 @@ var entitystatementMarshalData = map[string]marshalData{
 				},
 				AllowedLeafEntityTypes: []string{"openid_provider"},
 			},
-			CriticalExtensions:               []string{"jti"},
-			CriticalPolicyLanguageExtensions: []string{"remove"},
-			Extra:                            nil,
+			CriticalExtensions: []string{"jti"},
+			MetadataPolicyCrit: []PolicyOperatorName{"remove"},
+			Extra:              nil,
 		},
 	},
 	"extra fields": {
