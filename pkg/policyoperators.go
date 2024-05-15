@@ -12,7 +12,7 @@ type PolicyOperator interface {
 	Merge(a, b any, pathInfo string) (any, error)
 	Apply(value, policyValue any, essential bool, pathInfo string) (any, error)
 	Name() PolicyOperatorName
-	IsModifier() bool
+	MayCombineWith() []PolicyOperatorName
 }
 
 const (
@@ -25,6 +25,18 @@ const (
 	PolicyOperatorEssential  PolicyOperatorName = "essential"
 )
 
+// OperatorOrder defines the order in which the PolicyOperator are applied.
+// If custom PolicyOperator are implemented they must be added to this slice at the correct position
+var OperatorOrder = []PolicyOperatorName{
+	PolicyOperatorValue,
+	PolicyOperatorAdd,
+	PolicyOperatorDefault,
+	PolicyOperatorOneOf,
+	PolicyOperatorSubsetOf,
+	PolicyOperatorSupersetOf,
+	PolicyOperatorEssential,
+}
+
 var operators map[PolicyOperatorName]PolicyOperator
 
 func RegisterPolicyOperator(operator PolicyOperator) {
@@ -32,10 +44,10 @@ func RegisterPolicyOperator(operator PolicyOperator) {
 }
 
 type policyOperator struct {
-	name     PolicyOperatorName
-	modifier bool
-	merger   func(a, b any, pathInfo string) (any, error)
-	applier  func(value, policyValue any, essential bool, pathInfo string) (any, error)
+	name        PolicyOperatorName
+	merger      func(a, b any, pathInfo string) (any, error)
+	applier     func(value, policyValue any, essential bool, pathInfo string) (any, error)
+	combineWith []PolicyOperatorName
 }
 
 func (op policyOperator) Name() PolicyOperatorName {
@@ -47,27 +59,26 @@ func (op policyOperator) Merge(a, b any, pathInfo string) (any, error) {
 func (op policyOperator) Apply(value, policyValue any, essential bool, pathInfo string) (any, error) {
 	return op.applier(value, policyValue, essential, pathInfo)
 }
-func (op policyOperator) IsModifier() bool {
-	return op.modifier
+func (op policyOperator) MayCombineWith() []PolicyOperatorName {
+	return op.combineWith
 }
 
 func NewPolicyOperator(
 	name PolicyOperatorName,
-	isModifier bool,
 	merger func(a, b any, pathInfo string) (any, error),
 	applier func(value, policyValue any, essential bool, pathInfo string) (any, error),
+	mayCombineWith []PolicyOperatorName,
 ) PolicyOperator {
 	return policyOperator{
-		name:     name,
-		merger:   merger,
-		applier:  applier,
-		modifier: isModifier,
+		name:        name,
+		merger:      merger,
+		applier:     applier,
+		combineWith: mayCombineWith,
 	}
 }
 
 var policyOperatorAdd = NewPolicyOperator(
 	PolicyOperatorAdd,
-	true,
 	func(a, b any, _ string) (any, error) {
 		if a == nil {
 			return b, nil
@@ -86,11 +97,16 @@ var policyOperatorAdd = NewPolicyOperator(
 		}
 		return utils.ReflectUnion(value, policyValue), nil
 	},
+	[]PolicyOperatorName{
+		PolicyOperatorDefault,
+		PolicyOperatorSubsetOf,
+		PolicyOperatorSupersetOf,
+		PolicyOperatorEssential,
+	},
 )
 
 var policyOperatorSubsetOf = NewPolicyOperator(
 	PolicyOperatorSubsetOf,
-	true,
 	func(a, b any, _ string) (any, error) {
 		if a == nil {
 			return b, nil
@@ -127,11 +143,16 @@ var policyOperatorSubsetOf = NewPolicyOperator(
 		}
 		return newValue, nil
 	},
+	[]PolicyOperatorName{
+		PolicyOperatorAdd,
+		PolicyOperatorDefault,
+		PolicyOperatorSupersetOf,
+		PolicyOperatorEssential,
+	},
 )
 
 var policyOperatorOneOf = NewPolicyOperator(
 	PolicyOperatorOneOf,
-	false,
 	func(a, b any, _ string) (any, error) {
 		if a == nil {
 			return b, nil
@@ -163,11 +184,14 @@ var policyOperatorOneOf = NewPolicyOperator(
 		}
 		return value, nil
 	},
+	[]PolicyOperatorName{
+		PolicyOperatorDefault,
+		PolicyOperatorEssential,
+	},
 )
 
 var policyOperatorSupersetOf = NewPolicyOperator(
 	PolicyOperatorSupersetOf,
-	false,
 	func(a, b any, _ string) (any, error) {
 		if a == nil {
 			return b, nil
@@ -201,11 +225,16 @@ var policyOperatorSupersetOf = NewPolicyOperator(
 		}
 		return value, nil
 	},
+	[]PolicyOperatorName{
+		PolicyOperatorAdd,
+		PolicyOperatorDefault,
+		PolicyOperatorSubsetOf,
+		PolicyOperatorEssential,
+	},
 )
 
 var policyOperatorValue = NewPolicyOperator(
 	PolicyOperatorValue,
-	true,
 	func(a, b any, pathInfo string) (any, error) {
 		if a == nil {
 			return b, nil
@@ -226,11 +255,11 @@ var policyOperatorValue = NewPolicyOperator(
 		}
 		return utils.ReflectSliceCast(policyValue, utils.Slicify(value)), nil
 	},
+	[]PolicyOperatorName{PolicyOperatorEssential},
 )
 
 var policyOperatorDefault = NewPolicyOperator(
 	PolicyOperatorDefault,
-	true,
 	func(a, b any, pathInfo string) (any, error) {
 		if a == nil {
 			return b, nil
@@ -252,11 +281,17 @@ var policyOperatorDefault = NewPolicyOperator(
 		}
 		return value, nil
 	},
+	[]PolicyOperatorName{
+		PolicyOperatorAdd,
+		PolicyOperatorOneOf,
+		PolicyOperatorSubsetOf,
+		PolicyOperatorSupersetOf,
+		PolicyOperatorEssential,
+	},
 )
 
 var policyOperatorEssential = NewPolicyOperator(
 	PolicyOperatorEssential,
-	false,
 	func(a, b any, _ string) (any, error) {
 		ab, aok := a.(bool)
 		bb, bok := b.(bool)
@@ -280,6 +315,7 @@ var policyOperatorEssential = NewPolicyOperator(
 		}
 		return value, nil
 	},
+	nil,
 )
 
 func init() {

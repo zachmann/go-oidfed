@@ -2,6 +2,9 @@ package pkg
 
 import (
 	"github.com/pkg/errors"
+	"tideland.dev/go/slices"
+
+	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
 // TrustChain is a slice of *EntityStatements
@@ -31,9 +34,21 @@ func (c TrustChain) Metadata() (*Metadata, error) {
 		return c[0].Metadata, nil
 	}
 	metadataPolicies := make([]*MetadataPolicies, len(c))
+	critPolicies := make(map[PolicyOperatorName]struct{})
 	for i, stmt := range c {
 		metadataPolicies[i] = stmt.MetadataPolicy
+		for _, mpoc := range stmt.MetadataPolicyCrit {
+			critPolicies[mpoc] = struct{}{}
+		}
 	}
+	unsupportedCritPolicies := slices.Subtract(utils.MapKeys(critPolicies), OperatorOrder)
+	if len(unsupportedCritPolicies) > 0 {
+		return nil, errors.Errorf(
+			"the following metadata policy operators are critical but not understood: %v",
+			unsupportedCritPolicies,
+		)
+	}
+
 	combinedPolicy, err := MergeMetadataPolicies(metadataPolicies...)
 	if err != nil {
 		return nil, err

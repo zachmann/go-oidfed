@@ -4,6 +4,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"tideland.dev/go/slices"
+
+	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
 type MetadataPolicies struct {
@@ -89,6 +92,9 @@ func CombineMetadataPolicy(pathInfo string, policies ...MetadataPolicy) (Metadat
 	}
 	var err error
 	out := policies[0]
+	if err = out.Verify(pathInfo); err != nil {
+		return nil, err
+	}
 	for i := 1; i < len(policies); i++ {
 		out, err = combineMetadataPolicy(out, policies[i], pathInfo)
 		if err != nil {
@@ -156,6 +162,20 @@ func mergeMetadataPolicyEntries(a, b MetadataPolicyEntry, pathInfo string) (Meta
 }
 
 func (p MetadataPolicyEntry) Verify(pathInfo string) error {
+	activeOperators := utils.MapKeys(p)
+	for _, opN := range activeOperators {
+		op, ok := operators[opN]
+		if !ok {
+			continue
+		}
+		notAllowed := slices.Subtract(activeOperators, append(op.MayCombineWith(), op.Name()))
+		if len(notAllowed) > 0 {
+			return errors.Errorf(
+				"policy operator '%s' in '%s' cannot be combined with these operators: %v", opN,
+				pathInfo, notAllowed,
+			)
+		}
+	}
 	for _, v := range policyVerifiers {
 		if err := v(p, pathInfo); err != nil {
 			return err
@@ -166,27 +186,24 @@ func (p MetadataPolicyEntry) Verify(pathInfo string) error {
 
 func (p MetadataPolicyEntry) ApplyTo(value any, pathInfo string) (any, error) {
 	var err error
-	doTheChecks := false
 	essentialV, ok := p[PolicyOperatorEssential]
 	essential := false
 	if ok {
 		essential, _ = essentialV.(bool)
 	}
-	for i := 0; i < 2; i++ { // we go twice through the policies; first only applying modifiers, then the checks
-		for policyName, policyValue := range p {
-			operator, found := operators[policyName]
-			if !found {
-				return value, errors.Errorf("unsupported policy operator '%s' in '%s'", policyName, pathInfo)
-			}
-			if operator.IsModifier() == doTheChecks {
-				continue
-			}
-			value, err = operator.Apply(value, policyValue, essential, pathInfo)
-			if err != nil {
-				return value, err
-			}
+	for _, policyName := range OperatorOrder {
+		policyValue, ok := p[policyName]
+		if !ok {
+			continue
 		}
-		doTheChecks = true
+		operator, found := operators[policyName]
+		if !found {
+			return value, errors.Errorf("unsupported policy operator '%s' in '%s'", policyName, pathInfo)
+		}
+		value, err = operator.Apply(value, policyValue, essential, pathInfo)
+		if err != nil {
+			return value, err
+		}
 	}
 	return value, nil
 }
