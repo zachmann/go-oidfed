@@ -39,11 +39,11 @@ type TrustResolver struct {
 }
 
 // ResolveToValidChains starts the trust chain resolution process, building an internal trust tree,
-// verifies the signatures, integrity, and expirations and returns all possible valid TrustChains
+// verifies the signatures, integrity, expirations, and metadata policies and returns all possible valid TrustChains
 func (r *TrustResolver) ResolveToValidChains() TrustChains {
 	r.Resolve()
 	r.VerifySignatures()
-	return r.Chains()
+	return r.Chains().Filter(TrustChainsFilterValidMetadata)
 }
 
 // Resolve starts the trust chain resolution process, building an internal trust tree

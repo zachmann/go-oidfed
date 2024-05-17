@@ -31,12 +31,18 @@ func (m Metadata) ApplyPolicy(p *MetadataPolicies) (*Metadata, error) {
 	out := &Metadata{}
 	for i := 0; i < t.NumField(); i++ {
 		policy, policyOk := reflect.ValueOf(*p).Field(i).Interface().(MetadataPolicy)
-		metadata, ok := v.Field(i).Interface().(policyApplicable)
-		if !ok {
+		if !policyOk || policy == nil {
+			reflect.Indirect(reflect.ValueOf(out)).Field(i).Set(v.Field(i))
 			continue
 		}
-		if !policyOk || policy == nil {
-			reflect.Indirect(reflect.ValueOf(out)).Field(i).Set(reflect.ValueOf(metadata))
+		var metadata policyApplicable
+		f := v.Field(i)
+		if f.IsNil() {
+			continue
+		}
+		var ok bool
+		metadata, ok = v.Field(i).Interface().(policyApplicable)
+		if !ok {
 			continue
 		}
 		applied, err := metadata.ApplyPolicy(policy)

@@ -49,6 +49,18 @@ func NewTrustChainsFilterFromTrustChainChecker(f TrustChainChecker) TrustChainsF
 	return trustChainFilterFromChecker{f}
 }
 
+type trustChainChecker struct {
+	checker func(chain TrustChain) bool
+}
+
+func (c trustChainChecker) Check(chain TrustChain) bool {
+	return c.checker(chain)
+}
+
+func NewTrustChainsFilterFromCheckerFnc(checker func(TrustChain) bool) TrustChainsFilter {
+	return NewTrustChainsFilterFromTrustChainChecker(trustChainChecker{checker: checker})
+}
+
 type trustChainsCheckerTrustAnchor struct {
 	anchor string
 }
@@ -96,6 +108,13 @@ func (f trustChainsFilterPathLength) Filter(chains TrustChains) (final TrustChai
 // TrustChainsFilterMinPathLength is a TrustChainsFilter that filters TrustChains to the chains with the minimal path
 // length
 var TrustChainsFilterMinPathLength TrustChainsFilter = trustChainsFilterPathLength{maxPathLen: -1}
+
+var TrustChainsFilterValidMetadata TrustChainsFilter = NewTrustChainsFilterFromCheckerFnc(
+	func(chain TrustChain) bool {
+		_, err := chain.Metadata()
+		return err == nil
+	},
+)
 
 // TrustChainsFilterMaxPathLength returns a TrustChainsFilter that filters TrustChains to only the chains that are
 // not longer than the passed maximum path len.
