@@ -72,23 +72,6 @@ func NewEntityConfiguration(
 	}
 }
 
-type Unixtime struct {
-	time.Time
-}
-
-func (u *Unixtime) UnmarshalJSON(src []byte) error {
-	var f float64
-	if err := json.Unmarshal(src, &f); err != nil {
-		return err
-	}
-	sec, dec := math.Modf(f)
-	u.Time = time.Unix(int64(sec), int64(dec*(1e9)))
-	return nil
-}
-func (u Unixtime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(float64(u.UnixNano()) / 1e9)
-}
-
 // EntityStatementPayload is a type for holding the actual payload of an EntityStatement or EntityConfiguration;
 // additional fields can be set in the Extra claim
 type EntityStatementPayload struct {
@@ -114,8 +97,7 @@ type EntityStatementPayload struct {
 
 // TimeValid checks if the EntityStatementPayload is already valid and not yet expired.
 func (e EntityStatementPayload) TimeValid() bool {
-	now := time.Now()
-	return e.IssuedAt.Before(now) && e.ExpiresAt.After(now)
+	return verifyTime(e.IssuedAt, e.ExpiresAt) == nil
 }
 
 func extraMarshalHelper(explicitFields []byte, extra map[string]interface{}) ([]byte, error) {
