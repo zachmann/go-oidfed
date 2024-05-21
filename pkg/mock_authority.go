@@ -25,6 +25,7 @@ type mockAuthority struct {
 	signer        crypto.Signer
 	signingAlg    jwa.SignatureAlgorithm
 	policies      *MetadataPolicies
+	policyCrit    []PolicyOperatorName
 }
 
 type mockSubordinateInfo struct {
@@ -37,7 +38,9 @@ type mockSubordinate interface {
 	AddAuthority(authorityID string)
 }
 
-func newMockAuthority(entityID string, metadataPolicies *MetadataPolicies) mockAuthority {
+func newMockAuthority(
+	entityID string, metadataPolicies *MetadataPolicies, policyCrit []PolicyOperatorName,
+) mockAuthority {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
 		panic(err)
@@ -47,6 +50,7 @@ func newMockAuthority(entityID string, metadataPolicies *MetadataPolicies) mockA
 		FetchEndpoint: fmt.Sprintf("%s/fetch", entityID),
 		ListEndpoint:  fmt.Sprintf("%s/list", entityID),
 		policies:      metadataPolicies,
+		policyCrit:    policyCrit,
 		signer:        sk,
 		signingAlg:    jwa.ES512,
 		jwks:          jwx.KeyToJWKS(sk.Public(), jwa.ES512),
@@ -85,12 +89,13 @@ func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntitySta
 		}
 	}
 	payload := EntityStatementPayload{
-		Issuer:         a.EntityID,
-		Subject:        subID,
-		IssuedAt:       Unixtime{now},
-		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
-		JWKS:           jwks,
-		MetadataPolicy: a.policies,
+		Issuer:             a.EntityID,
+		Subject:            subID,
+		IssuedAt:           Unixtime{now},
+		ExpiresAt:          Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
+		JWKS:               jwks,
+		MetadataPolicy:     a.policies,
+		MetadataPolicyCrit: a.policyCrit,
 	}
 	return payload
 }

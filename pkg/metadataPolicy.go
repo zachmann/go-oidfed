@@ -168,7 +168,11 @@ func (p MetadataPolicyEntry) Verify(pathInfo string) error {
 		if !ok {
 			continue
 		}
-		notAllowed := slices.Subtract(activeOperators, append(op.MayCombineWith(), op.Name()))
+		mayCombine := op.MayCombineWith()
+		if mayCombine == nil {
+			continue
+		}
+		notAllowed := slices.Subtract(activeOperators, append(mayCombine, op.Name()))
 		if len(notAllowed) > 0 {
 			return errors.Errorf(
 				"policy operator '%s' in '%s' cannot be combined with these operators: %v", opN,

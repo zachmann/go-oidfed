@@ -141,3 +141,60 @@ func TestTrustChain_Metadata(t *testing.T) {
 		)
 	}
 }
+
+func TestTrustChain_MetaDataPolicyCrit(t *testing.T) {
+	chainRPIA2TA1Metadata := rp1.EntityStatementPayload().Metadata
+	chainRPIA2TA1Metadata.RelyingParty.Contacts = append(chainRPIA2TA1Metadata.RelyingParty.Contacts, "ia@example.org")
+	chainRPIA2TA2Metadata := chainRPIA2TA1Metadata
+	chainRPIA2TA2Metadata.RelyingParty.Contacts = append(
+		chainRPIA2TA2Metadata.RelyingParty.Contacts, "ta@foundation.example.org",
+	)
+
+	tests := []struct {
+		name             string
+		chain            TrustChain
+		expectedMetadata *Metadata
+		errExpected      bool
+	}{
+		{
+			name:             "normal chain rp->ia2->ta2",
+			chain:            chainRPIA2TA2,
+			expectedMetadata: chainRPIA2TA2Metadata,
+			errExpected:      false,
+		},
+		{
+			name:             "non-crit chain rp->ia2->ta2WithRemove",
+			chain:            chainRPIA2TA2WithRemove,
+			expectedMetadata: chainRPIA2TA2Metadata,
+			errExpected:      false,
+		},
+		{
+			name:             "crit chain rp->ia2->ta2WithRemoveCrit",
+			chain:            chainRPIA2TA2WithRemoveCrit,
+			expectedMetadata: chainRPIA2TA2Metadata,
+			errExpected:      true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(
+			test.name, func(t *testing.T) {
+				metadata, err := test.chain.Metadata()
+				if err != nil {
+					if test.errExpected {
+						return
+					}
+					t.Error(err)
+				}
+				if test.errExpected {
+					t.Errorf("expected error, but no error returned")
+				}
+				if !reflect.DeepEqual(metadata, test.expectedMetadata) {
+					t.Errorf(
+						"returned Metadata is not what we expected:\n\nReturned:\n%+v\n\nExpected:\n%+v\n\n",
+						metadata, test.expectedMetadata,
+					)
+				}
+			},
+		)
+	}
+}

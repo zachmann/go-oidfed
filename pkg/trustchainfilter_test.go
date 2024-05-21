@@ -45,7 +45,7 @@ var op3 = newMockOP(
 	},
 )
 
-var ia1 = newMockAuthority("https://ia.example.com", nil)
+var ia1 = newMockAuthority("https://ia.example.com", nil, nil)
 var ia2 = newMockAuthority(
 	"https://ia.example.org", &MetadataPolicies{
 		RelyingParty: MetadataPolicy{
@@ -54,8 +54,9 @@ var ia2 = newMockAuthority(
 			},
 		},
 	},
+	nil,
 )
-var ta1 = newMockAuthority("https://ta.example.com", nil)
+var ta1 = newMockAuthority("https://ta.example.com", nil, nil)
 var ta2 = newMockAuthority(
 	"https://ta.foundation.example.org", &MetadataPolicies{
 		RelyingParty: MetadataPolicy{
@@ -67,6 +68,35 @@ var ta2 = newMockAuthority(
 			},
 		},
 	},
+	nil,
+)
+var ta2WithRemove = newMockAuthority(
+	"https://ta.foundation.example.org/remove", &MetadataPolicies{
+		RelyingParty: MetadataPolicy{
+			"contacts": MetadataPolicyEntry{
+				PolicyOperatorAdd: "ta@foundation.example.org",
+			},
+			"client_registration_types": MetadataPolicyEntry{
+				PolicyOperatorEssential: true,
+				"remove":                "explicit",
+			},
+		},
+	},
+	nil,
+)
+var ta2WithRemoveCrit = newMockAuthority(
+	"https://ta.foundation.example.org/remove/crit", &MetadataPolicies{
+		RelyingParty: MetadataPolicy{
+			"contacts": MetadataPolicyEntry{
+				PolicyOperatorAdd: "ta@foundation.example.org",
+			},
+			"client_registration_types": MetadataPolicyEntry{
+				PolicyOperatorEssential: true,
+				"remove":                "explicit",
+			},
+		},
+	},
+	[]PolicyOperatorName{"remove"},
 )
 
 func init() {
@@ -80,6 +110,8 @@ func init() {
 	ta1.RegisterSubordinate(&ia1)
 	ta1.RegisterSubordinate(&ia2)
 	ta2.RegisterSubordinate(&ia2)
+	ta2WithRemove.RegisterSubordinate(&ia2)
+	ta2WithRemoveCrit.RegisterSubordinate(&ia2)
 
 	mockupData.AddRP(rp1)
 	mockupData.AddOP(op1)
@@ -114,6 +146,16 @@ var chainRPIA2TA2 = TrustChain{
 	{EntityStatementPayload: rp1.EntityStatementPayload()},
 	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(rp1.EntityID)},
 	{EntityStatementPayload: ta2.SubordinateEntityStatementPayload(ia2.EntityID)},
+}
+var chainRPIA2TA2WithRemove = TrustChain{
+	{EntityStatementPayload: rp1.EntityStatementPayload()},
+	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(rp1.EntityID)},
+	{EntityStatementPayload: ta2WithRemove.SubordinateEntityStatementPayload(ia2.EntityID)},
+}
+var chainRPIA2TA2WithRemoveCrit = TrustChain{
+	{EntityStatementPayload: rp1.EntityStatementPayload()},
+	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(rp1.EntityID)},
+	{EntityStatementPayload: ta2WithRemoveCrit.SubordinateEntityStatementPayload(ia2.EntityID)},
 }
 
 var chainRPIA1IA2TA2 = TrustChain{
