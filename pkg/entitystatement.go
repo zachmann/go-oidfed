@@ -20,9 +20,7 @@ var cummonParametersJSONTags []string
 
 func init() {
 	s := structs.New(CommonMetadata{})
-	for _, tag := range utils.FieldTagNames(s.Fields(), "json") {
-		cummonParametersJSONTags = append(cummonParametersJSONTags, tag)
-	}
+	cummonParametersJSONTags = utils.FieldTagNames(s.Fields(), "json")
 }
 
 // EntityStatement is a type for holding an entity statement, more precisely an entity statement that was obtained

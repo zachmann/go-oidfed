@@ -373,7 +373,7 @@ type OwnedTrustMark struct {
 	Extra              map[string]any
 }
 
-// NewTurstMarkOwner creates a new TrustMarkOwner
+// NewTrustMarkOwner creates a new TrustMarkOwner
 func NewTrustMarkOwner(
 	entityID string, key crypto.Signer, alg jwa.SignatureAlgorithm, ownedTrustMarks []OwnedTrustMark,
 ) *TrustMarkOwner {
