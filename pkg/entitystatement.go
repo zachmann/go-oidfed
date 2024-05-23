@@ -16,6 +16,15 @@ import (
 
 const defaultEntityConfigurationLifetime = 86400 // 1d
 
+var cummonParametersJSONTags []string
+
+func init() {
+	s := structs.New(CommonMetadata{})
+	for _, tag := range utils.FieldTagNames(s.Fields(), "json") {
+		cummonParametersJSONTags = append(cummonParametersJSONTags, tag)
+	}
+}
+
 // EntityStatement is a type for holding an entity statement, more precisely an entity statement that was obtained
 // as a jwt and created by us
 type EntityStatement struct {
@@ -134,6 +143,9 @@ func unmarshalWithExtra(data []byte, target interface{}) (map[string]interface{}
 	}
 	s := structs.New(target)
 	for _, tag := range utils.FieldTagNames(s.Fields(), "json") {
+		delete(extra, tag)
+	}
+	for _, tag := range cummonParametersJSONTags {
 		delete(extra, tag)
 	}
 	if len(extra) == 0 {

@@ -97,9 +97,6 @@ type OpenIDRelyingPartyMetadata struct {
 	ClientURI                             string   `json:"client_uri,omitempty"`
 	PolicyURI                             string   `json:"policy_uri,omitempty"`
 	TOSURI                                string   `json:"tos_uri,omitempty"`
-	JWKSURI                               string   `json:"jwks_uri,omitempty"`
-	JWKS                                  jwk.Set  `json:"jwks,omitempty"`
-	SignedJWKSURI                         string   `json:"signed_jwks_uri,omitempty"`
 	SectorIdentifierURI                   string   `json:"sector_identifier_uri,omitempty"`
 	SubjectType                           string   `json:"subject_type,omitempty"`
 	IDTokenSignedResponseAlg              string   `json:"id_token_signed_response_alg,omitempty"`
@@ -147,8 +144,9 @@ type OpenIDRelyingPartyMetadata struct {
 	BackchannelLogoutSessionRequired      bool     `json:"backchannel_logout_session_required,omitempty"`
 	PostLogoutRedirectURIs                []string `json:"post_logout_redirect_uris,omitempty"`
 	AuthorizationDetailsTypes             []string `json:"authorization_details_types,omitempty"`
-	OrganizationName                      string   `json:"organization_name,omitempty"`
 	ClientRegistrationTypes               []string `json:"client_registration_types"`
+
+	CommonMetadata
 
 	Extra map[string]interface{} `json:"-"`
 }
@@ -185,78 +183,77 @@ func (m OpenIDRelyingPartyMetadata) ApplyPolicy(policy MetadataPolicy) (any, err
 }
 
 type OpenIDProviderMetadata struct {
-	Issuer                                                    string              `json:"issuer"`
-	AuthorizationEndpoint                                     string              `json:"authorization_endpoint"`
-	TokenEndpoint                                             string              `json:"token_endpoint"`
-	UserinfoEndpoint                                          string              `json:"userinfo_endpoint,omitempty"`
-	JWKSURI                                                   string              `json:"jwks_uri,omitempty"`
-	JWKS                                                      jwk.Set             `json:"jwks,omitempty"`
-	SignedJWKSURI                                             string              `json:"signed_jwks_uri,omitempty"`
-	RegistrationEndpoint                                      string              `json:"registration_endpoint,omitempty"`
-	ScopesSupported                                           []string            `json:"scopes_supported,omitempty"`
-	ResponseTypesSupported                                    []string            `json:"response_types_supported"`
-	ResponseModesSupported                                    []string            `json:"response_modes_supported,omitempty"`
-	GrantTypesSupported                                       []string            `json:"grant_types_supported,omitempty"`
-	ACRValuesSupported                                        []string            `json:"acr_values_supported,omitempty"`
-	SubjectTypesSupported                                     []string            `json:"subject_types_supported"`
-	IDTokenSignedResponseAlgValuesSupported                   []string            `json:"id_token_signed_response_alg_values_supported,omitempty"`
-	IDTokenEncryptedResponseAlgValuesSupported                []string            `json:"id_token_encrypted_response_alg_values_supported,omitempty"`
-	IDTokenEncryptedResponseEncValuesSupported                []string            `json:"id_token_encrypted_response_enc_values_supported,omitempty"`
-	UserinfoSignedResponseAlgValuesSupported                  []string            `json:"userinfo_signed_response_alg_values_supported,omitempty"`
-	UserinfoEncryptedResponseAlgValuesSupported               []string            `json:"userinfo_encrypted_response_alg_values_supported,omitempty"`
-	UserinfoEncryptedResponseEncValuesSupported               []string            `json:"userinfo_encrypted_response_enc_values_supported,omitempty"`
-	RequestSignedResponseAlgValuesSupported                   []string            `json:"request_signed_response_alg_values_supported,omitempty"`
-	RequestEncryptedResponseAlgValuesSupported                []string            `json:"request_encrypted_response_alg_values_supported,omitempty"`
-	RequestEncryptedResponseEncValuesSupported                []string            `json:"request_encrypted_response_enc_values_supported,omitempty"`
-	TokenEndpointAuthMethodsSupported                         []string            `json:"token_endpoint_auth_methods_supported,omitempty"`
-	TokenEndpointAuthSigningAlgValuesSupported                []string            `json:"token_endpoint_auth_signing_alg_values_supported,omitempty"`
-	DisplayValuesSupported                                    []string            `json:"display_values_supported,omitempty"`
-	ClaimsSupported                                           []string            `json:"claims_supported,omitempty"`
-	ServiceDocumentation                                      string              `json:"service_documentation,omitempty"`
-	ClaimsLocalesSupported                                    []string            `json:"claims_locales_supported,omitempty"`
-	UILocalesSupported                                        []string            `json:"ui_locales_supported,omitempty"`
-	ClaimsParameterSupported                                  bool                `json:"claims_parameter_supported,omitempty"`
-	RequestParameterSupported                                 bool                `json:"request_parameter_supported,omitempty"`
-	RequestURIParameterSupported                              bool                `json:"request_uri_parameter_supported"`
-	RequireRequestURIRegistration                             bool                `json:"require_request_uri_registration,omitempty"`
-	OPPolicyURI                                               string              `json:"op_policy_uri,omitempty"`
-	OPTOSURI                                                  string              `json:"op_tos_uri,omitempty"`
-	RevocationEndpoint                                        string              `json:"revocation_endpoint,omitempty"`
-	RevocationEndpointAuthMethodsSupported                    []string            `json:"revocation_endpoint_auth_methods_supported,omitempty"`
-	RevocationEndpointAuthSigningAlgValuesSupported           []string            `json:"revocation_endpoint_auth_signing_alg_values_supported,omitempty"`
-	IntrospectionEndpoint                                     string              `json:"introspection_endpoint,omitempty"`
-	IntrospectionEndpointAuthMethodsSupported                 []string            `json:"introspection_endpoint_auth_methods_supported,omitempty"`
-	IntrospectionEndpointAuthSigningAlgValuesSupported        []string            `json:"introspection_endpoint_auth_signing_alg_values_supported,omitempty"`
-	IntrospectionSigningAlgValuesSupported                    []string            `json:"introspection_signing_alg_values_supported,omitempty"`
-	IntrospectionEncryptionAlgValuesSupported                 []string            `json:"introspection_encryption_alg_values_supported,omitempty"`
-	IntrospectionEncryptionEncValuesSupported                 []string            `json:"introspection_encryption_enc_values_supported,omitempty"`
-	CodeChallengeMethodsSupported                             []string            `json:"code_challenge_methods_supported,omitempty"`
-	SignedMetadata                                            string              `json:"signed_metadata,omitempty"`
-	DeviceAuthorizationEndpoint                               string              `json:"device_authorization_endpoint,omitempty"`
-	TLSClientCertificateBoundAccessTokens                     bool                `json:"tls_client_certificate_bound_access_tokens,omitempty"`
-	MTLSEndpointAliases                                       map[string]string   `json:"mtls_endpoint_aliases,omitempty"`
-	NFVTokenSigningAlgValuesSupported                         []string            `json:"nfv_token_signing_alg_values_supported,omitempty"`
-	NFVTokenEncryptionAlgValuesSupported                      []string            `json:"nfv_token_encryption_alg_values_supported,omitempty"`
-	NFVTokenEncryptionEncValuesSupported                      []string            `json:"nfv_token_encryption_enc_values_supported,omitempty"`
-	RequireSignedRequestObject                                bool                `json:"require_signed_request_object,omitempty"`
-	PushedAuthorizationRequestEndpoint                        string              `json:"pushed_authorization_request_endpoint,omitempty"`
-	RequirePushedAuthorizationRequests                        bool                `json:"require_pushed_authorization_requests,omitempty"`
-	AuthorizationResponseIssParameterSupported                bool                `json:"authorization_response_iss_parameter_supported,omitempty"`
-	CheckSessionIFrame                                        string              `json:"check_session_iframe,omitempty"`
-	FrontchannelLogoutSupported                               bool                `json:"frontchannel_logout_supported,omitempty"`
-	BackchannelLogoutSupported                                bool                `json:"backchannel_logout_supported,omitempty"`
-	BackchannelLogoutSessionSupported                         bool                `json:"backchannel_logout_session_supported,omitempty"`
-	EndSessionEndpoint                                        string              `json:"end_session_endpoint,omitempty"`
-	BackchannelTokenDeliveryModesSupported                    []string            `json:"backchannel_token_delivery_modes_supported,omitempty"`
-	BackchannelAuthenticationEndpoint                         string              `json:"backchannel_authentication_endpoint,omitempty"`
-	BackchannelAuthenticationRequestSigningAlgValuesSupported []string            `json:"backchannel_authentication_request_signing_alg_values_supported,omitempty"`
-	BackchannelUserCodeParameterSupported                     bool                `json:"backchannel_user_code_parameter_supported,omitempty"`
-	AuthorizationDetailsTypesSupported                        []string            `json:"authorization_details_types_supported,omitempty"`
-	ClientRegistrationTypesSupported                          []string            `json:"client_registration_types_supported"`
-	FederationRegistrationEndpoint                            string              `json:"federation_registration_endpoint,omitempty"`
-	RequestAuthenticationMethodsSupported                     map[string][]string `json:"request_authentication_methods_supported,omitempty"`
-	RequestAuthenticationSigningAlgValuesSupported            []string            `json:"request_authentication_signing_alg_values_supported,omitempty"`
-	OrganizationName                                          string              `json:"organization_name,omitempty"`
+	Issuer                                                    string            `json:"issuer"`
+	AuthorizationEndpoint                                     string            `json:"authorization_endpoint"`
+	TokenEndpoint                                             string            `json:"token_endpoint"`
+	UserinfoEndpoint                                          string            `json:"userinfo_endpoint,omitempty"`
+	RegistrationEndpoint                                      string            `json:"registration_endpoint,omitempty"`
+	ScopesSupported                                           []string          `json:"scopes_supported,omitempty"`
+	ResponseTypesSupported                                    []string          `json:"response_types_supported"`
+	ResponseModesSupported                                    []string          `json:"response_modes_supported,omitempty"`
+	GrantTypesSupported                                       []string          `json:"grant_types_supported,omitempty"`
+	ACRValuesSupported                                        []string          `json:"acr_values_supported,omitempty"`
+	SubjectTypesSupported                                     []string          `json:"subject_types_supported"`
+	IDTokenSignedResponseAlgValuesSupported                   []string          `json:"id_token_signed_response_alg_values_supported,omitempty"`
+	IDTokenEncryptedResponseAlgValuesSupported                []string          `json:"id_token_encrypted_response_alg_values_supported,omitempty"`
+	IDTokenEncryptedResponseEncValuesSupported                []string          `json:"id_token_encrypted_response_enc_values_supported,omitempty"`
+	UserinfoSignedResponseAlgValuesSupported                  []string          `json:"userinfo_signed_response_alg_values_supported,omitempty"`
+	UserinfoEncryptedResponseAlgValuesSupported               []string          `json:"userinfo_encrypted_response_alg_values_supported,omitempty"`
+	UserinfoEncryptedResponseEncValuesSupported               []string          `json:"userinfo_encrypted_response_enc_values_supported,omitempty"`
+	RequestSignedResponseAlgValuesSupported                   []string          `json:"request_signed_response_alg_values_supported,omitempty"`
+	RequestEncryptedResponseAlgValuesSupported                []string          `json:"request_encrypted_response_alg_values_supported,omitempty"`
+	RequestEncryptedResponseEncValuesSupported                []string          `json:"request_encrypted_response_enc_values_supported,omitempty"`
+	TokenEndpointAuthMethodsSupported                         []string          `json:"token_endpoint_auth_methods_supported,omitempty"`
+	TokenEndpointAuthSigningAlgValuesSupported                []string          `json:"token_endpoint_auth_signing_alg_values_supported,omitempty"`
+	DisplayValuesSupported                                    []string          `json:"display_values_supported,omitempty"`
+	ClaimsSupported                                           []string          `json:"claims_supported,omitempty"`
+	ServiceDocumentation                                      string            `json:"service_documentation,omitempty"`
+	ClaimsLocalesSupported                                    []string          `json:"claims_locales_supported,omitempty"`
+	UILocalesSupported                                        []string          `json:"ui_locales_supported,omitempty"`
+	ClaimsParameterSupported                                  bool              `json:"claims_parameter_supported,omitempty"`
+	RequestParameterSupported                                 bool              `json:"request_parameter_supported,omitempty"`
+	RequestURIParameterSupported                              bool              `json:"request_uri_parameter_supported"`
+	RequireRequestURIRegistration                             bool              `json:"require_request_uri_registration,omitempty"`
+	OPPolicyURI                                               string            `json:"op_policy_uri,omitempty"`
+	OPTOSURI                                                  string            `json:"op_tos_uri,omitempty"`
+	RevocationEndpoint                                        string            `json:"revocation_endpoint,omitempty"`
+	RevocationEndpointAuthMethodsSupported                    []string          `json:"revocation_endpoint_auth_methods_supported,omitempty"`
+	RevocationEndpointAuthSigningAlgValuesSupported           []string          `json:"revocation_endpoint_auth_signing_alg_values_supported,omitempty"`
+	IntrospectionEndpoint                                     string            `json:"introspection_endpoint,omitempty"`
+	IntrospectionEndpointAuthMethodsSupported                 []string          `json:"introspection_endpoint_auth_methods_supported,omitempty"`
+	IntrospectionEndpointAuthSigningAlgValuesSupported        []string          `json:"introspection_endpoint_auth_signing_alg_values_supported,omitempty"`
+	IntrospectionSigningAlgValuesSupported                    []string          `json:"introspection_signing_alg_values_supported,omitempty"`
+	IntrospectionEncryptionAlgValuesSupported                 []string          `json:"introspection_encryption_alg_values_supported,omitempty"`
+	IntrospectionEncryptionEncValuesSupported                 []string          `json:"introspection_encryption_enc_values_supported,omitempty"`
+	CodeChallengeMethodsSupported                             []string          `json:"code_challenge_methods_supported,omitempty"`
+	SignedMetadata                                            string            `json:"signed_metadata,omitempty"`
+	DeviceAuthorizationEndpoint                               string            `json:"device_authorization_endpoint,omitempty"`
+	TLSClientCertificateBoundAccessTokens                     bool              `json:"tls_client_certificate_bound_access_tokens,omitempty"`
+	MTLSEndpointAliases                                       map[string]string `json:"mtls_endpoint_aliases,omitempty"`
+	NFVTokenSigningAlgValuesSupported                         []string          `json:"nfv_token_signing_alg_values_supported,omitempty"`
+	NFVTokenEncryptionAlgValuesSupported                      []string          `json:"nfv_token_encryption_alg_values_supported,omitempty"`
+	NFVTokenEncryptionEncValuesSupported                      []string          `json:"nfv_token_encryption_enc_values_supported,omitempty"`
+	RequireSignedRequestObject                                bool              `json:"require_signed_request_object,omitempty"`
+	PushedAuthorizationRequestEndpoint                        string            `json:"pushed_authorization_request_endpoint,omitempty"`
+	RequirePushedAuthorizationRequests                        bool              `json:"require_pushed_authorization_requests,omitempty"`
+	AuthorizationResponseIssParameterSupported                bool              `json:"authorization_response_iss_parameter_supported,omitempty"`
+	CheckSessionIFrame                                        string            `json:"check_session_iframe,omitempty"`
+	FrontchannelLogoutSupported                               bool              `json:"frontchannel_logout_supported,omitempty"`
+	BackchannelLogoutSupported                                bool              `json:"backchannel_logout_supported,omitempty"`
+	BackchannelLogoutSessionSupported                         bool              `json:"backchannel_logout_session_supported,omitempty"`
+	EndSessionEndpoint                                        string            `json:"end_session_endpoint,omitempty"`
+	BackchannelTokenDeliveryModesSupported                    []string          `json:"backchannel_token_delivery_modes_supported,omitempty"`
+	BackchannelAuthenticationEndpoint                         string            `json:"backchannel_authentication_endpoint,omitempty"`
+	BackchannelAuthenticationRequestSigningAlgValuesSupported []string          `json:"backchannel_authentication_request_signing_alg_values_supported,omitempty"`
+	BackchannelUserCodeParameterSupported                     bool              `json:"backchannel_user_code_parameter_supported,omitempty"`
+	AuthorizationDetailsTypesSupported                        []string          `json:"authorization_details_types_supported,omitempty"`
+
+	ClientRegistrationTypesSupported               []string            `json:"client_registration_types_supported"`
+	FederationRegistrationEndpoint                 string              `json:"federation_registration_endpoint,omitempty"`
+	RequestAuthenticationMethodsSupported          map[string][]string `json:"request_authentication_methods_supported,omitempty"`
+	RequestAuthenticationSigningAlgValuesSupported []string            `json:"request_authentication_signing_alg_values_supported,omitempty"`
+
+	CommonMetadata
 
 	Extra map[string]interface{} `json:"-"`
 }
@@ -328,7 +325,7 @@ func (m OAuthClientMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
 type OAuthProtectedResourceMetadata struct {
 	Resource                             string   `json:"resource,omitempty"`
 	AuthorizationServers                 []string `json:"authorization_servers,omitempty"`
-	ScopesProvided                       []string `json:"scopes_provided,omitempty"`
+	ScopesSupported                      []string `json:"scopes_supported,omitempty"`
 	BearerMethodsSupported               []string `json:"bearer_methods_supported,omitempty"`
 	ResourceSigningAlgValuesSupported    []string `json:"resource_signing_alg_values_supported,omitempty"`
 	ResourceEncryptionAlgValuesSupported []string `json:"resource_encryption_alg_values_supported"`
@@ -337,10 +334,7 @@ type OAuthProtectedResourceMetadata struct {
 	ResourcePolicyURI                    string   `json:"resource_policy_uri,omitempty"`
 	ResourceTOSURI                       string   `json:"resource_tos_uri,omitempty"`
 
-	JWKSURI          string  `json:"jwks_uri,omitempty"`
-	JWKS             jwk.Set `json:"jwks,omitempty"`
-	SignedJWKSURI    string  `json:"signed_jwks_uri,omitempty"`
-	OrganizationName string  `json:"organization_name,omitempty"`
+	CommonMetadata
 
 	Extra map[string]interface{} `json:"-"`
 }
@@ -376,17 +370,28 @@ func (m OAuthProtectedResourceMetadata) ApplyPolicy(policy MetadataPolicy) (any,
 	return applyPolicy(&m, policy, "oauth_resource")
 }
 
-type FederationEntityMetadata struct {
-	FederationFetchEndpoint           string `json:"federation_fetch_endpoint,omitempty"`
-	FederationListEndpoint            string `json:"federation_list_endpoint,omitempty"`
-	FederationResolveEndpoint         string `json:"federation_resolve_endpoint,omitempty"`
-	FederationTrustMarkStatusEndpoint string `json:"federation_trust_mark_status_endpoint,omitempty"`
+type CommonMetadata struct {
+	SignedJWKSURI string  `json:"signed_jwks_uri,omitempty"`
+	JWKSURI       string  `json:"jwks_uri,omitempty"`
+	JWKS          jwk.Set `json:"jwks,omitempty"`
 
 	OrganizationName string   `json:"organization_name,omitempty"`
 	Contacts         []string `json:"contacts,omitempty"`
 	LogoURI          string   `json:"logo_uri,omitempty"`
 	PolicyURI        string   `json:"policy_uri,omitempty"`
 	HomepageURI      string   `json:"homepage_uri,omitempty"`
+}
+
+type FederationEntityMetadata struct {
+	FederationFetchEndpoint           string `json:"federation_fetch_endpoint,omitempty"`
+	FederationListEndpoint            string `json:"federation_list_endpoint,omitempty"`
+	FederationResolveEndpoint         string `json:"federation_resolve_endpoint,omitempty"`
+	FederationTrustMarkStatusEndpoint string `json:"federation_trust_mark_status_endpoint,omitempty"`
+	FederationTrustMarkListEndpoint   string `json:"federation_trust_mark_list_endpoint,omitempty"`
+	FederationTrustMarkEndpoint       string `json:"federation_trust_mark_endpoint,omitempty"`
+	FederationHistoricalLKeysEndpoint string `json:"federation_historical_keys_endpoint,omitempty"`
+
+	CommonMetadata
 
 	Extra map[string]interface{} `json:"-"`
 }

@@ -52,7 +52,9 @@ func (rp mockRP) EntityStatementPayload() EntityStatementPayload {
 		AuthorityHints: rp.authorities,
 		Metadata: &Metadata{
 			FederationEntity: &FederationEntityMetadata{
-				OrganizationName: fmt.Sprintf("Organization: %s", orgID[:2]),
+				CommonMetadata: CommonMetadata{
+					OrganizationName: fmt.Sprintf("Organization: %s", orgID[:2]),
+				},
 			},
 			RelyingParty: rp.metadata,
 		},

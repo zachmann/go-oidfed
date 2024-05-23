@@ -47,8 +47,10 @@ var entitystatementMarshalData = map[string]marshalData{
 					ClientRegistrationTypes:  []string{"automatic"},
 				},
 				FederationEntity: &FederationEntityMetadata{
-					OrganizationName: "organization",
-					HomepageURI:      "https://somewhere.com",
+					CommonMetadata: CommonMetadata{
+						OrganizationName: "organization",
+						HomepageURI:      "https://somewhere.com",
+					},
 				},
 			},
 			MetadataPolicy: &MetadataPolicies{

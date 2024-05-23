@@ -129,7 +129,9 @@ func (d *mockHttp) AddTMI(tmi mockTMI) {
 			Metadata: &Metadata{
 				FederationEntity: &FederationEntityMetadata{
 					FederationTrustMarkStatusEndpoint: "TODO", //TODO
-					OrganizationName:                  "TMI Organization",
+					CommonMetadata: CommonMetadata{
+						OrganizationName: "TMI Organization",
+					},
 				},
 			},
 		},

@@ -53,7 +53,9 @@ func (op mockOP) EntityStatementPayload() EntityStatementPayload {
 		AuthorityHints: op.authorities,
 		Metadata: &Metadata{
 			FederationEntity: &FederationEntityMetadata{
-				OrganizationName: fmt.Sprintf("Organization: %s", orgID[:2]),
+				CommonMetadata: CommonMetadata{
+					OrganizationName: fmt.Sprintf("Organization: %s", orgID[:2]),
+				},
 			},
 			OpenIDProvider: op.metadata,
 		},
