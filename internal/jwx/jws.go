@@ -49,8 +49,14 @@ func VerifyWithSet(msg *jws.Message, keys jwk.Set) ([]byte, error) {
 // SignEntityStatement creates a signed JWT of the 'entity-statement+jwt' type for the passed payload using the
 // passed crypto.Signer with the passed jwa.SignatureAlgorithm
 func SignEntityStatement(payload []byte, signingAlg jwa.SignatureAlgorithm, key crypto.Signer) ([]byte, error) {
+	return SignWithType(payload, "entity-statement+jwt", signingAlg, key)
+}
+
+// SignWithType creates a signed JWT of the passed type for the passed payload using the
+// passed crypto.Signer with the passed jwa.SignatureAlgorithm
+func SignWithType(payload []byte, typ string, signingAlg jwa.SignatureAlgorithm, key crypto.Signer) ([]byte, error) {
 	headers := jws.NewHeaders()
-	if err := headers.Set(jws.TypeKey, "entity-statement+jwt"); err != nil {
+	if err := headers.Set(jws.TypeKey, typ); err != nil {
 		return nil, err
 	}
 	return SignPayload(payload, signingAlg, key, headers)

@@ -29,11 +29,11 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 				TrustAnchors: TrustAnchors{
 					TrustAnchor{
 						EntityID: ta1.EntityID,
-						JWKS:     ta1.jwks,
+						JWKS:     ta1.data.JWKS,
 					},
 					TrustAnchor{
 						EntityID: ta2.EntityID,
-						JWKS:     ta2.jwks,
+						JWKS:     ta2.data.JWKS,
 					},
 				},
 				StartingEntity: "",
@@ -52,7 +52,7 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 				TrustAnchors: TrustAnchors{
 					TrustAnchor{
 						EntityID: ta1.EntityID,
-						JWKS:     ta1.jwks,
+						JWKS:     ta1.data.JWKS,
 					},
 				},
 				StartingEntity: rp1.EntityID,
@@ -65,7 +65,7 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 				TrustAnchors: TrustAnchors{
 					TrustAnchor{
 						EntityID: ta2.EntityID,
-						JWKS:     ta2.jwks,
+						JWKS:     ta2.data.JWKS,
 					},
 				},
 				StartingEntity: rp1.EntityID,
@@ -78,11 +78,11 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 				TrustAnchors: TrustAnchors{
 					TrustAnchor{
 						EntityID: ta1.EntityID,
-						JWKS:     ta1.jwks,
+						JWKS:     ta1.data.JWKS,
 					},
 					TrustAnchor{
 						EntityID: ta2.EntityID,
-						JWKS:     ta2.jwks,
+						JWKS:     ta2.data.JWKS,
 					},
 				},
 				StartingEntity: rp1.EntityID,

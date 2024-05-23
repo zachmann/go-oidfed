@@ -19,13 +19,10 @@ type mockAuthority struct {
 	EntityID      string
 	FetchEndpoint string
 	ListEndpoint  string
-	authorities   []string
-	subordinates  []mockSubordinateInfo
-	jwks          jwk.Set
+	data          EntityStatementPayload
 	signer        crypto.Signer
 	signingAlg    jwa.SignatureAlgorithm
-	policies      *MetadataPolicies
-	policyCrit    []PolicyOperatorName
+	subordinates  []mockSubordinateInfo
 }
 
 type mockSubordinateInfo struct {
@@ -38,45 +35,39 @@ type mockSubordinate interface {
 	AddAuthority(authorityID string)
 }
 
-func newMockAuthority(
-	entityID string, metadataPolicies *MetadataPolicies, policyCrit []PolicyOperatorName,
-) mockAuthority {
+func newMockAuthority(entityID string, data EntityStatementPayload) mockAuthority {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
+	data.JWKS = jwx.KeyToJWKS(sk.Public(), jwa.ES512)
+	data.Issuer = entityID
+	data.Subject = entityID
 	a := mockAuthority{
 		EntityID:      entityID,
 		FetchEndpoint: fmt.Sprintf("%s/fetch", entityID),
 		ListEndpoint:  fmt.Sprintf("%s/list", entityID),
-		policies:      metadataPolicies,
-		policyCrit:    policyCrit,
+		data:          data,
 		signer:        sk,
 		signingAlg:    jwa.ES512,
-		jwks:          jwx.KeyToJWKS(sk.Public(), jwa.ES512),
 	}
+	if a.data.Metadata == nil {
+		a.data.Metadata = &Metadata{}
+	}
+	if a.data.Metadata.FederationEntity == nil {
+		a.data.Metadata.FederationEntity = &FederationEntityMetadata{}
+	}
+	a.data.Metadata.FederationEntity.OrganizationName = fmt.Sprintf("Organization %d", mathrand.Int()%100)
+	a.data.Metadata.FederationEntity.FederationFetchEndpoint = a.FetchEndpoint
+	a.data.Metadata.FederationEntity.FederationListEndpoint = a.ListEndpoint
 	return a
 }
 
 func (a mockAuthority) EntityStatementPayload() EntityStatementPayload {
 	now := time.Now()
-	payload := EntityStatementPayload{
-		Issuer:         a.EntityID,
-		Subject:        a.EntityID,
-		IssuedAt:       Unixtime{now},
-		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
-		JWKS:           a.jwks,
-		Audience:       "",
-		AuthorityHints: a.authorities,
-		MetadataPolicy: a.policies,
-		Metadata: &Metadata{
-			FederationEntity: &FederationEntityMetadata{
-				OrganizationName:        fmt.Sprintf("Organization %d", mathrand.Int()%100),
-				FederationFetchEndpoint: a.FetchEndpoint,
-				FederationListEndpoint:  a.ListEndpoint,
-			},
-		},
-	}
+	payload := a.data
+	payload.IssuedAt = Unixtime{now}
+	payload.ExpiresAt = Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))}
 	return payload
 }
 
@@ -94,8 +85,8 @@ func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntitySta
 		IssuedAt:           Unixtime{now},
 		ExpiresAt:          Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:               jwks,
-		MetadataPolicy:     a.policies,
-		MetadataPolicyCrit: a.policyCrit,
+		MetadataPolicy:     a.data.MetadataPolicy,
+		MetadataPolicyCrit: a.data.MetadataPolicyCrit,
 	}
 	return payload
 }
@@ -107,12 +98,12 @@ func (a mockAuthority) EntityConfiguration() *EntityConfiguration {
 func (a mockAuthority) GetSubordinateInfo() mockSubordinateInfo {
 	return mockSubordinateInfo{
 		entityID: a.EntityID,
-		jwks:     a.jwks,
+		jwks:     a.data.JWKS,
 	}
 }
 
 func (a *mockAuthority) AddAuthority(authorityID string) {
-	a.authorities = append(a.authorities, authorityID)
+	a.data.AuthorityHints = append(a.data.AuthorityHints, authorityID)
 }
 
 func (a *mockAuthority) RegisterSubordinate(s mockSubordinate) {

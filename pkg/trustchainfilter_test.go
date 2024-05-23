@@ -45,58 +45,67 @@ var op3 = newMockOP(
 	},
 )
 
-var ia1 = newMockAuthority("https://ia.example.com", nil, nil)
+var ia1 = newMockAuthority("https://ia.example.com", EntityStatementPayload{})
 var ia2 = newMockAuthority(
-	"https://ia.example.org", &MetadataPolicies{
-		RelyingParty: MetadataPolicy{
-			"contacts": MetadataPolicyEntry{
-				PolicyOperatorAdd: "ia@example.org",
+	"https://ia.example.org",
+	EntityStatementPayload{
+		MetadataPolicy: &MetadataPolicies{
+			RelyingParty: MetadataPolicy{
+				"contacts": MetadataPolicyEntry{
+					PolicyOperatorAdd: "ia@example.org",
+				},
 			},
 		},
 	},
-	nil,
 )
-var ta1 = newMockAuthority("https://ta.example.com", nil, nil)
+var ta1 = newMockAuthority("https://ta.example.com", EntityStatementPayload{})
 var ta2 = newMockAuthority(
-	"https://ta.foundation.example.org", &MetadataPolicies{
-		RelyingParty: MetadataPolicy{
-			"contacts": MetadataPolicyEntry{
-				PolicyOperatorAdd: "ta@foundation.example.org",
-			},
-			"client_registration_types": MetadataPolicyEntry{
-				PolicyOperatorEssential: true,
+	"https://ta.foundation.example.org",
+	EntityStatementPayload{
+		MetadataPolicy: &MetadataPolicies{
+			RelyingParty: MetadataPolicy{
+				"contacts": MetadataPolicyEntry{
+					PolicyOperatorAdd: "ta@foundation.example.org",
+				},
+				"client_registration_types": MetadataPolicyEntry{
+					PolicyOperatorEssential: true,
+				},
 			},
 		},
 	},
-	nil,
 )
 var ta2WithRemove = newMockAuthority(
-	"https://ta.foundation.example.org/remove", &MetadataPolicies{
-		RelyingParty: MetadataPolicy{
-			"contacts": MetadataPolicyEntry{
-				PolicyOperatorAdd: "ta@foundation.example.org",
-			},
-			"client_registration_types": MetadataPolicyEntry{
-				PolicyOperatorEssential: true,
-				"remove":                "explicit",
+	"https://ta.foundation.example.org/remove",
+	EntityStatementPayload{
+		MetadataPolicy: &MetadataPolicies{
+			RelyingParty: MetadataPolicy{
+				"contacts": MetadataPolicyEntry{
+					PolicyOperatorAdd: "ta@foundation.example.org",
+				},
+				"client_registration_types": MetadataPolicyEntry{
+					PolicyOperatorEssential: true,
+					"remove":                "explicit",
+				},
 			},
 		},
 	},
-	nil,
 )
 var ta2WithRemoveCrit = newMockAuthority(
-	"https://ta.foundation.example.org/remove/crit", &MetadataPolicies{
-		RelyingParty: MetadataPolicy{
-			"contacts": MetadataPolicyEntry{
-				PolicyOperatorAdd: "ta@foundation.example.org",
-			},
-			"client_registration_types": MetadataPolicyEntry{
-				PolicyOperatorEssential: true,
-				"remove":                "explicit",
+	"https://ta.foundation.example.org/remove/crit",
+	EntityStatementPayload{
+		MetadataPolicy: &MetadataPolicies{
+			RelyingParty: MetadataPolicy{
+				"contacts": MetadataPolicyEntry{
+					PolicyOperatorAdd: "ta@foundation.example.org",
+				},
+				"client_registration_types": MetadataPolicyEntry{
+					PolicyOperatorEssential: true,
+					"remove":                "explicit",
+				},
 			},
 		},
+		MetadataPolicyCrit: []PolicyOperatorName{"remove"},
 	},
-	[]PolicyOperatorName{"remove"},
 )
 
 func init() {

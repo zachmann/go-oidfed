@@ -127,15 +127,18 @@ func TestTrustChain_Metadata(t *testing.T) {
 						return
 					}
 					t.Error(err)
+					return
 				}
 				if test.errExpected {
 					t.Errorf("expected error, but no error returned")
+					return
 				}
 				if !reflect.DeepEqual(metadata, test.expectedMetadata) {
 					t.Errorf(
 						"returned Metadata is not what we expected:\n\nReturned:\n%+v\n\nExpected:\n%+v\n\n",
 						metadata, test.expectedMetadata,
 					)
+					return
 				}
 			},
 		)
@@ -184,15 +187,18 @@ func TestTrustChain_MetaDataPolicyCrit(t *testing.T) {
 						return
 					}
 					t.Error(err)
+					return
 				}
 				if test.errExpected {
 					t.Errorf("expected error, but no error returned")
+					return
 				}
 				if !reflect.DeepEqual(metadata, test.expectedMetadata) {
 					t.Errorf(
 						"returned Metadata is not what we expected:\n\nReturned:\n%+v\n\nExpected:\n%+v\n\n",
 						metadata, test.expectedMetadata,
 					)
+					return
 				}
 			},
 		)

@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/pkg/errors"
@@ -110,6 +111,36 @@ func (d *mockHttp) AddOP(o mockOP) {
 		panic(err)
 	}
 	d.addEntityConfiguration(o.EntityID, data)
+}
+func (d *mockHttp) AddTMI(tmi mockTMI) {
+	now := time.Now()
+	ec := EntityConfiguration{
+		EntityStatementPayload: EntityStatementPayload{
+			Issuer:         tmi.EntityID,
+			Subject:        tmi.EntityID,
+			AuthorityHints: tmi.authorities,
+			IssuedAt: Unixtime{
+				Time: now,
+			},
+			ExpiresAt: Unixtime{
+				Time: now.Add(defaultEntityConfigurationLifetime),
+			},
+			JWKS: tmi.jwks,
+			Metadata: &Metadata{
+				FederationEntity: &FederationEntityMetadata{
+					FederationTrustMarkStatusEndpoint: "TODO", //TODO
+					OrganizationName:                  "TMI Organization",
+				},
+			},
+		},
+		key: tmi.key,
+		alg: tmi.alg,
+	}
+	data, err := ec.JWT()
+	if err != nil {
+		panic(err)
+	}
+	d.addEntityConfiguration(tmi.EntityID, data)
 }
 
 func (d *mockHttp) AddAuthority(a mockAuthority) {

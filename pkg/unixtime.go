@@ -29,12 +29,12 @@ func (u Unixtime) MarshalJSON() ([]byte, error) {
 	return json.Marshal(float64(u.UnixNano()) / 1e9)
 }
 
-func verifyTime(iat, exp Unixtime) error {
+func verifyTime(iat, exp *Unixtime) error {
 	now := time.Now()
-	if !iat.IsZero() && iat.After(now) {
+	if iat != nil && !iat.IsZero() && iat.After(now) {
 		return errors.New("not yet valid")
 	}
-	if !exp.IsZero() && exp.Before(now) {
+	if exp != nil && !exp.IsZero() && exp.Before(now) {
 		return errors.New("expired")
 	}
 	return nil

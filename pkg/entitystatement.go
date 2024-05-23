@@ -3,8 +3,6 @@ package pkg
 import (
 	"crypto"
 	"encoding/json"
-	"math"
-	"time"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
@@ -87,7 +85,7 @@ type EntityStatementPayload struct {
 	Constraints        *ConstraintSpecification `json:"constraints,omitempty"`
 	CriticalExtensions []string                 `json:"crit,omitempty"`
 	MetadataPolicyCrit []PolicyOperatorName     `json:"metadata_policy_crit,omitempty"`
-	TrustMarks         []TrustMark              `json:"trust_marks,omitempty"`
+	TrustMarks         []TrustMarkInfo          `json:"trust_marks,omitempty"`
 	TrustMarkIssuers   AllowedTrustMarkIssuers  `json:"trust_mark_issuers,omitempty"`
 	TrustMarkOwners    TrustMarkOwners          `json:"trust_mark_owners,omitempty"`
 	SourceEndpoint     string                   `json:"source_endpoint,omitempty"`
@@ -97,7 +95,7 @@ type EntityStatementPayload struct {
 
 // TimeValid checks if the EntityStatementPayload is already valid and not yet expired.
 func (e EntityStatementPayload) TimeValid() bool {
-	return verifyTime(e.IssuedAt, e.ExpiresAt) == nil
+	return verifyTime(&e.IssuedAt, &e.ExpiresAt) == nil
 }
 
 func extraMarshalHelper(explicitFields []byte, extra map[string]interface{}) ([]byte, error) {
