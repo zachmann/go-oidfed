@@ -49,7 +49,7 @@ func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*Ope
 	internal.Logf("Discovering OPs for authorities: %+q", authorities)
 	for _, a := range authorities {
 		internal.Logf("Discovering OPs and subordinates for: %+q", a.EntityID)
-		stmt, err := getEntityConfiguration(a.EntityID)
+		stmt, err := GetEntityConfiguration(a.EntityID)
 		if err != nil {
 			internal.Logf("Could not get entity configuration: %s -> skipping", err.Error())
 			continue
@@ -64,7 +64,7 @@ func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*Ope
 			internal.Logf("Found these (possible) OPs: %+q", thoseOPs)
 			for _, op := range thoseOPs {
 				internal.Logf("Checking OP: %+q", op)
-				entityConfig, err := getEntityConfiguration(op)
+				entityConfig, err := GetEntityConfiguration(op)
 				if err != nil {
 					internal.Logf("Could not get entity configuration: %s -> skipping", err.Error())
 					continue

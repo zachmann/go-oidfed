@@ -5,66 +5,127 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
 
-	"github.com/zachmann/go-oidfed/examples/ta/config"
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
+func NewBadgerStorage(path string) (*BadgerStorage, error) {
+	storage := &BadgerStorage{Path: path}
+	err := storage.Load()
+	return storage, err
+}
+
 type BadgerStorage struct {
-	storage   *badger.DB
-	entityIDs map[string][]string
-	mutex     sync.RWMutex
+	*badger.DB
+	Path   string
+	loaded bool
 }
 
-func NewBadgerStorage() *BadgerStorage {
-	return &BadgerStorage{
-		entityIDs: make(map[string][]string),
+func (store *BadgerStorage) SubordinateStorage() *SubordinateBadgerStorage {
+	return &SubordinateBadgerStorage{
+		store: &BadgerSubStorage{
+			db:     store,
+			subKey: "subordinates",
+		},
 	}
 }
 
-func (store *BadgerStorage) Load() error {
-	db, err := badger.Open(badger.DefaultOptions(config.Get().DataLocation))
+func (store *BadgerStorage) Write(key string, value any) error {
+	data, err := json.Marshal(value)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	store.storage = db
-
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
-
-	if err = db.View(
+	err = store.Update(
 		func(txn *badger.Txn) error {
-			opts := badger.DefaultIteratorOptions
-			opts.PrefetchSize = 10
-			it := txn.NewIterator(opts)
+			return txn.Set([]byte(key), data)
+		},
+	)
+	return err
+}
+
+func (store *BadgerStorage) Delete(key string) error {
+	return store.Update(
+		func(txn *badger.Txn) error {
+			return txn.Delete([]byte(key))
+		},
+	)
+}
+
+func (store *BadgerStorage) Read(key string, target any) (bool, error) {
+	var notFound bool
+	err := store.View(
+		func(txn *badger.Txn) error {
+			item, err := txn.Get([]byte(key))
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				notFound = true
+				return errors.New(fmt.Sprintf("'%s' not found", key))
+			}
+
+			return item.Value(
+				func(val []byte) error {
+					return json.Unmarshal(val, target)
+				},
+			)
+		},
+	)
+	return !notFound, err
+}
+
+type BadgerSubStorage struct {
+	db     *BadgerStorage
+	subKey string
+}
+
+func (store *BadgerSubStorage) Load() error {
+	return store.db.Load()
+}
+func (store *BadgerSubStorage) key(key string) string {
+	return fmt.Sprintf(store.subKey + ":" + key)
+}
+func (store *BadgerSubStorage) Write(key string, value any) error {
+	return store.db.Write(store.key(key), value)
+}
+func (store *BadgerSubStorage) Delete(key string) error {
+	return store.db.Delete(store.key(key))
+}
+func (store *BadgerSubStorage) Read(key string, target any) (bool, error) {
+	return store.db.Read(store.key(key), target)
+}
+func (store *BadgerSubStorage) ReadIterator(do func(k, v []byte) error) error {
+	return store.db.View(
+		func(txn *badger.Txn) error {
+			it := txn.NewIterator(badger.DefaultIteratorOptions)
 			defer it.Close()
-			for it.Rewind(); it.Valid(); it.Next() {
+			prefix := []byte(store.subKey + ":")
+			for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 				item := it.Item()
-				if err = item.Value(
+				k := item.Key()
+				err := item.Value(
 					func(v []byte) error {
-						var info SubordinateInfo
-						if err = json.Unmarshal(v, &info); err != nil {
-							return err
-						}
-						store.entityIDs[info.EntityType] = append(store.entityIDs[info.EntityType], info.EntityID)
-						if info.EntityType != "" {
-							store.entityIDs[""] = append(store.entityIDs[""], info.EntityID)
-						}
-						return nil
+						return do(k, v)
 					},
-				); err != nil {
+				)
+				if err != nil {
 					return err
 				}
 			}
 			return nil
 		},
-	); err != nil {
-		log.Fatal(err.Error())
+	)
+}
+
+func (store *BadgerStorage) Load() error {
+	if store.loaded {
+		return nil
 	}
+	db, err := badger.Open(badger.DefaultOptions(store.Path))
+	if err != nil {
+		log.Fatal(err)
+	}
+	store.DB = db
 
 	go func() {
 		ticker := time.NewTicker(5 * time.Minute)
@@ -77,6 +138,7 @@ func (store *BadgerStorage) Load() error {
 			}
 		}
 	}()
+	store.loaded = true
 	return nil
 }
 
@@ -96,64 +158,80 @@ func removeFromSlice[C comparable](item C, slice []C) (out []C) {
 	return
 }
 
-func (store *BadgerStorage) Write(entityID string, info SubordinateInfo) error {
+type SubordinateBadgerStorage struct {
+	store *BadgerSubStorage
+}
 
-	data, err := json.Marshal(info)
+func (store *SubordinateBadgerStorage) Load() error {
+	return store.store.Load()
+}
+func (store *SubordinateBadgerStorage) Write(entityID string, info SubordinateInfo) error {
+	return store.store.Write(entityID, info)
+}
+
+func (store *SubordinateBadgerStorage) Delete(entityID string) error {
+	return store.store.Delete(entityID)
+}
+
+func (store *SubordinateBadgerStorage) Read(entityID string) (*SubordinateInfo, error) {
+	var info SubordinateInfo
+	found, err := store.store.Read(entityID, &info)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	err = store.storage.Update(
-		func(txn *badger.Txn) error {
-			if err = txn.Set([]byte(entityID), data); err != nil {
-				return err
-			}
-			store.mutex.Lock()
-			defer store.mutex.Unlock()
-			store.entityIDs[info.EntityType] = addToSliceIfNotExists(entityID, store.entityIDs[info.EntityType])
-			if info.EntityType != "" {
-				store.entityIDs[""] = addToSliceIfNotExists(entityID, store.entityIDs[""])
-			}
-			return nil
-		},
-	)
-	return err
+	if !found {
+		return nil, nil
+	}
+	return &info, nil
 }
 
-func (store *BadgerStorage) Delete(entityID string) error {
-	return store.storage.Update(
-		func(txn *badger.Txn) error {
-			if err := txn.Delete([]byte(entityID)); err != nil {
-				return err
-			}
-			store.mutex.Lock()
-			defer store.mutex.Unlock()
-			for t, e := range store.entityIDs {
-				store.entityIDs[t] = removeFromSlice(entityID, e)
-			}
-			return nil
-		},
-	)
+func (store *SubordinateBadgerStorage) Q() SubordinateStorageQuery {
+	return &BadgerSubordinateStorageQuery{db: store}
 }
 
-func (store *BadgerStorage) Read(entityID string) (info SubordinateInfo, err error) {
-	err = store.storage.View(
-		func(txn *badger.Txn) error {
-			item, err := txn.Get([]byte(entityID))
-			if errors.Is(err, badger.ErrKeyNotFound) {
-				return errors.New(fmt.Sprintf("'%s' not found", entityID))
-			}
+type BadgerSubordinateStorageQuery struct {
+	db      *SubordinateBadgerStorage
+	filters []func(info SubordinateInfo) bool
+}
 
-			return item.Value(
-				func(val []byte) error {
-					return json.Unmarshal(val, &info)
-				},
-			)
+func (q BadgerSubordinateStorageQuery) Subordinate(entityID string) (*SubordinateInfo, error) {
+	return q.db.Read(entityID)
+}
+
+func (q BadgerSubordinateStorageQuery) Subordinates() (infos []SubordinateInfo, err error) {
+	err = q.db.store.ReadIterator(
+		func(k, v []byte) error {
+			var info SubordinateInfo
+			if err = json.Unmarshal(v, &info); err != nil {
+				return err
+			}
+			infos = append(infos, info)
+			return nil
 		},
 	)
 	return
 }
-func (store *BadgerStorage) ListSubordinates(entityType string) (entities []string, err error) {
-	store.mutex.RLock()
-	defer store.mutex.RUnlock()
-	return store.entityIDs[entityType], nil
+
+func (q BadgerSubordinateStorageQuery) EntityIDs() (ids []string, err error) {
+	err = q.db.store.ReadIterator(
+		func(k, v []byte) error {
+			var info SubordinateInfo
+			if err = json.Unmarshal(v, &info); err != nil {
+				return err
+			}
+			ids = append(ids, info.EntityID)
+			return nil
+		},
+	)
+	return
+}
+
+func (q *BadgerSubordinateStorageQuery) AddFilter(filter SubordinateStorageQueryFilter, value any) error {
+	q.filters = append(
+		q.filters, func(info SubordinateInfo) bool {
+			return filter(info, value)
+		},
+	)
+	return nil
+
 }

@@ -1,11 +1,13 @@
 package pkg
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwk"
 
 	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/cache"
 )
@@ -31,6 +33,53 @@ func NewTrustAnchorsFromEntityIDs(anchorIDs ...string) (anchors TrustAnchors) {
 	return
 }
 
+type ResolveResponse struct {
+	Issuer     string                 `json:"iss"`
+	Subject    string                 `json:"sub"`
+	IssuedAt   Unixtime               `json:"iat"`
+	ExpiresAt  Unixtime               `json:"exp"`
+	Audience   string                 `json:"aud,omitempty"`
+	Metadata   *Metadata              `json:"metadata,omitempty"`
+	TrustMarks []TrustMarkInfo        `json:"trust_marks,omitempty"`
+	TrustChain jwsMessages            `json:"trust_chain,omitempty"`
+	Extra      map[string]interface{} `json:"-"`
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+// It also marshals extra fields.
+func (r ResolveResponse) MarshalJSON() ([]byte, error) {
+	type resolveResponse ResolveResponse
+	explicitFields, err := json.Marshal(resolveResponse(r))
+	if err != nil {
+		return nil, err
+	}
+	return extraMarshalHelper(explicitFields, r.Extra)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It also unmarshalls additional fields into the Extra claim.
+func (r *ResolveResponse) UnmarshalJSON(data []byte) error {
+	type resolveResponse ResolveResponse
+	var rr resolveResponse
+	extra, err := unmarshalWithExtra(data, &rr)
+	if err != nil {
+		return err
+	}
+	rr.Extra = extra
+	*r = ResolveResponse(rr)
+	return nil
+}
+
+type jwsMessages []*jwx.ParsedJWT
+
+func (m jwsMessages) MarshalJSON() ([]byte, error) {
+	jwts := make([]string, len(m))
+	for i, mm := range m {
+		jwts[i] = string(mm.RawJWT)
+	}
+	return json.Marshal(jwts)
+}
+
 // TrustResolver is type for resolving trust chains from a StartingEntity to one or multiple TrustAnchors
 type TrustResolver struct {
 	TrustAnchors   []TrustAnchor
@@ -48,7 +97,7 @@ func (r *TrustResolver) ResolveToValidChains() TrustChains {
 
 // Resolve starts the trust chain resolution process, building an internal trust tree
 func (r *TrustResolver) Resolve() {
-	starting, err := getEntityConfiguration(r.StartingEntity)
+	starting, err := GetEntityConfiguration(r.StartingEntity)
 	if err != nil {
 		return
 	}
@@ -91,7 +140,7 @@ func (t *trustTree) resolve(anchors TrustAnchors) {
 		t.Authorities = make([]trustTree, len(t.Entity.AuthorityHints))
 	}
 	for i, aID := range t.Entity.AuthorityHints {
-		aStmt, err := getEntityConfiguration(aID)
+		aStmt, err := GetEntityConfiguration(aID)
 		if err != nil {
 			continue
 		}
@@ -102,7 +151,7 @@ func (t *trustTree) resolve(anchors TrustAnchors) {
 			FederationFetchEndpoint == "" {
 			continue
 		}
-		subordinateStmt, err := fetchEntityStatement(
+		subordinateStmt, err := FetchEntityStatement(
 			aStmt.Metadata.FederationEntity.FederationFetchEndpoint, t.Entity.Issuer, aID,
 		)
 		if err != nil {
@@ -195,7 +244,7 @@ func entityStmtCacheGet(subID, issID string) *EntityStatement {
 	return stmt
 }
 
-func getEntityConfiguration(entityID string) (*EntityStatement, error) {
+func GetEntityConfiguration(entityID string) (*EntityStatement, error) {
 	if stmt := entityStmtCacheGet(entityID, entityID); stmt != nil {
 		internal.Logf("Got entity configuration for %+q from cache", entityID)
 		return stmt, nil
@@ -214,7 +263,7 @@ func getEntityConfiguration(entityID string) (*EntityStatement, error) {
 	return stmt, nil
 }
 
-func fetchEntityStatement(fetchEndpoint, subID, issID string) (*EntityStatement, error) {
+func FetchEntityStatement(fetchEndpoint, subID, issID string) (*EntityStatement, error) {
 	if stmt := entityStmtCacheGet(subID, issID); stmt != nil {
 		return stmt, nil
 	}

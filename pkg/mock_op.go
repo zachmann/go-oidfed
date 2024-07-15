@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/md5"
@@ -19,9 +18,8 @@ type mockOP struct {
 	EntityID    string
 	authorities []string
 	jwks        jwk.Set
-	signer      crypto.Signer
-	signingAlg  jwa.SignatureAlgorithm
-	metadata    *OpenIDProviderMetadata
+	*EntityStatementSigner
+	metadata *OpenIDProviderMetadata
 }
 
 func newMockOP(entityID string, metadata *OpenIDProviderMetadata) mockOP {
@@ -31,11 +29,10 @@ func newMockOP(entityID string, metadata *OpenIDProviderMetadata) mockOP {
 	}
 	metadata.Issuer = entityID
 	o := mockOP{
-		EntityID:   entityID,
-		metadata:   metadata,
-		signer:     sk,
-		signingAlg: jwa.ES512,
-		jwks:       jwx.KeyToJWKS(sk.Public(), jwa.ES512),
+		EntityID:              entityID,
+		metadata:              metadata,
+		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
+		jwks:                  jwx.KeyToJWKS(sk.Public(), jwa.ES512),
 	}
 	return o
 }
@@ -61,10 +58,6 @@ func (op mockOP) EntityStatementPayload() EntityStatementPayload {
 		},
 	}
 	return payload
-}
-
-func (op mockOP) EntityConfiguration() *EntityConfiguration {
-	return NewEntityConfiguration(op.EntityStatementPayload(), op.signer, op.signingAlg)
 }
 
 func (op mockOP) GetSubordinateInfo() mockSubordinateInfo {

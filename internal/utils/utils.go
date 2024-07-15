@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/fatih/structs"
+	"tideland.dev/go/slices"
 )
 
 // Equal compares multiple comparable values for equality
@@ -57,4 +58,17 @@ func FirstNonEmpty[C comparable](possibleValues ...C) C {
 		}
 	}
 	return nullValue
+}
+
+func MergeMaps(overwrite bool, mm ...map[string]any) map[string]any {
+	if !overwrite {
+		return MergeMaps(true, slices.Reverse(mm)...)
+	}
+	all := make(map[string]any)
+	for _, m := range mm {
+		for k, v := range m {
+			all[k] = v
+		}
+	}
+	return all
 }

@@ -19,7 +19,7 @@ import (
 var fedEntity *pkg.FederationEntity
 var ownMetadata *pkg.Metadata
 
-var store storage.JWKStorageBackend
+var store storage.SubordinateStorageBackend
 var entityStatementObtainer = internal.DefaultHttpEntityStatementObtainer
 
 func Init() {

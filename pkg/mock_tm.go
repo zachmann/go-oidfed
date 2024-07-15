@@ -26,7 +26,7 @@ func newMockTrustMarkOwner(entityID string, ownedTrustMarks []OwnedTrustMark) *T
 	if err != nil {
 		panic(err)
 	}
-	return NewTrustMarkOwner(entityID, sk, jwa.ES512, ownedTrustMarks)
+	return NewTrustMarkOwner(entityID, NewTrustMarkDelegationSigner(sk, jwa.ES512), ownedTrustMarks)
 }
 
 func newMockTrustMarkIssuer(entityID string, trustMarkSpecs []TrustMarkSpec) mockTMI {
@@ -34,7 +34,7 @@ func newMockTrustMarkIssuer(entityID string, trustMarkSpecs []TrustMarkSpec) moc
 	if err != nil {
 		panic(err)
 	}
-	tmi := NewTrustMarkIssuer(entityID, sk, jwa.ES512, trustMarkSpecs)
+	tmi := NewTrustMarkIssuer(entityID, NewTrustMarkSigner(sk, jwa.ES512), trustMarkSpecs)
 	return mockTMI{
 		TrustMarkIssuer: *tmi,
 		jwks:            jwx.KeyToJWKS(tmi.key.Public(), tmi.alg),

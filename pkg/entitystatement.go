@@ -1,17 +1,13 @@
 package pkg
 
 import (
-	"crypto"
 	"encoding/json"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
 
 	"github.com/fatih/structs"
-	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jws"
-	"github.com/pkg/errors"
 )
 
 const defaultEntityConfigurationLifetime = 86400 // 1d
@@ -26,7 +22,7 @@ func init() {
 // EntityStatement is a type for holding an entity statement, more precisely an entity statement that was obtained
 // as a jwt and created by us
 type EntityStatement struct {
-	jwtMsg *jws.Message
+	jwtMsg *jwx.ParsedJWT
 	EntityStatementPayload
 }
 
@@ -34,47 +30,6 @@ type EntityStatement struct {
 func (e EntityStatement) Verify(keys jwk.Set) bool {
 	_, err := jwx.VerifyWithSet(e.jwtMsg, keys)
 	return err == nil
-}
-
-// EntityConfiguration is a type for holding an entity configuration, more precisely an entity statement from an entity
-// about itself that was created by us. To create a new EntityConfiguration use the NewEntityConfiguration function
-type EntityConfiguration struct {
-	EntityStatementPayload
-	key crypto.Signer
-	jwt []byte
-	alg jwa.SignatureAlgorithm
-}
-
-// JWT returns a signed jwt representation of the EntityConfiguration
-func (e *EntityConfiguration) JWT() (jwt []byte, err error) {
-	if e.jwt != nil {
-		jwt = e.jwt
-		return
-	}
-	if e.key == nil {
-		return nil, errors.New("no signing key set")
-	}
-	var j []byte
-	j, err = json.Marshal(e)
-	if err != nil {
-		return
-	}
-	e.jwt, err = jwx.SignEntityStatement(j, e.alg, e.key)
-	jwt = e.jwt
-	return
-}
-
-// NewEntityConfiguration creates a new EntityConfiguration with the passed EntityStatementPayload and the passed
-// signing key and jwa.SignatureAlgorithm
-func NewEntityConfiguration(
-	payload EntityStatementPayload, privateSigningKey crypto.Signer,
-	signingAlg jwa.SignatureAlgorithm,
-) *EntityConfiguration {
-	return &EntityConfiguration{
-		EntityStatementPayload: payload,
-		key:                    privateSigningKey,
-		alg:                    signingAlg,
-	}
 }
 
 // EntityStatementPayload is a type for holding the actual payload of an EntityStatement or EntityConfiguration;
@@ -171,9 +126,9 @@ func (e *EntityStatementPayload) UnmarshalJSON(data []byte) error {
 
 // ConstraintSpecification is type for holding constraints according to the oidc fed spec
 type ConstraintSpecification struct {
-	MaxPathLength          int               `json:"max_path_length,omitempty"`
-	NamingConstraints      NamingConstraints `json:"naming_constraints,omitempty"`
-	AllowedLeafEntityTypes []string          `json:"allowed_entity_types,omitempty"`
+	MaxPathLength          int                `json:"max_path_length,omitempty"`
+	NamingConstraints      *NamingConstraints `json:"naming_constraints,omitempty"`
+	AllowedLeafEntityTypes []string           `json:"allowed_entity_types,omitempty"`
 }
 
 // NamingConstraints is a type for holding constraints about naming
@@ -210,7 +165,7 @@ func (tmo *TrustMarkOwnerSpec) UnmarshalJSON(data []byte) error {
 
 // ParseEntityStatement parses a jwt into an EntityStatement
 func ParseEntityStatement(statementJWT []byte) (*EntityStatement, error) {
-	m, err := jws.Parse(statementJWT)
+	m, err := jwx.Parse(statementJWT)
 	if err != nil {
 		return nil, err
 	}

@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/lestrrat-go/jwx/jws"
-
 	"github.com/zachmann/go-oidfed/internal/jwx"
 )
 
 func TestRequestObjectProducer_RequestObject(t *testing.T) {
-	rop := NewRequestObjectProducer(rp1.EntityID, rp1.signer, rp1.signingAlg, 60)
+	signer := rp1.GeneralJWTSigner
+	rop := NewRequestObjectProducer(rp1.EntityID, signer.key, signer.alg, 60)
 	emptyKeys := []string{
 		"sub",
 		"client_secret",
@@ -51,7 +50,7 @@ func TestRequestObjectProducer_RequestObject(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				m, err := jws.Parse(ro)
+				m, err := jwx.Parse(ro)
 				if err != nil {
 					t.Error(err)
 					return
@@ -84,7 +83,8 @@ func TestRequestObjectProducer_RequestObject(t *testing.T) {
 }
 
 func TestRequestObjectProducer_ClientAssertion(t *testing.T) {
-	rop := NewRequestObjectProducer(rp1.EntityID, rp1.signer, rp1.signingAlg, 60)
+	signer := rp1.GeneralJWTSigner
+	rop := NewRequestObjectProducer(rp1.EntityID, signer.key, signer.alg, 60)
 	emptyKeys := []string{"client_id"}
 	tests := []struct {
 		name           string
@@ -108,7 +108,7 @@ func TestRequestObjectProducer_ClientAssertion(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				m, err := jws.Parse(assertion)
+				m, err := jwx.Parse(assertion)
 				if err != nil {
 					t.Error(err)
 					return

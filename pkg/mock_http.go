@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jws"
 	"github.com/pkg/errors"
 )
 
@@ -97,16 +96,14 @@ func (d mockHttp) ListEntities(listEndpoint, entityType string) ([]byte, error) 
 }
 
 func (d *mockHttp) AddRP(r mockRP) {
-	ec := r.EntityConfiguration()
-	data, err := ec.JWT()
+	data, err := r.JWT(r.EntityStatementPayload())
 	if err != nil {
 		panic(err)
 	}
 	d.addEntityConfiguration(r.EntityID, data)
 }
 func (d *mockHttp) AddOP(o mockOP) {
-	ec := o.EntityConfiguration()
-	data, err := ec.JWT()
+	data, err := o.JWT(o.EntityStatementPayload())
 	if err != nil {
 		panic(err)
 	}
@@ -114,31 +111,27 @@ func (d *mockHttp) AddOP(o mockOP) {
 }
 func (d *mockHttp) AddTMI(tmi mockTMI) {
 	now := time.Now()
-	ec := EntityConfiguration{
-		EntityStatementPayload: EntityStatementPayload{
-			Issuer:         tmi.EntityID,
-			Subject:        tmi.EntityID,
-			AuthorityHints: tmi.authorities,
-			IssuedAt: Unixtime{
-				Time: now,
-			},
-			ExpiresAt: Unixtime{
-				Time: now.Add(defaultEntityConfigurationLifetime),
-			},
-			JWKS: tmi.jwks,
-			Metadata: &Metadata{
-				FederationEntity: &FederationEntityMetadata{
-					FederationTrustMarkStatusEndpoint: "TODO", //TODO
-					CommonMetadata: CommonMetadata{
-						OrganizationName: "TMI Organization",
-					},
+	payload := EntityStatementPayload{
+		Issuer:         tmi.EntityID,
+		Subject:        tmi.EntityID,
+		AuthorityHints: tmi.authorities,
+		IssuedAt: Unixtime{
+			Time: now,
+		},
+		ExpiresAt: Unixtime{
+			Time: now.Add(defaultEntityConfigurationLifetime),
+		},
+		JWKS: tmi.jwks,
+		Metadata: &Metadata{
+			FederationEntity: &FederationEntityMetadata{
+				FederationTrustMarkStatusEndpoint: "TODO", //TODO
+				CommonMetadata: CommonMetadata{
+					OrganizationName: "TMI Organization",
 				},
 			},
 		},
-		key: tmi.key,
-		alg: tmi.alg,
 	}
-	data, err := ec.JWT()
+	data, err := tmi.TrustMarkSigner.JWT(payload)
 	if err != nil {
 		panic(err)
 	}
@@ -146,8 +139,7 @@ func (d *mockHttp) AddTMI(tmi mockTMI) {
 }
 
 func (d *mockHttp) AddAuthority(a mockAuthority) {
-	ec := a.EntityConfiguration()
-	data, err := ec.JWT()
+	data, err := a.EntityStatementSigner.JWT(a.EntityStatementPayload())
 	if err != nil {
 		panic(err)
 	}
@@ -155,15 +147,7 @@ func (d *mockHttp) AddAuthority(a mockAuthority) {
 
 	for _, sub := range a.subordinates {
 		pay := a.SubordinateEntityStatementPayload(sub.entityID)
-		j, err := pay.MarshalJSON()
-		if err != nil {
-			panic(err)
-		}
-		headers := jws.NewHeaders()
-		if err = headers.Set(jws.TypeKey, "entity-statement+jwt"); err != nil {
-			panic(err)
-		}
-		data, err := jws.Sign(j, a.signingAlg, a.signer, jws.WithHeaders(headers))
+		data, err = a.EntityStatementSigner.JWT(pay)
 		if err != nil {
 			panic(err)
 		}

@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -20,9 +19,8 @@ type mockAuthority struct {
 	FetchEndpoint string
 	ListEndpoint  string
 	data          EntityStatementPayload
-	signer        crypto.Signer
-	signingAlg    jwa.SignatureAlgorithm
-	subordinates  []mockSubordinateInfo
+	*EntityStatementSigner
+	subordinates []mockSubordinateInfo
 }
 
 type mockSubordinateInfo struct {
@@ -44,12 +42,11 @@ func newMockAuthority(entityID string, data EntityStatementPayload) mockAuthorit
 	data.Issuer = entityID
 	data.Subject = entityID
 	a := mockAuthority{
-		EntityID:      entityID,
-		FetchEndpoint: fmt.Sprintf("%s/fetch", entityID),
-		ListEndpoint:  fmt.Sprintf("%s/list", entityID),
-		data:          data,
-		signer:        sk,
-		signingAlg:    jwa.ES512,
+		EntityID:              entityID,
+		FetchEndpoint:         fmt.Sprintf("%s/fetch", entityID),
+		ListEndpoint:          fmt.Sprintf("%s/list", entityID),
+		data:                  data,
+		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
 	}
 	if a.data.Metadata == nil {
 		a.data.Metadata = &Metadata{}
@@ -63,12 +60,12 @@ func newMockAuthority(entityID string, data EntityStatementPayload) mockAuthorit
 	return a
 }
 
-func (a mockAuthority) EntityStatementPayload() EntityStatementPayload {
+func (a mockAuthority) EntityStatementPayload() *EntityStatementPayload {
 	now := time.Now()
 	payload := a.data
 	payload.IssuedAt = Unixtime{now}
 	payload.ExpiresAt = Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))}
-	return payload
+	return &payload
 }
 
 func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntityStatementPayload {
@@ -89,10 +86,6 @@ func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntitySta
 		MetadataPolicyCrit: a.data.MetadataPolicyCrit,
 	}
 	return payload
-}
-
-func (a mockAuthority) EntityConfiguration() *EntityConfiguration {
-	return NewEntityConfiguration(a.EntityStatementPayload(), a.signer, a.signingAlg)
 }
 
 func (a mockAuthority) GetSubordinateInfo() mockSubordinateInfo {
