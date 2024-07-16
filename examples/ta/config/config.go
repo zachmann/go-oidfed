@@ -7,8 +7,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/zachmann/go-oidfed/examples/ta/fedentity"
 	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/fedentities"
 )
 
 type Config struct {
@@ -26,9 +26,9 @@ type Config struct {
 }
 
 type Endpoints struct {
-	FetchEndpoint   fedentity.EndpointConf `yaml:"fetch"`
-	ListEndpoint    fedentity.EndpointConf `yaml:"list"`
-	ResolveEndpoint fedentity.EndpointConf `yaml:"resolve"`
+	FetchEndpoint   fedentities.EndpointConf `yaml:"fetch"`
+	ListEndpoint    fedentities.EndpointConf `yaml:"list"`
+	ResolveEndpoint fedentities.EndpointConf `yaml:"resolve"`
 	//TODO
 }
 

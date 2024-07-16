@@ -1,4 +1,4 @@
-package fedentity
+package fedentities
 
 import (
 	"time"

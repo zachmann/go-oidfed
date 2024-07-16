@@ -9,9 +9,9 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/examples/ta/config"
-	"github.com/zachmann/go-oidfed/examples/ta/fedentity"
-	"github.com/zachmann/go-oidfed/examples/ta/storage"
 	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/fedentities"
+	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
 func main() {
@@ -38,7 +38,7 @@ func main() {
 	}
 	log.Println("Loaded storage backend")
 
-	entity, err := fedentity.NewFedEntity(
+	entity, err := fedentities.NewFedEntity(
 		c.EntityID, c.AuthorityHints,
 		&pkg.Metadata{
 			FederationEntity: &pkg.FederationEntityMetadata{
@@ -47,9 +47,9 @@ func main() {
 				},
 			},
 		},
-		signingKey, jwa.ES512, c.ConfigurationLifetime, fedentity.SubordinateStatementsConfig{
+		signingKey, jwa.ES512, c.ConfigurationLifetime, fedentities.SubordinateStatementsConfig{
 			MetadataPolicies: nil,
-			Configs: map[string]*fedentity.SubordinateStatementTypeConfig{
+			Configs: map[string]*fedentities.SubordinateStatementTypeConfig{
 				"": {
 					SubordinateStatementLifetime: 3600,
 					// TODO read all of this from config or a storage backend

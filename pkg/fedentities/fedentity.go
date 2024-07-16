@@ -1,4 +1,4 @@
-package fedentity
+package fedentities
 
 import (
 	"crypto"
@@ -7,13 +7,16 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/gofiber/fiber/v2/middleware/compress"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/lestrrat-go/jwx/jwa"
 
-	"github.com/zachmann/go-oidfed/examples/ta/storage"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/cache"
 	"github.com/zachmann/go-oidfed/pkg/constants"
+	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
 const (
@@ -156,6 +159,10 @@ func NewFedEntity(
 		fed.Metadata.FederationEntity = &pkg.FederationEntityMetadata{}
 	}
 	server := fiber.New()
+	server.Use(recover.New())
+	server.Use(compress.New())
+	server.Use(logger.New())
+	//TODO middleware configurable?
 	entity := &FedEntity{
 		FederationEntity:            fed,
 		TrustMarkIssuer:             pkg.NewTrustMarkIssuer(entityID, generalSigner.TrustMarkSigner(), nil),

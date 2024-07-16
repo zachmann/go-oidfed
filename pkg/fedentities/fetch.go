@@ -1,11 +1,11 @@
-package fedentity
+package fedentities
 
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/zachmann/go-oidfed/examples/ta/storage"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/constants"
+	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
 func (fed *FedEntity) AddFetchEndpoint(endpoint EndpointConf, store storage.SubordinateStorageBackend) {
