@@ -91,7 +91,7 @@ func (s subordinateFileStorage) Delete(entityID string) error {
 	return s.writeUnlocked(infos)
 }
 
-func (s subordinateFileStorage) Load() error {
+func (subordinateFileStorage) Load() error {
 	return nil
 }
 

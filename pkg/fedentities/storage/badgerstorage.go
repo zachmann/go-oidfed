@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
@@ -61,7 +60,7 @@ func (store *BadgerStorage) Read(key string, target any) (bool, error) {
 			item, err := txn.Get([]byte(key))
 			if errors.Is(err, badger.ErrKeyNotFound) {
 				notFound = true
-				return errors.New(fmt.Sprintf("'%s' not found", key))
+				return fmt.Errorf("'%s' not found", key)
 			}
 
 			return item.Value(
@@ -123,7 +122,7 @@ func (store *BadgerStorage) Load() error {
 	}
 	db, err := badger.Open(badger.DefaultOptions(store.Path))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	store.DB = db
 

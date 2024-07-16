@@ -107,7 +107,7 @@ func (c *SubordinateStatementsConfig) applyOverrides(base, overrides *Subordinat
 	c.applyConstraintsOverrides(base, overrides)
 }
 
-func (c *SubordinateStatementsConfig) applyConstraintsOverrides(base, overrides *SubordinateStatementTypeConfig) {
+func (*SubordinateStatementsConfig) applyConstraintsOverrides(base, overrides *SubordinateStatementTypeConfig) {
 	if overrides.Constraints == nil {
 		return
 	}
