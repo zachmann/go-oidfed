@@ -185,8 +185,7 @@ var redirectURI string
 func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
 	var err error
 
-	c := fedLeaf().EntityConfiguration()
-	jwt, err := c.JWT()
+	jwt, err := fedLeaf().EntityConfigurationJWT()
 	if err != nil {
 		log.Fatal(err)
 	}

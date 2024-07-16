@@ -79,7 +79,10 @@ func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) 
 		if err != nil {
 			return nil, err
 		}
-		f.Set(reflect.ValueOf(value))
+		rV := reflect.ValueOf(value)
+		if rV.IsValid() {
+			f.Set(rV)
+		}
 	}
 
 	return metadata, nil

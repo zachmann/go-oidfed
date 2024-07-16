@@ -1,4 +1,4 @@
-package oidfed
+package main
 
 import (
 	"crypto"
@@ -15,7 +15,14 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 
 	"github.com/zachmann/go-oidfed/examples/ta/config"
+	"github.com/zachmann/go-oidfed/internal/jwx"
 )
+
+func genJWKS() jwk.Set {
+	sk := mustNewKey()
+	jwks := jwx.KeyToJWKS(sk.Public(), jwa.ES512)
+	return jwks
+}
 
 func mustNewKey() *ecdsa.PrivateKey {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)

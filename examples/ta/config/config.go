@@ -8,6 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/fedentities"
 )
 
 type Config struct {
@@ -20,6 +21,15 @@ type Config struct {
 	ConfigurationLifetime int64                 `yaml:"configuration_lifetime"`
 	OrganizationName      string                `yaml:"organization_name"`
 	DataLocation          string                `yaml:"data_location"`
+	ReadableStorage       bool                  `yaml:"human_readable_storage"`
+	Endpoints             Endpoints             `yaml:"endpoints"`
+}
+
+type Endpoints struct {
+	FetchEndpoint   fedentities.EndpointConf `yaml:"fetch"`
+	ListEndpoint    fedentities.EndpointConf `yaml:"list"`
+	ResolveEndpoint fedentities.EndpointConf `yaml:"resolve"`
+	//TODO
 }
 
 var c Config
@@ -50,13 +60,14 @@ func Load(filename string) {
 	}
 	if c.MetadataPolicyFile == "" {
 		log.Println("WARNING: metadata_policy_file not set")
-	}
-	policyContent, err := os.ReadFile(c.MetadataPolicyFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err = json.Unmarshal(policyContent, &c.MetadataPolicy); err != nil {
-		log.Fatal(err)
+	} else {
+		policyContent, err := os.ReadFile(c.MetadataPolicyFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = json.Unmarshal(policyContent, &c.MetadataPolicy); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 }

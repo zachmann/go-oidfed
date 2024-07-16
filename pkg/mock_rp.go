@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/md5"
@@ -19,9 +18,8 @@ type mockRP struct {
 	EntityID    string
 	authorities []string
 	jwks        jwk.Set
-	signer      crypto.Signer
-	signingAlg  jwa.SignatureAlgorithm
-	metadata    *OpenIDRelyingPartyMetadata
+	*EntityStatementSigner
+	metadata *OpenIDRelyingPartyMetadata
 }
 
 func newMockRP(entityID string, metadata *OpenIDRelyingPartyMetadata) mockRP {
@@ -30,11 +28,10 @@ func newMockRP(entityID string, metadata *OpenIDRelyingPartyMetadata) mockRP {
 		panic(err)
 	}
 	r := mockRP{
-		EntityID:   entityID,
-		metadata:   metadata,
-		signer:     sk,
-		signingAlg: jwa.ES512,
-		jwks:       jwx.KeyToJWKS(sk.Public(), jwa.ES512),
+		EntityID:              entityID,
+		metadata:              metadata,
+		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
+		jwks:                  jwx.KeyToJWKS(sk.Public(), jwa.ES512),
 	}
 	return r
 }
@@ -60,10 +57,6 @@ func (rp mockRP) EntityStatementPayload() EntityStatementPayload {
 		},
 	}
 	return payload
-}
-
-func (rp mockRP) EntityConfiguration() *EntityConfiguration {
-	return NewEntityConfiguration(rp.EntityStatementPayload(), rp.signer, rp.signingAlg)
 }
 
 func (rp mockRP) GetSubordinateInfo() mockSubordinateInfo {

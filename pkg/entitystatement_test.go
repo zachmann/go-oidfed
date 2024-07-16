@@ -62,7 +62,7 @@ var entitystatementMarshalData = map[string]marshalData{
 			},
 			Constraints: &ConstraintSpecification{
 				MaxPathLength: 2,
-				NamingConstraints: NamingConstraints{
+				NamingConstraints: &NamingConstraints{
 					Permitted: []string{"foo"},
 				},
 				AllowedLeafEntityTypes: []string{"openid_provider"},

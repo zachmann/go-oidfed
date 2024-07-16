@@ -334,7 +334,7 @@ func TestDelegationJWT_VerifyFederation(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				err = delegation.VerifyFederation(&taWithTmo.EntityConfiguration().EntityStatementPayload)
+				err = delegation.VerifyFederation(taWithTmo.EntityStatementPayload())
 				if err != nil {
 					if test.errExpected {
 						return
@@ -358,7 +358,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 		requestedLifetime time.Duration
 		requestLifetime   bool
 		expectedLifetime  time.Duration
-		ta                EntityStatementPayload
+		ta                *EntityStatementPayload
 		errExpectedIssue  bool
 		errExpectedVerify bool
 	}{
@@ -476,7 +476,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 					}
 				}
 
-				err = info.VerifyFederation(&test.ta)
+				err = info.VerifyFederation(test.ta)
 				if err != nil {
 					if test.errExpectedVerify {
 						return

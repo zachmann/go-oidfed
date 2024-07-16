@@ -1,6 +1,8 @@
 package utils
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // SliceContains checks if a slice contains a value
 func SliceContains[C comparable](v C, slice []C) bool {
@@ -84,6 +86,16 @@ func ReflectUnion(a, b any) any {
 	bs := Slicify(b)
 	out := reflect.ValueOf(as)
 	bV := reflect.ValueOf(bs)
+	if out.Len() == 0 {
+		return bV.Interface()
+	}
+	if bV.Len() == 0 {
+		return out.Interface()
+	}
+	if out.Index(0).Type() != bV.Index(0).Type() {
+		bs = ReflectSliceCast(bs, as)
+		bV = reflect.ValueOf(bs)
+	}
 	for i := 0; i < bV.Len(); i++ {
 		v := bV.Index(i)
 		if !ReflectSliceContains(v.Interface(), out.Interface()) {
@@ -98,6 +110,9 @@ func ReflectIntersect(a, b any) any {
 	as := Slicify(a)
 	bs := Slicify(b)
 	aV := reflect.ValueOf(as)
+	if aV.Type() != reflect.ValueOf(bs).Type() {
+		bs = ReflectSliceCast(bs, as)
+	}
 	out := reflect.New(reflect.TypeOf(as)).Elem()
 	for i := 0; i < aV.Len(); i++ {
 		v := aV.Index(i)

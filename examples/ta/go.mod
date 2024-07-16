@@ -3,10 +3,8 @@ module github.com/zachmann/go-oidfed/examples/ta
 go 1.22
 
 require (
-	github.com/gofiber/fiber/v2 v2.48.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/lestrrat-go/jwx v1.2.27
-	github.com/pkg/errors v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 

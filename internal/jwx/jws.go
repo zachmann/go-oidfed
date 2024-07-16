@@ -11,8 +11,23 @@ import (
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
+// ParsedJWT is a type extending jws.Message by holding the original jwt
+type ParsedJWT struct {
+	RawJWT []byte
+	*jws.Message
+}
+
+// Parse parses a jwt and returns a ParsedJWT
+func Parse(data []byte) (*ParsedJWT, error) {
+	m, err := jws.Parse(data)
+	return &ParsedJWT{
+		RawJWT:  data,
+		Message: m,
+	}, err
+}
+
 // VerifyWithSet uses a jwk.Set to verify a *jws.Message, returning the decoded payload or an error
-func VerifyWithSet(msg *jws.Message, keys jwk.Set) ([]byte, error) {
+func VerifyWithSet(msg *ParsedJWT, keys jwk.Set) ([]byte, error) {
 	var alg jwa.SignatureAlgorithm
 	var kid string
 	if msg.Signatures() != nil {
@@ -44,12 +59,6 @@ func VerifyWithSet(msg *jws.Message, keys jwk.Set) ([]byte, error) {
 		}
 	}
 	return nil, errors.New(`failed to verify message with any of the keys in the jwk.Set object`)
-}
-
-// SignEntityStatement creates a signed JWT of the 'entity-statement+jwt' type for the passed payload using the
-// passed crypto.Signer with the passed jwa.SignatureAlgorithm
-func SignEntityStatement(payload []byte, signingAlg jwa.SignatureAlgorithm, key crypto.Signer) ([]byte, error) {
-	return SignWithType(payload, "entity-statement+jwt", signingAlg, key)
 }
 
 // SignWithType creates a signed JWT of the passed type for the passed payload using the

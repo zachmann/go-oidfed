@@ -18,10 +18,9 @@ type FederationEntity struct {
 	EntityID              string
 	Metadata              *Metadata
 	AuthorityHints        []string
-	configurationLifetime int64
-	federationKey         crypto.Signer
-	alg                   jwa.SignatureAlgorithm
-	jwks                  jwk.Set
+	ConfigurationLifetime int64
+	*EntityStatementSigner
+	jwks jwk.Set
 }
 
 // FederationLeaf is a type for a leaf entity and holds all relevant information about it; it can also be used to
@@ -35,47 +34,29 @@ type FederationLeaf struct {
 // NewFederationEntity creates a new FederationEntity with the passed properties
 func NewFederationEntity(
 	entityID string, authorityHints []string, metadata *Metadata,
-	privateSigningKey crypto.Signer,
-	signingAlg jwa.SignatureAlgorithm, configurationLifetime int64,
+	signer *EntityStatementSigner, configurationLifetime int64,
 ) (*FederationEntity, error) {
 	if configurationLifetime <= 0 {
 		configurationLifetime = defaultEntityConfigurationLifetime
 	}
-	key, err := jwk.New(privateSigningKey.Public())
-	if err != nil {
-		return nil, err
-	}
-	if err = jwk.AssignKeyID(key); err != nil {
-		return nil, err
-	}
-	if err = key.Set(jwk.KeyUsageKey, jwk.ForSignature); err != nil {
-		return nil, err
-	}
-	if err = key.Set(jwk.AlgorithmKey, signingAlg); err != nil {
-		return nil, err
-	}
-	jwks := jwk.NewSet()
-	jwks.Add(key)
 	return &FederationEntity{
 		EntityID:              entityID,
 		Metadata:              metadata,
 		AuthorityHints:        authorityHints,
-		federationKey:         privateSigningKey,
-		alg:                   signingAlg,
-		configurationLifetime: configurationLifetime,
-		jwks:                  jwks,
+		EntityStatementSigner: signer,
+		ConfigurationLifetime: configurationLifetime,
+		jwks:                  signer.JWKS(),
 	}, nil
 }
 
 // NewFederationLeaf creates a new FederationLeaf with the passed properties
 func NewFederationLeaf(
 	entityID string, authorityHints []string, trustAnchors TrustAnchors, metadata *Metadata,
-	privateSigningKey crypto.Signer,
-	signingAlg jwa.SignatureAlgorithm, configurationLifetime int64,
+	signer *EntityStatementSigner, configurationLifetime int64,
 	oidcSigningKey crypto.Signer, oidcSigningAlg jwa.SignatureAlgorithm,
 ) (*FederationLeaf, error) {
 	fed, err := NewFederationEntity(
-		entityID, authorityHints, metadata, privateSigningKey, signingAlg, configurationLifetime,
+		entityID, authorityHints, metadata, signer, configurationLifetime,
 	)
 	if err != nil {
 		return nil, err
@@ -87,26 +68,27 @@ func NewFederationLeaf(
 	}, nil
 }
 
-// EntityConfiguration returns an EntityConfiguration for this FederationLeaf
-func (f FederationEntity) EntityConfiguration() *EntityConfiguration {
+// EntityConfigurationPayload returns an EntityStatementPayload for this FederationEntity
+func (f FederationEntity) EntityConfigurationPayload() *EntityStatementPayload {
 	now := time.Now()
-	payload := EntityStatementPayload{
+	return &EntityStatementPayload{
 		Issuer:         f.EntityID,
 		Subject:        f.EntityID,
 		IssuedAt:       Unixtime{now},
-		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(f.configurationLifetime))},
+		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(f.ConfigurationLifetime))},
 		JWKS:           f.jwks,
 		AuthorityHints: f.AuthorityHints,
 		Metadata:       f.Metadata,
 	}
-	return NewEntityConfiguration(payload, f.federationKey, f.alg)
+}
+func (f FederationEntity) EntityConfigurationJWT() ([]byte, error) {
+	return f.EntityStatementSigner.JWT(f.EntityConfigurationPayload())
 }
 
 // SignEntityStatement creates a signed JWT for the given EntityStatementPayload; this function is intended to be
 // used on TA/IA
 func (f FederationEntity) SignEntityStatement(payload EntityStatementPayload) ([]byte, error) {
-	c := NewEntityConfiguration(payload, f.federationKey, f.alg)
-	return c.JWT()
+	return f.EntityStatementSigner.JWT(payload)
 }
 
 func (f FederationLeaf) RequestObjectProducer() *RequestObjectProducer {

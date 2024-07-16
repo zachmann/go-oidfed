@@ -59,3 +59,9 @@ func (c TrustChain) Metadata() (*Metadata, error) {
 	}
 	return m.ApplyPolicy(combinedPolicy)
 }
+func (c TrustChain) Messages() (msgs jwsMessages) {
+	for _, cc := range c {
+		msgs = append(msgs, cc.jwtMsg)
+	}
+	return
+}
