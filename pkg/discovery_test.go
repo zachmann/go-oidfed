@@ -3,7 +3,6 @@ package pkg
 import (
 	"testing"
 
-	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
@@ -23,6 +22,7 @@ func TestSimpleOPDiscoverer_Discover(t *testing.T) {
 				op1.EntityID,
 				op2.EntityID,
 				op3.EntityID,
+				proxy.EntityID,
 			},
 		},
 		{
@@ -34,6 +34,7 @@ func TestSimpleOPDiscoverer_Discover(t *testing.T) {
 				op1.EntityID,
 				op2.EntityID,
 				op3.EntityID,
+				proxy.EntityID,
 			},
 		},
 		{
@@ -45,6 +46,7 @@ func TestSimpleOPDiscoverer_Discover(t *testing.T) {
 				op1.EntityID,
 				op2.EntityID,
 				op3.EntityID,
+				proxy.EntityID,
 			},
 		},
 		{
@@ -55,6 +57,7 @@ func TestSimpleOPDiscoverer_Discover(t *testing.T) {
 			expectedOPs: []string{
 				op1.EntityID,
 				op3.EntityID,
+				proxy.EntityID,
 			},
 		},
 		{
@@ -66,26 +69,32 @@ func TestSimpleOPDiscoverer_Discover(t *testing.T) {
 				op1.EntityID,
 				op2.EntityID,
 				op3.EntityID,
+				proxy.EntityID,
 			},
 		},
 	}
-	internal.EnableDebugLogging()
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
 				opMetadata := SimpleOPDiscoverer{}.Discover(test.trustAnchors...)
 				if opMetadata == nil {
-					t.Errorf("opMetadata is nil")
-					return
+					t.Fatalf("opMetadata is nil")
 				}
 				if len(opMetadata) != len(test.expectedOPs) {
 					t.Errorf("discovered OPs does not match expected OPs")
-					return
+					t.Errorf("Expected: %+v", test.expectedOPs)
+					t.Error("Discovered:")
+					for _, op := range opMetadata {
+						t.Error(op.Issuer)
+					}
+					t.FailNow()
 				}
 				for _, op := range opMetadata {
 					if !utils.SliceContains(op.Issuer, test.expectedOPs) {
 						t.Errorf("discovered OPs does not match expected OPs")
-						return
+						t.Errorf("discovered: %+v", op.Issuer)
+						t.Errorf("expected: %+v", test.expectedOPs)
+						t.FailNow()
 					}
 				}
 			},
@@ -109,6 +118,7 @@ func TestFilterableVerifiedChainsOPDiscoverer_Discover(t *testing.T) {
 				op1.EntityID,
 				op2.EntityID,
 				op3.EntityID,
+				proxy.EntityID,
 			},
 		},
 		{
@@ -123,6 +133,7 @@ func TestFilterableVerifiedChainsOPDiscoverer_Discover(t *testing.T) {
 				op1.EntityID,
 				op2.EntityID,
 				op3.EntityID,
+				proxy.EntityID,
 			},
 		},
 		{
@@ -137,6 +148,7 @@ func TestFilterableVerifiedChainsOPDiscoverer_Discover(t *testing.T) {
 			expectedOPs: []string{
 				op1.EntityID,
 				op3.EntityID,
+				proxy.EntityID,
 			},
 		},
 		{
@@ -147,6 +159,7 @@ func TestFilterableVerifiedChainsOPDiscoverer_Discover(t *testing.T) {
 			expectedOPs: []string{
 				op1.EntityID,
 				op3.EntityID,
+				proxy.EntityID,
 			},
 		},
 		{
@@ -183,17 +196,14 @@ func TestFilterableVerifiedChainsOPDiscoverer_Discover(t *testing.T) {
 					if test.expectedOPs == nil {
 						return
 					}
-					t.Errorf("opMetadata is nil")
-					return
+					t.Fatalf("opMetadata is nil")
 				}
 				if len(opMetadata) != len(test.expectedOPs) {
-					t.Errorf("discovered OPs does not match expected OPs")
-					return
+					t.Fatalf("discovered OPs does not match expected OPs")
 				}
 				for _, op := range opMetadata {
 					if !utils.SliceContains(op.Issuer, test.expectedOPs) {
-						t.Errorf("discovered OPs does not match expected OPs")
-						return
+						t.Fatalf("discovered OPs does not match expected OPs")
 					}
 				}
 			},

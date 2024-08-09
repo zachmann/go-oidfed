@@ -84,6 +84,7 @@ func (m jwsMessages) MarshalJSON() ([]byte, error) {
 type TrustResolver struct {
 	TrustAnchors   []TrustAnchor
 	StartingEntity string
+	Type           string
 	trustTree      trustTree
 }
 
@@ -101,6 +102,9 @@ func (r *TrustResolver) Resolve() {
 	if err != nil {
 		return
 	}
+	if r.Type != "" {
+		utils.NilAllButOneByTag(starting.Metadata, r.Type)
+	}
 	r.trustTree.Entity = starting
 	r.trustTree.resolve(r.TrustAnchors)
 }
@@ -110,7 +114,7 @@ func (r *TrustResolver) VerifySignatures() {
 	r.trustTree.verifySignatures(r.TrustAnchors)
 }
 
-// Chains returns the TrustChains in the itnernal trust tree
+// Chains returns the TrustChains in the internal trust tree
 func (r TrustResolver) Chains() (chains TrustChains) {
 	cs := r.trustTree.chains()
 	if cs == nil {

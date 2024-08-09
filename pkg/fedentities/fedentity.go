@@ -19,10 +19,6 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
-const (
-	CacheKeyEntityConfiguration = "entity_configuration"
-)
-
 type EndpointConf struct {
 	Internal string `yaml:"path"`
 	External string `yaml:"url"`
@@ -172,7 +168,7 @@ func NewFedEntity(
 	}
 	server.Get(
 		"/.well-known/openid-federation", func(ctx *fiber.Ctx) error {
-			cacheKey := cache.Key(CacheKeyEntityConfiguration, entityID)
+			cacheKey := cache.Key(cache.KeyEntityConfiguration, entityID)
 			if cached, set := cache.Get(cacheKey); set {
 				ctx.Set(fiber.HeaderContentType, constants.ContentTypeEntityStatement)
 				jwt, ok := cached.([]byte)

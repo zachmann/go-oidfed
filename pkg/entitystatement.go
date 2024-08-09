@@ -3,6 +3,9 @@ package pkg
 import (
 	"encoding/json"
 
+	"github.com/lestrrat-go/jwx/jws"
+
+	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
 
@@ -29,7 +32,36 @@ type EntityStatement struct {
 // Verify verifies that the EntityStatement jwt is valid
 func (e EntityStatement) Verify(keys jwk.Set) bool {
 	_, err := jwx.VerifyWithSet(e.jwtMsg, keys)
+	if err != nil {
+		internal.Log(err)
+	}
 	return err == nil
+}
+
+type entityStatementExported struct {
+	EntityStatement EntityStatement
+	JWTMsg          jwx.ParsedJWT
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface for usage with caching
+func (e EntityStatement) MarshalBinary() ([]byte, error) {
+	ee := entityStatementExported{
+		JWTMsg:          *e.jwtMsg,
+		EntityStatement: e,
+	}
+	return json.Marshal(ee)
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface for usage with caching
+func (e *EntityStatement) UnmarshalBinary(data []byte) error {
+	var ee entityStatementExported
+	ee.JWTMsg.Message = &jws.Message{}
+	if err := json.Unmarshal(data, &ee); err != nil {
+		return err
+	}
+	*e = ee.EntityStatement
+	e.jwtMsg = &ee.JWTMsg
+	return nil
 }
 
 // EntityStatementPayload is a type for holding the actual payload of an EntityStatement or EntityConfiguration;

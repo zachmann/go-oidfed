@@ -28,6 +28,9 @@ func Parse(data []byte) (*ParsedJWT, error) {
 
 // VerifyWithSet uses a jwk.Set to verify a *jws.Message, returning the decoded payload or an error
 func VerifyWithSet(msg *ParsedJWT, keys jwk.Set) ([]byte, error) {
+	if msg == nil || msg.Message == nil {
+		return nil, errors.New("jws.Verify: missing message")
+	}
 	var alg jwa.SignatureAlgorithm
 	var kid string
 	if msg.Signatures() != nil {

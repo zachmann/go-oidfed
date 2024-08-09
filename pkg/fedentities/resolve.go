@@ -15,7 +15,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 		endpoint.Path(), func(ctx *fiber.Ctx) error {
 			ta := ctx.Query("anchor")
 			sub := ctx.Query("sub")
-			// entityType := ctx.Query("type") //TODO
+			entityType := ctx.Query("type")
 			if ta == "" {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'anchor' not given"))
@@ -37,6 +37,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 					},
 				},
 				StartingEntity: sub,
+				Type:           entityType,
 			}
 			chains := resolver.ResolveToValidChains()
 			if len(chains) == 0 {

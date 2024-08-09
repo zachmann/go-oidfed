@@ -288,6 +288,17 @@ func (m *OpenIDProviderMetadata) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalBinary implements the encoding.BinaryMarshaler interface for usage with caching
+func (m OpenIDProviderMetadata) MarshalBinary() ([]byte, error) {
+	return json.Marshal(m)
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface for usage with caching
+func (m *OpenIDProviderMetadata) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, &m)
+}
+
+// ApplyPolicy apples a MetadataPolicy the the OpenIDProviderMetadata
 func (m OpenIDProviderMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
 	return applyPolicy(&m, policy, "openid_provider")
 }
@@ -295,9 +306,12 @@ func (m OpenIDProviderMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) 
 type OAuthClientMetadata OpenIDRelyingPartyMetadata
 type OAuthAuthorizationServerMetadata OpenIDProviderMetadata
 
+// MarshalJSON implements the json.Marshaler interface
 func (m OAuthAuthorizationServerMetadata) MarshalJSON() ([]byte, error) {
 	return json.Marshal(OpenIDProviderMetadata(m))
 }
+
+// UnmarshalJSON implements the json.Unmarshaler interface
 func (m *OAuthAuthorizationServerMetadata) UnmarshalJSON(data []byte) error {
 	op := OpenIDProviderMetadata(*m)
 	if err := json.Unmarshal(data, &op); err != nil {

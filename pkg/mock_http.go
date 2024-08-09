@@ -109,6 +109,13 @@ func (d *mockHttp) AddOP(o mockOP) {
 	}
 	d.addEntityConfiguration(o.EntityID, data)
 }
+func (d *mockHttp) AddProxy(p mockProxy) {
+	data, err := p.JWT(p.EntityStatementPayload())
+	if err != nil {
+		panic(err)
+	}
+	d.addEntityConfiguration(p.EntityID, data)
+}
 func (d *mockHttp) AddTMI(tmi mockTMI) {
 	now := time.Now()
 	payload := EntityStatementPayload{

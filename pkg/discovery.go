@@ -3,8 +3,6 @@ package pkg
 import (
 	"encoding/json"
 
-	arrayops "github.com/adam-hanna/arrayOperations"
-
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
@@ -47,6 +45,7 @@ type FilterableVerifiedChainsOPDiscoverer struct {
 
 func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	internal.Logf("Discovering OPs for authorities: %+q", authorities)
+	infos := make(map[string]*OpenIDProviderMetadata)
 	for _, a := range authorities {
 		internal.Logf("Discovering OPs and subordinates for: %+q", a.EntityID)
 		stmt, err := GetEntityConfiguration(a.EntityID)
@@ -64,6 +63,10 @@ func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*Ope
 			internal.Logf("Found these (possible) OPs: %+q", thoseOPs)
 			for _, op := range thoseOPs {
 				internal.Logf("Checking OP: %+q", op)
+				if _, alreadyProcessed := infos[op]; alreadyProcessed {
+					internal.Log("Already processed -> skipping")
+					continue
+				}
 				entityConfig, err := GetEntityConfiguration(op)
 				if err != nil {
 					internal.Logf("Could not get entity configuration: %s -> skipping", err.Error())
@@ -78,8 +81,8 @@ func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*Ope
 					Metadata.FederationEntity.OrganizationName != "" {
 					opMetata.OrganizationName = entityConfig.Metadata.FederationEntity.OrganizationName
 				}
+				infos[op] = opMetata
 				internal.Logf("Added OP %+q", op)
-				opInfos = append(opInfos, opMetata)
 			}
 		}
 		subordinates, err := fetchList(stmt.Metadata.FederationEntity.FederationListEndpoint, "federation_entity")
@@ -87,7 +90,16 @@ func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*Ope
 			continue
 		}
 		sOPs := d.Discover(NewTrustAnchorsFromEntityIDs(subordinates...)...)
-		opInfos = arrayops.Union(opInfos, sOPs)
+		for _, sOP := range sOPs {
+			_, alreadyInList := infos[sOP.Issuer]
+			if alreadyInList {
+				continue
+			}
+			infos[sOP.Issuer] = sOP
+		}
+	}
+	for _, op := range infos {
+		opInfos = append(opInfos, op)
 	}
 	return
 }

@@ -45,6 +45,19 @@ var op3 = newMockOP(
 	},
 )
 
+var proxy = newMockProxy(
+	"https://proxy.example.com",
+	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{ClientRegistrationTypeAutomatic}},
+	&OpenIDProviderMetadata{
+		ClientRegistrationTypesSupported: []string{ClientRegistrationTypeAutomatic},
+		ScopesSupported: []string{
+			"openid",
+			"profile",
+			"email",
+		},
+	},
+)
+
 var ia1 = newMockAuthority("https://ia.example.com", EntityStatementPayload{})
 var ia2 = newMockAuthority(
 	"https://ia.example.org",
@@ -114,6 +127,7 @@ func init() {
 	ia1.RegisterSubordinate(&op1)
 	ia2.RegisterSubordinate(&op1)
 	ia1.RegisterSubordinate(&op3)
+	ia1.RegisterSubordinate(&proxy)
 	ia2.RegisterSubordinate(&op2)
 	ia2.RegisterSubordinate(&ia1)
 	ta1.RegisterSubordinate(&ia1)
@@ -126,6 +140,7 @@ func init() {
 	mockupData.AddOP(op1)
 	mockupData.AddOP(op2)
 	mockupData.AddOP(op3)
+	mockupData.AddProxy(proxy)
 	mockupData.AddAuthority(ia1)
 	mockupData.AddAuthority(ia2)
 	mockupData.AddAuthority(ta1)
@@ -172,6 +187,23 @@ var chainRPIA1IA2TA2 = TrustChain{
 	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(rp1.EntityID)},
 	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(ia1.EntityID)},
 	{EntityStatementPayload: ta2.SubordinateEntityStatementPayload(ia2.EntityID)},
+}
+
+var chainProxyIA1IA2TA1 = TrustChain{
+	{EntityStatementPayload: proxy.EntityStatementPayload()},
+	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(proxy.EntityID)},
+	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(ia1.EntityID)},
+	{EntityStatementPayload: ta1.SubordinateEntityStatementPayload(ia2.EntityID)},
+}
+var chainProxyIA1TA1 = TrustChain{
+	{EntityStatementPayload: proxy.EntityStatementPayload()},
+	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(proxy.EntityID)},
+	{EntityStatementPayload: ta1.SubordinateEntityStatementPayload(ia1.EntityID)},
+}
+
+var allProxyChains = TrustChains{
+	chainProxyIA1TA1,
+	chainProxyIA1IA2TA1,
 }
 
 var allChains = TrustChains{
