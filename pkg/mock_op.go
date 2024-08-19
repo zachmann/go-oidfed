@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 )
@@ -17,7 +16,7 @@ import (
 type mockOP struct {
 	EntityID    string
 	authorities []string
-	jwks        jwk.Set
+	jwks        jwx.JWKS
 	*EntityStatementSigner
 	metadata *OpenIDProviderMetadata
 }
@@ -39,7 +38,7 @@ func newMockOP(entityID string, metadata *OpenIDProviderMetadata) mockOP {
 
 func (op mockOP) EntityStatementPayload() EntityStatementPayload {
 	now := time.Now()
-	orgID := md5.Sum([]byte(op.EntityID))
+	orgID := fmt.Sprintf("%x", md5.Sum([]byte(op.EntityID)))
 	payload := EntityStatementPayload{
 		Issuer:         op.EntityID,
 		Subject:        op.EntityID,
@@ -50,9 +49,7 @@ func (op mockOP) EntityStatementPayload() EntityStatementPayload {
 		AuthorityHints: op.authorities,
 		Metadata: &Metadata{
 			FederationEntity: &FederationEntityMetadata{
-				CommonMetadata: CommonMetadata{
-					OrganizationName: fmt.Sprintf("Organization: %s", orgID[:2]),
-				},
+				OrganizationName: fmt.Sprintf("Organization: %s", orgID[:8]),
 			},
 			OpenIDProvider: op.metadata,
 		},

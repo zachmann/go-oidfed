@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 )
@@ -14,7 +13,7 @@ import (
 type mockTMI struct {
 	TrustMarkIssuer
 	authorities []string
-	jwks        jwk.Set
+	jwks        jwx.JWKS
 }
 
 func (tmi *mockTMI) AddAuthority(authorityID string) {

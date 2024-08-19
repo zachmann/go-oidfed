@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/lestrrat-go/jwx/jwa"
 
+	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/cache"
@@ -169,18 +170,24 @@ func NewFedEntity(
 	server.Get(
 		"/.well-known/openid-federation", func(ctx *fiber.Ctx) error {
 			cacheKey := cache.Key(cache.KeyEntityConfiguration, entityID)
-			if cached, set := cache.Get(cacheKey); set {
+			var cached []byte
+			set, err := cache.Get(cacheKey, &cached)
+			if err != nil {
+				ctx.Status(fiber.StatusInternalServerError)
+				return ctx.JSON(pkg.ErrorServerError(err.Error()))
+			}
+			if set {
 				ctx.Set(fiber.HeaderContentType, constants.ContentTypeEntityStatement)
-				jwt, ok := cached.([]byte)
-				if ok {
-					return ctx.Send(jwt)
-				}
+				return ctx.Send(cached)
 			}
 			jwt, err := entity.EntityConfigurationJWT()
 			if err != nil {
 				return ctx.Status(fiber.StatusInternalServerError).JSON(pkg.ErrorServerError(err.Error()))
 			}
-			cache.Set(cacheKey, jwt, time.Duration(entity.ConfigurationLifetime/2))
+			err = cache.Set(cacheKey, jwt, 5*time.Second)
+			if err != nil {
+				internal.Log(err)
+			}
 			ctx.Set(fiber.HeaderContentType, constants.ContentTypeEntityStatement)
 			return ctx.Send(jwt)
 		},

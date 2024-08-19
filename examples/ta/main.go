@@ -42,9 +42,7 @@ func main() {
 		c.EntityID, c.AuthorityHints,
 		&pkg.Metadata{
 			FederationEntity: &pkg.FederationEntityMetadata{
-				CommonMetadata: pkg.CommonMetadata{
-					OrganizationName: c.OrganizationName,
-				},
+				OrganizationName: c.OrganizationName,
 			},
 		},
 		signingKey, jwa.ES512, c.ConfigurationLifetime, fedentities.SubordinateStatementsConfig{

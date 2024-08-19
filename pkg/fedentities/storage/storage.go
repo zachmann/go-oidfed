@@ -3,13 +3,14 @@ package storage
 import (
 	"encoding/json"
 
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/vmihailenco/msgpack/v5"
 
+	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/pkg"
 )
 
 type SubordinateInfo struct {
-	JWKS               jwk.Set                      `json:"jwks"`
+	JWKS               jwx.JWKS                     `json:"jwks"`
 	EntityType         string                       `json:"entity_type"`
 	EntityID           string                       `json:"entity_id"`
 	Metadata           *pkg.Metadata                `json:"metadata,omitempty"`
@@ -24,14 +25,18 @@ type SubordinateInfo struct {
 func (info *SubordinateInfo) UnmarshalJSON(src []byte) error {
 	type subordinateInfo SubordinateInfo
 	ii := subordinateInfo(*info)
-	if ii.JWKS == nil {
-		ii.JWKS = jwk.NewSet()
-	}
 	if err := json.Unmarshal(src, &ii); err != nil {
 		return err
 	}
-	if ii.JWKS.Len() == 0 {
-		ii.JWKS = nil
+	*info = SubordinateInfo(ii)
+	return nil
+}
+
+func (info *SubordinateInfo) UnmarshalMsgpack(src []byte) error {
+	type subordinateInfo SubordinateInfo
+	ii := subordinateInfo(*info)
+	if err := msgpack.Unmarshal(src, &ii); err != nil {
+		return err
 	}
 	*info = SubordinateInfo(ii)
 	return nil

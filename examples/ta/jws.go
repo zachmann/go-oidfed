@@ -18,7 +18,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal/jwx"
 )
 
-func genJWKS() jwk.Set {
+func genJWKS() jwx.JWKS {
 	sk := mustNewKey()
 	jwks := jwx.KeyToJWKS(sk.Public(), jwa.ES512)
 	return jwks
@@ -79,5 +79,5 @@ func exportECPrivateKeyAsPem(privkey *ecdsa.PrivateKey) []byte {
 			Bytes: privkeyBytes,
 		},
 	)
-	return (privkeyPem)
+	return privkeyPem
 }

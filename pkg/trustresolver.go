@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwk"
-
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
@@ -13,8 +11,8 @@ import (
 )
 
 type TrustAnchor struct {
-	EntityID string  `yaml:"entity_id" json:"entity_id"`
-	JWKS     jwk.Set `yaml:"jwks" json:"jwks"`
+	EntityID string   `yaml:"entity_id" json:"entity_id"`
+	JWKS     jwx.JWKS `yaml:"jwks" json:"jwks"`
 }
 
 type TrustAnchors []TrustAnchor
@@ -179,7 +177,7 @@ func (t *trustTree) verifySignatures(anchors TrustAnchors) bool {
 			if utils.Equal(ta.EntityID, t.Entity.Issuer, t.Entity.Subject, t.Subordinate.Issuer) {
 				// t is about a TA
 				jwks := ta.JWKS
-				if jwks == nil {
+				if jwks.Set == nil {
 					jwks = t.Entity.JWKS
 				}
 				return t.Entity.Verify(jwks) && t.Subordinate.Verify(jwks)
@@ -232,20 +230,23 @@ func init() {
 }
 
 func entityStmtCacheSet(subID, issID string, stmt *EntityStatement) {
-	cache.Set(
+	if err := cache.Set(
 		cache.EntityStmtCacheKey(subID, issID), stmt, time.Until(stmt.ExpiresAt.Time),
-	)
+	); err != nil {
+		internal.Log(err)
+	}
 }
 func entityStmtCacheGet(subID, issID string) *EntityStatement {
-	e, ok := cache.Get(cache.EntityStmtCacheKey(subID, issID))
-	if !ok {
+	var stmt EntityStatement
+	set, err := cache.Get(cache.EntityStmtCacheKey(subID, issID), &stmt)
+	if err != nil {
+		internal.Log(err)
 		return nil
 	}
-	stmt, ok := e.(*EntityStatement)
-	if !ok {
+	if !set {
 		return nil
 	}
-	return stmt
+	return &stmt
 }
 
 func GetEntityConfiguration(entityID string) (*EntityStatement, error) {

@@ -42,7 +42,7 @@ func (s GeneralJWTSigner) JWT(i any, headerType string) (jwt []byte, err error) 
 	jwt, err = jwx.SignWithType(j, headerType, s.alg, s.key)
 	return
 }
-func (s *GeneralJWTSigner) JWKS() jwk.Set {
+func (s *GeneralJWTSigner) JWKS() jwx.JWKS {
 	return jwx.KeyToJWKS(s.key.Public(), s.alg)
 }
 func (s *GeneralJWTSigner) Typed(headerType string) *TypedJWTSigner {

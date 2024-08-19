@@ -20,7 +20,6 @@ require (
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
-	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/zachmann/go-oidfed v0.1.1-0.20240513142719-6696576333ab // indirect
 	golang.org/x/crypto v0.16.0 // indirect
 )

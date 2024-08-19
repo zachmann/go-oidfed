@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 type redisCache struct {
@@ -15,21 +15,24 @@ type redisCache struct {
 }
 
 // Get implements the Cache interface
-func (c redisCache) Get(key string) (any, bool) {
+func (c redisCache) Get(key string, target any) (bool, error) {
 	val, err := c.client.Get(c.ctx, key).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
-			log.Errorf("error while obtaining from cache: %s", err)
-		} else {
+			return false, errors.Wrap(err, "error while obtaining from cache")
 		}
-		return nil, false
+		return false, nil
 	}
-	return val, true
+	return true, msgpack.Unmarshal([]byte(val), target)
 }
 
 // Set implements the Cache interface
 func (c redisCache) Set(key string, value any, expiration time.Duration) error {
-	return c.client.Set(c.ctx, key, value, expiration).Err()
+	data, err := msgpack.Marshal(value)
+	if err != nil {
+		return err
+	}
+	return c.client.Set(c.ctx, key, data, expiration).Err()
 }
 
 func UseRedisCache(options *redis.Options) error {

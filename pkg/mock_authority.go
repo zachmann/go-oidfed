@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 )
@@ -25,7 +24,7 @@ type mockAuthority struct {
 
 type mockSubordinateInfo struct {
 	entityID string
-	jwks     jwk.Set
+	jwks     jwx.JWKS
 }
 
 type mockSubordinate interface {
@@ -70,7 +69,7 @@ func (a mockAuthority) EntityStatementPayload() *EntityStatementPayload {
 
 func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntityStatementPayload {
 	now := time.Now()
-	var jwks jwk.Set
+	var jwks jwx.JWKS
 	for _, s := range a.subordinates {
 		if s.entityID == subID {
 			jwks = s.jwks

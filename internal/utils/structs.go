@@ -7,6 +7,9 @@ import (
 
 // NilAllButOneByTag sets all fields of a struct to their zero values except for the field with the specified JSON tag.
 func NilAllButOneByTag(v interface{}, jsonTag string) {
+	if v == nil {
+		return
+	}
 	val := reflect.ValueOf(v).Elem()
 	typ := val.Type()
 

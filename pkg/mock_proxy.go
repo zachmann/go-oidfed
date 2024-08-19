@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 )
@@ -17,7 +16,7 @@ import (
 type mockProxy struct {
 	EntityID    string
 	authorities []string
-	jwks        jwk.Set
+	jwks        jwx.JWKS
 	*EntityStatementSigner
 	rpMetadata *OpenIDRelyingPartyMetadata
 	opMetadata *OpenIDProviderMetadata
@@ -44,12 +43,10 @@ func newMockProxy(
 
 func (proxy mockProxy) EntityStatementPayload() EntityStatementPayload {
 	now := time.Now()
-	orgID := md5.Sum([]byte(proxy.EntityID))
-	common := CommonMetadata{
-		OrganizationName: fmt.Sprintf("Organization: %s", orgID[:2]),
-	}
-	proxy.rpMetadata.CommonMetadata = common
-	proxy.opMetadata.CommonMetadata = common
+	orgID := fmt.Sprintf("%x", md5.Sum([]byte(proxy.EntityID)))
+	organizationName := fmt.Sprintf("Organization: %s", orgID[:8])
+	proxy.rpMetadata.OrganizationName = organizationName
+	proxy.opMetadata.OrganizationName = organizationName
 	payload := EntityStatementPayload{
 		Issuer:         proxy.EntityID,
 		Subject:        proxy.EntityID,
@@ -60,7 +57,7 @@ func (proxy mockProxy) EntityStatementPayload() EntityStatementPayload {
 		AuthorityHints: proxy.authorities,
 		Metadata: &Metadata{
 			FederationEntity: &FederationEntityMetadata{
-				CommonMetadata: common,
+				OrganizationName: organizationName,
 			},
 			RelyingParty:   proxy.rpMetadata,
 			OpenIDProvider: proxy.opMetadata,

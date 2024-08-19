@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 )
@@ -237,7 +236,7 @@ func TestTrustMarkOwner_DelegationJWT(t *testing.T) {
 }
 
 func TestDelegationJWT_VerifyExternal(t *testing.T) {
-	correctJWKS := jwk.NewSet()
+	correctJWKS := jwx.NewJWKS()
 	if err := json.Unmarshal(
 		[]byte(`{"keys":[{"alg":"ES512","crv":"P-521","kid":"bjQ4ZO1kfWr-cxi-_tU9bKTWwG6XoUwnSW6M5food_U","kty":"EC","use":"sig","x":"AKj5_1MgsEFKCSNN4UyDqQP2wanr9ZD1Q1eBUGJ1BJej8MTQnRkDPRY_35Ctae8bxoj2fxZMufXnWAuVxERelwzL","y":"AObqfUE1k0YIlO1qe-5D8CcTWxZn6OIXC3s_cPrug69sM580aCtug7vEdaBcfNY8RGTwUV1hMxqvOTsQsROrrXG2"}]}`),
 		&correctJWKS,
@@ -247,7 +246,7 @@ func TestDelegationJWT_VerifyExternal(t *testing.T) {
 	wrongKey := jwx.KeyToJWKS(tmo.key.Public(), jwa.ES512)
 	tests := []struct {
 		name        string
-		jwks        jwk.Set
+		jwks        jwx.JWKS
 		data        []byte
 		errExpected bool
 	}{

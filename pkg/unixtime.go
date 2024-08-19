@@ -26,6 +26,9 @@ func (u *Unixtime) UnmarshalJSON(src []byte) error {
 
 // MarshalJSON implements the json.Marshaler interface.
 func (u Unixtime) MarshalJSON() ([]byte, error) {
+	if u.IsZero() {
+		return json.Marshal(0)
+	}
 	return json.Marshal(float64(u.UnixNano()) / 1e9)
 }
 

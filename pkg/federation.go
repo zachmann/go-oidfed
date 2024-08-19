@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
 
+	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/pkg/cache"
 )
 
@@ -20,7 +21,7 @@ type FederationEntity struct {
 	AuthorityHints        []string
 	ConfigurationLifetime int64
 	*EntityStatementSigner
-	jwks jwk.Set
+	jwks jwx.JWKS
 }
 
 // FederationLeaf is a type for a leaf entity and holds all relevant information about it; it can also be used to
@@ -96,12 +97,13 @@ func (f FederationLeaf) RequestObjectProducer() *RequestObjectProducer {
 }
 
 func (f FederationLeaf) ResolveOPMetadata(issuer string) (*OpenIDProviderMetadata, error) {
-	v, set := cache.Get(cache.Key(cache.KeyOPMetadata, issuer))
+	var opm OpenIDProviderMetadata
+	set, err := cache.Get(cache.Key(cache.KeyOPMetadata, issuer), &opm)
+	if err != nil {
+		return nil, err
+	}
 	if set {
-		opm, ok := v.(*OpenIDProviderMetadata)
-		if ok {
-			return opm, nil
-		}
+		return &opm, nil
 	}
 	tr := TrustResolver{
 		TrustAnchors:   f.TrustAnchors,
@@ -119,7 +121,10 @@ func (f FederationLeaf) ResolveOPMetadata(issuer string) (*OpenIDProviderMetadat
 	}
 	delta := time.Until(chain.ExpiresAt().Add(-time.Minute)) // we subtract a one-minute puffer
 	if delta > 0 {
-		cache.Set(cache.Key(cache.KeyOPMetadata, issuer), m.OpenIDProvider, delta)
+		err = cache.Set(cache.Key(cache.KeyOPMetadata, issuer), m.OpenIDProvider, delta)
+		if err != nil {
+			internal.Log(err)
+		}
 	}
 	return m.OpenIDProvider, nil
 }

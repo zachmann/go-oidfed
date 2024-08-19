@@ -83,5 +83,5 @@ func exportECPrivateKeyAsPem(privkey *ecdsa.PrivateKey) []byte {
 			Bytes: privkeyBytes,
 		},
 	)
-	return (privkeyPem)
+	return privkeyPem
 }

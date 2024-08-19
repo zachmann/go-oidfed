@@ -109,7 +109,7 @@ func (f trustChainsFilterPathLength) Filter(chains TrustChains) (final TrustChai
 // length
 var TrustChainsFilterMinPathLength TrustChainsFilter = trustChainsFilterPathLength{maxPathLen: -1}
 
-var TrustChainsFilterValidMetadata TrustChainsFilter = NewTrustChainsFilterFromCheckerFnc(
+var TrustChainsFilterValidMetadata = NewTrustChainsFilterFromCheckerFnc(
 	func(chain TrustChain) bool {
 		_, err := chain.Metadata()
 		return err == nil

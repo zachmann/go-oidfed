@@ -3,24 +3,17 @@ package pkg
 import (
 	"encoding/json"
 
-	"github.com/lestrrat-go/jwx/jws"
+	"github.com/pkg/errors"
+	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
 
 	"github.com/fatih/structs"
-	"github.com/lestrrat-go/jwx/jwk"
 )
 
 const defaultEntityConfigurationLifetime = 86400 // 1d
-
-var cummonParametersJSONTags []string
-
-func init() {
-	s := structs.New(CommonMetadata{})
-	cummonParametersJSONTags = utils.FieldTagNames(s.Fields(), "json")
-}
 
 // EntityStatement is a type for holding an entity statement, more precisely an entity statement that was obtained
 // as a jwt and created by us
@@ -30,7 +23,7 @@ type EntityStatement struct {
 }
 
 // Verify verifies that the EntityStatement jwt is valid
-func (e EntityStatement) Verify(keys jwk.Set) bool {
+func (e EntityStatement) Verify(keys jwx.JWKS) bool {
 	_, err := jwx.VerifyWithSet(e.jwtMsg, keys)
 	if err != nil {
 		internal.Log(err)
@@ -39,27 +32,27 @@ func (e EntityStatement) Verify(keys jwk.Set) bool {
 }
 
 type entityStatementExported struct {
-	EntityStatement EntityStatement
-	JWTMsg          jwx.ParsedJWT
+	Payload EntityStatementPayload
+	JWTMsg  jwx.ParsedJWT
 }
 
-// MarshalBinary implements the encoding.BinaryMarshaler interface for usage with caching
-func (e EntityStatement) MarshalBinary() ([]byte, error) {
+// MarshalMsgpack implements the msgpack.Marshaler interface for usage with caching
+func (e EntityStatement) MarshalMsgpack() ([]byte, error) {
 	ee := entityStatementExported{
-		JWTMsg:          *e.jwtMsg,
-		EntityStatement: e,
+		JWTMsg:  *e.jwtMsg,
+		Payload: e.EntityStatementPayload,
 	}
-	return json.Marshal(ee)
+	data, err := msgpack.Marshal(ee)
+	return data, err
 }
 
-// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface for usage with caching
-func (e *EntityStatement) UnmarshalBinary(data []byte) error {
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface for usage with caching
+func (e *EntityStatement) UnmarshalMsgpack(data []byte) error {
 	var ee entityStatementExported
-	ee.JWTMsg.Message = &jws.Message{}
-	if err := json.Unmarshal(data, &ee); err != nil {
+	if err := msgpack.Unmarshal(data, &ee); err != nil {
 		return err
 	}
-	*e = ee.EntityStatement
+	e.EntityStatementPayload = ee.Payload
 	e.jwtMsg = &ee.JWTMsg
 	return nil
 }
@@ -71,7 +64,7 @@ type EntityStatementPayload struct {
 	Subject            string                   `json:"sub"`
 	IssuedAt           Unixtime                 `json:"iat"`
 	ExpiresAt          Unixtime                 `json:"exp"`
-	JWKS               jwk.Set                  `json:"jwks"`
+	JWKS               jwx.JWKS                 `json:"jwks"`
 	Audience           string                   `json:"aud,omitempty"`
 	AuthorityHints     []string                 `json:"authority_hints,omitempty"`
 	Metadata           *Metadata                `json:"metadata,omitempty"`
@@ -104,7 +97,8 @@ func extraMarshalHelper(explicitFields []byte, extra map[string]interface{}) ([]
 		}
 		m[k] = e
 	}
-	return json.Marshal(m)
+	data, err := json.Marshal(m)
+	return data, errors.WithStack(err)
 }
 
 // MarshalJSON implements the json.Marshaler interface.
@@ -113,24 +107,21 @@ func (e EntityStatementPayload) MarshalJSON() ([]byte, error) {
 	type entityStatement EntityStatementPayload
 	explicitFields, err := json.Marshal(entityStatement(e))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return extraMarshalHelper(explicitFields, e.Extra)
 }
 
 func unmarshalWithExtra(data []byte, target interface{}) (map[string]interface{}, error) {
 	if err := json.Unmarshal(data, target); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	extra := make(map[string]interface{})
 	if err := json.Unmarshal(data, &extra); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	s := structs.New(target)
 	for _, tag := range utils.FieldTagNames(s.Fields(), "json") {
-		delete(extra, tag)
-	}
-	for _, tag := range cummonParametersJSONTags {
 		delete(extra, tag)
 	}
 	if len(extra) == 0 {
@@ -142,16 +133,24 @@ func unmarshalWithExtra(data []byte, target interface{}) (map[string]interface{}
 // UnmarshalJSON implements the json.Unmarshaler interface.
 // It also unmarshalls additional fields into the Extra claim.
 func (e *EntityStatementPayload) UnmarshalJSON(data []byte) error {
-	type entityStatement EntityStatementPayload
-	ee := entityStatement(*e)
-	if ee.JWKS == nil {
-		ee.JWKS = jwk.NewSet()
-	}
+	type Alias EntityStatementPayload
+	ee := Alias(*e)
 	extra, err := unmarshalWithExtra(data, &ee)
 	if err != nil {
 		return err
 	}
 	ee.Extra = extra
+	*e = EntityStatementPayload(ee)
+	return nil
+}
+
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface.
+func (e *EntityStatementPayload) UnmarshalMsgpack(data []byte) error {
+	type entityStatement EntityStatementPayload
+	ee := entityStatement(*e)
+	if err := msgpack.Unmarshal(data, &ee); err != nil {
+		return err
+	}
 	*e = EntityStatementPayload(ee)
 	return nil
 }
@@ -177,18 +176,26 @@ type TrustMarkOwners map[string]TrustMarkOwnerSpec
 
 // TrustMarkOwnerSpec describes the owner of a trust mark
 type TrustMarkOwnerSpec struct {
-	ID   string  `json:"sub"`
-	JWKS jwk.Set `json:"jwks"`
+	ID   string   `json:"sub"`
+	JWKS jwx.JWKS `json:"jwks"`
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (tmo *TrustMarkOwnerSpec) UnmarshalJSON(data []byte) error {
 	type trustMarkOwner TrustMarkOwnerSpec
 	o := trustMarkOwner(*tmo)
-	if o.JWKS == nil {
-		o.JWKS = jwk.NewSet()
-	}
 	if err := json.Unmarshal(data, &o); err != nil {
+		return err
+	}
+	*tmo = TrustMarkOwnerSpec(o)
+	return nil
+}
+
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface.
+func (tmo *TrustMarkOwnerSpec) UnmarshalMsgpack(data []byte) error {
+	type trustMarkOwner TrustMarkOwnerSpec
+	o := trustMarkOwner(*tmo)
+	if err := msgpack.Unmarshal(data, &o); err != nil {
 		return err
 	}
 	*tmo = TrustMarkOwnerSpec(o)

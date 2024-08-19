@@ -10,34 +10,26 @@ import (
 var mockupData mockHttp
 
 type mockHttp struct {
-	entityConfigurations map[string][]byte
+	entityConfigurations map[string]func() []byte
 	entityListings       map[string]mockList
-	entityStatements     map[string]mockFetch
+	entityStatements     map[string]func(iss, sub string) []byte
 }
-
-type mockFetch map[string]map[string][]byte
 type mockList []struct {
 	EntityID   string
 	EntityType string
 }
 
-func (d *mockHttp) addEntityConfiguration(entityid string, data []byte) {
+func (d *mockHttp) addEntityConfiguration(entityid string, fnc func() []byte) {
 	if d.entityConfigurations == nil {
-		d.entityConfigurations = make(map[string][]byte)
+		d.entityConfigurations = make(map[string]func() []byte)
 	}
-	d.entityConfigurations[entityid] = data
+	d.entityConfigurations[entityid] = fnc
 }
-func (d *mockHttp) addEntityStatement(fetchEndpoint, iss, sub string, data []byte) {
+func (d *mockHttp) addEntityStatement(fetchEndpoint string, fnc func(iss, sub string) []byte) {
 	if d.entityStatements == nil {
-		d.entityStatements = make(map[string]mockFetch)
+		d.entityStatements = make(map[string]func(iss, sub string) []byte)
 	}
-	if _, ok := d.entityStatements[fetchEndpoint]; !ok {
-		d.entityStatements[fetchEndpoint] = make(mockFetch)
-	}
-	if _, ok := d.entityStatements[fetchEndpoint][iss]; !ok {
-		d.entityStatements[fetchEndpoint][iss] = make(map[string][]byte)
-	}
-	d.entityStatements[fetchEndpoint][iss][sub] = data
+	d.entityStatements[fetchEndpoint] = fnc
 }
 func (d *mockHttp) addToListEndpoint(listEndpoint, entityID, entityType string) {
 	if d.entityListings == nil {
@@ -62,26 +54,18 @@ func (d *mockHttp) addToListEndpoint(listEndpoint, entityID, entityType string) 
 }
 
 func (d mockHttp) GetEntityConfiguration(entityID string) ([]byte, error) {
-	data, ok := d.entityConfigurations[entityID]
+	fnc, ok := d.entityConfigurations[entityID]
 	if !ok {
 		return nil, errors.New("entity configuration not found")
 	}
-	return data, nil
+	return fnc(), nil
 }
 func (d mockHttp) FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error) {
 	fetch, ok := d.entityStatements[fetchEndpoint]
 	if !ok {
 		return nil, errors.New("entity statement not found")
 	}
-	iss, ok := fetch[issID]
-	if !ok {
-		return nil, errors.New("entity statement not found")
-	}
-	data, ok := iss[subID]
-	if !ok {
-		return nil, errors.New("entity statement not found")
-	}
-	return data, nil
+	return fetch(issID, subID), nil
 }
 
 func (d mockHttp) ListEntities(listEndpoint, entityType string) ([]byte, error) {
@@ -96,69 +80,90 @@ func (d mockHttp) ListEntities(listEndpoint, entityType string) ([]byte, error) 
 }
 
 func (d *mockHttp) AddRP(r mockRP) {
-	data, err := r.JWT(r.EntityStatementPayload())
-	if err != nil {
-		panic(err)
-	}
-	d.addEntityConfiguration(r.EntityID, data)
+	d.addEntityConfiguration(
+		r.EntityID, func() []byte {
+			data, err := r.JWT(r.EntityStatementPayload())
+			if err != nil {
+				panic(err)
+			}
+			return data
+		},
+	)
 }
 func (d *mockHttp) AddOP(o mockOP) {
-	data, err := o.JWT(o.EntityStatementPayload())
-	if err != nil {
-		panic(err)
-	}
-	d.addEntityConfiguration(o.EntityID, data)
+	d.addEntityConfiguration(
+		o.EntityID, func() []byte {
+			data, err := o.JWT(o.EntityStatementPayload())
+			if err != nil {
+				panic(err)
+			}
+			return data
+		},
+	)
 }
 func (d *mockHttp) AddProxy(p mockProxy) {
-	data, err := p.JWT(p.EntityStatementPayload())
-	if err != nil {
-		panic(err)
-	}
-	d.addEntityConfiguration(p.EntityID, data)
+	d.addEntityConfiguration(
+		p.EntityID, func() []byte {
+			data, err := p.JWT(p.EntityStatementPayload())
+			if err != nil {
+				panic(err)
+			}
+			return data
+		},
+	)
 }
 func (d *mockHttp) AddTMI(tmi mockTMI) {
-	now := time.Now()
-	payload := EntityStatementPayload{
-		Issuer:         tmi.EntityID,
-		Subject:        tmi.EntityID,
-		AuthorityHints: tmi.authorities,
-		IssuedAt: Unixtime{
-			Time: now,
-		},
-		ExpiresAt: Unixtime{
-			Time: now.Add(defaultEntityConfigurationLifetime),
-		},
-		JWKS: tmi.jwks,
-		Metadata: &Metadata{
-			FederationEntity: &FederationEntityMetadata{
-				FederationTrustMarkStatusEndpoint: "TODO", //TODO
-				CommonMetadata: CommonMetadata{
-					OrganizationName: "TMI Organization",
+	d.addEntityConfiguration(
+		tmi.EntityID, func() []byte {
+			now := time.Now()
+			payload := EntityStatementPayload{
+				Issuer:         tmi.EntityID,
+				Subject:        tmi.EntityID,
+				AuthorityHints: tmi.authorities,
+				IssuedAt: Unixtime{
+					Time: now,
 				},
-			},
+				ExpiresAt: Unixtime{
+					Time: now.Add(defaultEntityConfigurationLifetime),
+				},
+				JWKS: tmi.jwks,
+				Metadata: &Metadata{
+					FederationEntity: &FederationEntityMetadata{
+						FederationTrustMarkStatusEndpoint: "TODO", //TODO
+						OrganizationName:                  "TMI Organization",
+					},
+				},
+			}
+			data, err := tmi.TrustMarkSigner.JWT(payload)
+			if err != nil {
+				panic(err)
+			}
+			return data
 		},
-	}
-	data, err := tmi.TrustMarkSigner.JWT(payload)
-	if err != nil {
-		panic(err)
-	}
-	d.addEntityConfiguration(tmi.EntityID, data)
+	)
 }
 
 func (d *mockHttp) AddAuthority(a mockAuthority) {
-	data, err := a.EntityStatementSigner.JWT(a.EntityStatementPayload())
-	if err != nil {
-		panic(err)
-	}
-	d.addEntityConfiguration(a.EntityID, data)
-
+	d.addEntityConfiguration(
+		a.EntityID, func() []byte {
+			data, err := a.EntityStatementSigner.JWT(a.EntityStatementPayload())
+			if err != nil {
+				panic(err)
+			}
+			return data
+		},
+	)
+	d.addEntityStatement(
+		a.FetchEndpoint, func(iss, sub string) []byte {
+			pay := a.SubordinateEntityStatementPayload(sub)
+			data, err := a.EntityStatementSigner.JWT(pay)
+			if err != nil {
+				panic(err)
+			}
+			return data
+		},
+	)
 	for _, sub := range a.subordinates {
-		pay := a.SubordinateEntityStatementPayload(sub.entityID)
-		data, err = a.EntityStatementSigner.JWT(pay)
-		if err != nil {
-			panic(err)
-		}
-		d.addEntityStatement(a.FetchEndpoint, a.EntityID, sub.entityID, data)
 		d.addToListEndpoint(a.ListEndpoint, sub.entityID, "")
 	}
 }

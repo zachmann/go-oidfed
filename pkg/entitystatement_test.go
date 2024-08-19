@@ -2,12 +2,19 @@ package pkg
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/luci/go-render/render"
+	"github.com/vmihailenco/msgpack/v5"
+
+	"github.com/zachmann/go-oidfed/internal/jwx"
 )
 
 type marshalData struct {
@@ -47,10 +54,8 @@ var entitystatementMarshalData = map[string]marshalData{
 					ClientRegistrationTypes:  []string{"automatic"},
 				},
 				FederationEntity: &FederationEntityMetadata{
-					CommonMetadata: CommonMetadata{
-						OrganizationName: "organization",
-						HomepageURI:      "https://somewhere.com",
-					},
+					OrganizationName: "organization",
+					HomepageURI:      "https://somewhere.com",
 				},
 			},
 			MetadataPolicy: &MetadataPolicies{
@@ -92,6 +97,10 @@ func TestEntityStatementPayload_MarshalJSON(t *testing.T) {
 		name string
 		marshalData
 	}{
+		{
+			name:        "empty",
+			marshalData: entitystatementMarshalData["empty"],
+		},
 		{
 			name:        "all normal fields",
 			marshalData: entitystatementMarshalData["normal fields"],
@@ -136,13 +145,116 @@ func TestEntityStatementPayload_UnmarshalJSON(t *testing.T) {
 				var result EntityStatementPayload
 				err := json.Unmarshal(test.Data, &result)
 				if err != nil {
-					t.Error(err)
+					t.Errorf("%+v", err)
 				}
 				if !reflect.DeepEqual(test.Object, result) {
 					t.Errorf(
-						"Unmarshal result not as expected.\nExpected: %s\n     Got: %s", render.Render(test.Object),
+						"Unmarshal result not as expected."+
+							"\nExpected: %s\n     Got: %s\nMarshalled: %s\n",
+						render.Render(test.Object),
+						render.Render(result),
+						test.Data,
+					)
+				}
+			},
+		)
+	}
+}
+
+func TestEntityStatementMarshalAndUnmarshalJSON(t *testing.T) {
+	// sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	tests := []struct {
+		name string
+		data EntityStatementPayload
+	}{
+		{
+			name: "all normal fields",
+			data: entitystatementMarshalData["normal fields"].Object.(EntityStatementPayload),
+		},
+		{
+			name: "extra",
+			data: entitystatementMarshalData["extra fields"].Object.(EntityStatementPayload),
+		},
+		// {
+		// 	name: "jwks",
+		// 	data: EntityStatementPayload{
+		// 		JWKS: jwx.KeyToJWKS(sk.Public(), jwa.ES512),
+		// 	},
+		// }, // this is hard to compare
+	}
+	for _, test := range tests {
+		t.Run(
+			test.name, func(t *testing.T) {
+				data, err := json.Marshal(&test.data)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var result EntityStatementPayload
+				if err = json.Unmarshal(data, &result); err != nil {
+					t.Error(err)
+				}
+				if !reflect.DeepEqual(test.data, result) {
+					t.Errorf(
+						"Unmarshal result not as expected.\n"+
+							"Original: %s\nMarshalled: %s\nGot: %s\n",
+						render.Render(test.data),
+						data,
 						render.Render(result),
 					)
+					t.FailNow()
+				}
+			},
+		)
+	}
+}
+
+func TestEntityStatementMarshalAndUnmarshalMsgpack(t *testing.T) {
+	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name string
+		data EntityStatementPayload
+	}{
+		// {
+		// 	name: "all normal fields",
+		// 	data: entitystatementMarshalData["normal fields"].Object.(EntityStatementPayload),
+		// },
+		// {
+		// 	name: "extra",
+		// 	data: entitystatementMarshalData["extra fields"].Object.(EntityStatementPayload),
+		// },
+		{
+			name: "jwks",
+			data: EntityStatementPayload{
+				JWKS: jwx.KeyToJWKS(sk.Public(), jwa.ES512),
+			},
+		}, // this is hard to compare
+	}
+	for _, test := range tests {
+		t.Run(
+			test.name, func(t *testing.T) {
+				data, err := msgpack.Marshal(&test.data)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var result EntityStatementPayload
+				if err = msgpack.Unmarshal(data, &result); err != nil {
+					t.Errorf("%+v", err)
+				}
+				if !reflect.DeepEqual(test.data, result) {
+					t.Errorf(
+						"Unmarshal result not as expected.\n"+
+							"Original: %s\nMarshalled: %s\nGot: %s\n",
+						render.Render(test.data.JWKS),
+						data,
+						render.Render(result.JWKS),
+					)
+					t.FailNow()
 				}
 			},
 		)

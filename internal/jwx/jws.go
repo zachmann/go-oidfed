@@ -7,6 +7,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/pkg/errors"
+	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
@@ -17,19 +18,40 @@ type ParsedJWT struct {
 	*jws.Message
 }
 
+// MarshalMsgpack implements the msgpack.Marshaler interface
+func (p ParsedJWT) MarshalMsgpack() ([]byte, error) {
+	return msgpack.Marshal(p.RawJWT)
+}
+
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
+func (p *ParsedJWT) UnmarshalMsgpack(data []byte) error {
+	if err := msgpack.Unmarshal(data, &p.RawJWT); err != nil {
+		return errors.WithStack(err)
+	}
+	pp, err := Parse(p.RawJWT)
+	if err != nil {
+		return err
+	}
+	*p = *pp
+	return nil
+}
+
 // Parse parses a jwt and returns a ParsedJWT
 func Parse(data []byte) (*ParsedJWT, error) {
 	m, err := jws.Parse(data)
 	return &ParsedJWT{
 		RawJWT:  data,
 		Message: m,
-	}, err
+	}, errors.WithStack(err)
 }
 
 // VerifyWithSet uses a jwk.Set to verify a *jws.Message, returning the decoded payload or an error
-func VerifyWithSet(msg *ParsedJWT, keys jwk.Set) ([]byte, error) {
+func VerifyWithSet(msg *ParsedJWT, keys JWKS) ([]byte, error) {
 	if msg == nil || msg.Message == nil {
 		return nil, errors.New("jws.Verify: missing message")
+	}
+	if keys.Set == nil || keys.Len() == 0 {
+		return nil, errors.New("jwt verify: no keys passed")
 	}
 	var alg jwa.SignatureAlgorithm
 	var kid string
@@ -43,7 +65,7 @@ func VerifyWithSet(msg *ParsedJWT, keys jwk.Set) ([]byte, error) {
 		return nil, err
 	}
 	if alg == "" && kid == "" {
-		return jws.VerifySet(buf, keys)
+		return jws.VerifySet(buf, keys.Set)
 	}
 	for i := 0; i < keys.Len(); i++ {
 		k, ok := keys.Get(i)
