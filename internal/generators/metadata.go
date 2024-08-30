@@ -72,7 +72,7 @@ package pkg
 import (
 	"encoding/json"
 
-	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 	
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"

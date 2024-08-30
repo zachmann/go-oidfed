@@ -7,13 +7,13 @@ import (
 
 	"github.com/lestrrat-go/jwx/jwa"
 
-	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 type mockTMI struct {
 	TrustMarkIssuer
 	authorities []string
-	jwks        jwx.JWKS
+	jwks        jwk.JWKS
 }
 
 func (tmi *mockTMI) AddAuthority(authorityID string) {
@@ -36,7 +36,7 @@ func newMockTrustMarkIssuer(entityID string, trustMarkSpecs []TrustMarkSpec) moc
 	tmi := NewTrustMarkIssuer(entityID, NewTrustMarkSigner(sk, jwa.ES512), trustMarkSpecs)
 	return mockTMI{
 		TrustMarkIssuer: *tmi,
-		jwks:            jwx.KeyToJWKS(tmi.key.Public(), tmi.alg),
+		jwks:            jwk.KeyToJWKS(tmi.key.Public(), tmi.alg),
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 
 	"github.com/fatih/structs"
 )
@@ -23,7 +24,7 @@ type EntityStatement struct {
 }
 
 // Verify verifies that the EntityStatement jwt is valid
-func (e EntityStatement) Verify(keys jwx.JWKS) bool {
+func (e EntityStatement) Verify(keys jwk.JWKS) bool {
 	_, err := jwx.VerifyWithSet(e.jwtMsg, keys)
 	if err != nil {
 		internal.Log(err)
@@ -64,7 +65,7 @@ type EntityStatementPayload struct {
 	Subject            string                   `json:"sub"`
 	IssuedAt           Unixtime                 `json:"iat"`
 	ExpiresAt          Unixtime                 `json:"exp"`
-	JWKS               jwx.JWKS                 `json:"jwks"`
+	JWKS               jwk.JWKS                 `json:"jwks"`
 	Audience           string                   `json:"aud,omitempty"`
 	AuthorityHints     []string                 `json:"authority_hints,omitempty"`
 	Metadata           *Metadata                `json:"metadata,omitempty"`
@@ -177,7 +178,7 @@ type TrustMarkOwners map[string]TrustMarkOwnerSpec
 // TrustMarkOwnerSpec describes the owner of a trust mark
 type TrustMarkOwnerSpec struct {
 	ID   string   `json:"sub"`
-	JWKS jwx.JWKS `json:"jwks"`
+	JWKS jwk.JWKS `json:"jwks"`
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.

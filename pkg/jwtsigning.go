@@ -10,6 +10,7 @@ import (
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/pkg/constants"
+	myjwk "github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 type JWTSigner interface {
@@ -42,8 +43,8 @@ func (s GeneralJWTSigner) JWT(i any, headerType string) (jwt []byte, err error) 
 	jwt, err = jwx.SignWithType(j, headerType, s.alg, s.key)
 	return
 }
-func (s *GeneralJWTSigner) JWKS() jwx.JWKS {
-	return jwx.KeyToJWKS(s.key.Public(), s.alg)
+func (s *GeneralJWTSigner) JWKS() myjwk.JWKS {
+	return myjwk.KeyToJWKS(s.key.Public(), s.alg)
 }
 func (s *GeneralJWTSigner) Typed(headerType string) *TypedJWTSigner {
 	return &TypedJWTSigner{

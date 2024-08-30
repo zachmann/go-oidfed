@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/zachmann/go-oidfed/internal"
-	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/pkg/cache"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 // FederationEntity is a type for an entity participating in federations.
@@ -21,7 +21,7 @@ type FederationEntity struct {
 	AuthorityHints        []string
 	ConfigurationLifetime int64
 	*EntityStatementSigner
-	jwks jwx.JWKS
+	jwks jwk.JWKS
 }
 
 // FederationLeaf is a type for a leaf entity and holds all relevant information about it; it can also be used to

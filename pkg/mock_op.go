@@ -10,13 +10,13 @@ import (
 
 	"github.com/lestrrat-go/jwx/jwa"
 
-	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 type mockOP struct {
 	EntityID    string
 	authorities []string
-	jwks        jwx.JWKS
+	jwks        jwk.JWKS
 	*EntityStatementSigner
 	metadata *OpenIDProviderMetadata
 }
@@ -31,7 +31,7 @@ func newMockOP(entityID string, metadata *OpenIDProviderMetadata) mockOP {
 		EntityID:              entityID,
 		metadata:              metadata,
 		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
-		jwks:                  jwx.KeyToJWKS(sk.Public(), jwa.ES512),
+		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512),
 	}
 	return o
 }

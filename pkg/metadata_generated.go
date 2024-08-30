@@ -4,11 +4,71 @@ package pkg
 import (
 	"encoding/json"
 
-	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
 )
+
+type FederationEntityMetadata struct {
+	FederationFetchEndpoint           string         `json:"federation_fetch_endpoint,omitempty"`
+	FederationListEndpoint            string         `json:"federation_list_endpoint,omitempty"`
+	FederationResolveEndpoint         string         `json:"federation_resolve_endpoint,omitempty"`
+	FederationTrustMarkStatusEndpoint string         `json:"federation_trust_mark_status_endpoint,omitempty"`
+	FederationTrustMarkListEndpoint   string         `json:"federation_trust_mark_list_endpoint,omitempty"`
+	FederationTrustMarkEndpoint       string         `json:"federation_trust_mark_endpoint,omitempty"`
+	FederationHistoricalLKeysEndpoint string         `json:"federation_historical_keys_endpoint,omitempty"`
+	Extra                             map[string]any `json:"-"`
+	SignedJWKSURI                     string         `json:"signed_jwks_uri,omitempty"`
+	JWKSURI                           string         `json:"jwks_uri,omitempty"`
+	JWKS                              *jwk.JWKS      `json:"jwks,omitempty"`
+	OrganizationName                  string         `json:"organization_name,omitempty"`
+	Contacts                          []string       `json:"contacts,omitempty"`
+	LogoURI                           string         `json:"logo_uri,omitempty"`
+	PolicyURI                         string         `json:"policy_uri,omitempty"`
+	HomepageURI                       string         `json:"homepage_uri,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (m FederationEntityMetadata) MarshalJSON() ([]byte, error) {
+	type Alias FederationEntityMetadata
+	explicitFields, err := json.Marshal(Alias(m))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return extraMarshalHelper(explicitFields, m.Extra)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *FederationEntityMetadata) UnmarshalJSON(data []byte) error {
+	type Alias FederationEntityMetadata
+	mm := Alias(*m)
+
+	extra, err := unmarshalWithExtra(data, &mm)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	mm.Extra = extra
+	*m = FederationEntityMetadata(mm)
+	return nil
+}
+
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
+func (m *FederationEntityMetadata) UnmarshalMsgpack(data []byte) error {
+	type Alias FederationEntityMetadata
+	mm := Alias(*m)
+	err := msgpack.Unmarshal(data, &mm)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	*m = FederationEntityMetadata(mm)
+	return nil
+}
+
+// ApplyPolicy applies a MetadataPolicy to the FederationEntityMetadata
+func (m FederationEntityMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
+	return applyPolicy(&m, policy, "federation_entity")
+}
 
 type OpenIDRelyingPartyMetadata struct {
 	Scope                                 string         `json:"scope,omitempty"`
@@ -73,7 +133,7 @@ type OpenIDRelyingPartyMetadata struct {
 	Extra                                 map[string]any `json:"-"`
 	SignedJWKSURI                         string         `json:"signed_jwks_uri,omitempty"`
 	JWKSURI                               string         `json:"jwks_uri,omitempty"`
-	JWKS                                  *jwx.JWKS      `json:"jwks,omitempty"`
+	JWKS                                  *jwk.JWKS      `json:"jwks,omitempty"`
 	OrganizationName                      string         `json:"organization_name,omitempty"`
 	HomepageURI                           string         `json:"homepage_uri,omitempty"`
 }
@@ -191,7 +251,7 @@ type OpenIDProviderMetadata struct {
 	Extra                                                     map[string]any      `json:"-"`
 	SignedJWKSURI                                             string              `json:"signed_jwks_uri,omitempty"`
 	JWKSURI                                                   string              `json:"jwks_uri,omitempty"`
-	JWKS                                                      *jwx.JWKS           `json:"jwks,omitempty"`
+	JWKS                                                      *jwk.JWKS           `json:"jwks,omitempty"`
 	OrganizationName                                          string              `json:"organization_name,omitempty"`
 	Contacts                                                  []string            `json:"contacts,omitempty"`
 	LogoURI                                                   string              `json:"logo_uri,omitempty"`
@@ -254,7 +314,7 @@ type OAuthProtectedResourceMetadata struct {
 	Extra                                map[string]any `json:"-"`
 	SignedJWKSURI                        string         `json:"signed_jwks_uri,omitempty"`
 	JWKSURI                              string         `json:"jwks_uri,omitempty"`
-	JWKS                                 *jwx.JWKS      `json:"jwks,omitempty"`
+	JWKS                                 *jwk.JWKS      `json:"jwks,omitempty"`
 	OrganizationName                     string         `json:"organization_name,omitempty"`
 	Contacts                             []string       `json:"contacts,omitempty"`
 	LogoURI                              string         `json:"logo_uri,omitempty"`
@@ -301,64 +361,4 @@ func (m *OAuthProtectedResourceMetadata) UnmarshalMsgpack(data []byte) error {
 // ApplyPolicy applies a MetadataPolicy to the OAuthProtectedResourceMetadata
 func (m OAuthProtectedResourceMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
 	return applyPolicy(&m, policy, "oauth_resource")
-}
-
-type FederationEntityMetadata struct {
-	FederationFetchEndpoint           string         `json:"federation_fetch_endpoint,omitempty"`
-	FederationListEndpoint            string         `json:"federation_list_endpoint,omitempty"`
-	FederationResolveEndpoint         string         `json:"federation_resolve_endpoint,omitempty"`
-	FederationTrustMarkStatusEndpoint string         `json:"federation_trust_mark_status_endpoint,omitempty"`
-	FederationTrustMarkListEndpoint   string         `json:"federation_trust_mark_list_endpoint,omitempty"`
-	FederationTrustMarkEndpoint       string         `json:"federation_trust_mark_endpoint,omitempty"`
-	FederationHistoricalLKeysEndpoint string         `json:"federation_historical_keys_endpoint,omitempty"`
-	Extra                             map[string]any `json:"-"`
-	SignedJWKSURI                     string         `json:"signed_jwks_uri,omitempty"`
-	JWKSURI                           string         `json:"jwks_uri,omitempty"`
-	JWKS                              *jwx.JWKS      `json:"jwks,omitempty"`
-	OrganizationName                  string         `json:"organization_name,omitempty"`
-	Contacts                          []string       `json:"contacts,omitempty"`
-	LogoURI                           string         `json:"logo_uri,omitempty"`
-	PolicyURI                         string         `json:"policy_uri,omitempty"`
-	HomepageURI                       string         `json:"homepage_uri,omitempty"`
-}
-
-// MarshalJSON implements the json.Marshaler interface
-func (m FederationEntityMetadata) MarshalJSON() ([]byte, error) {
-	type Alias FederationEntityMetadata
-	explicitFields, err := json.Marshal(Alias(m))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return extraMarshalHelper(explicitFields, m.Extra)
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface
-func (m *FederationEntityMetadata) UnmarshalJSON(data []byte) error {
-	type Alias FederationEntityMetadata
-	mm := Alias(*m)
-
-	extra, err := unmarshalWithExtra(data, &mm)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	mm.Extra = extra
-	*m = FederationEntityMetadata(mm)
-	return nil
-}
-
-// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
-func (m *FederationEntityMetadata) UnmarshalMsgpack(data []byte) error {
-	type Alias FederationEntityMetadata
-	mm := Alias(*m)
-	err := msgpack.Unmarshal(data, &mm)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	*m = FederationEntityMetadata(mm)
-	return nil
-}
-
-// ApplyPolicy applies a MetadataPolicy to the FederationEntityMetadata
-func (m FederationEntityMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
-	return applyPolicy(&m, policy, "federation_entity")
 }

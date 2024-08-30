@@ -15,12 +15,12 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 
 	"github.com/zachmann/go-oidfed/examples/ta/config"
-	"github.com/zachmann/go-oidfed/internal/jwx"
+	myjwk "github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
-func genJWKS() jwx.JWKS {
+func genJWKS() myjwk.JWKS {
 	sk := mustNewKey()
-	jwks := jwx.KeyToJWKS(sk.Public(), jwa.ES512)
+	jwks := myjwk.KeyToJWKS(sk.Public(), jwa.ES512)
 	return jwks
 }
 

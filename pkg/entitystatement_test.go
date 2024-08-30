@@ -14,7 +14,7 @@ import (
 	"github.com/luci/go-render/render"
 	"github.com/vmihailenco/msgpack/v5"
 
-	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 type marshalData struct {
@@ -231,7 +231,7 @@ func TestEntityStatementMarshalAndUnmarshalMsgpack(t *testing.T) {
 		{
 			name: "jwks",
 			data: EntityStatementPayload{
-				JWKS: jwx.KeyToJWKS(sk.Public(), jwa.ES512),
+				JWKS: jwk.KeyToJWKS(sk.Public(), jwa.ES512),
 			},
 		}, // this is hard to compare
 	}

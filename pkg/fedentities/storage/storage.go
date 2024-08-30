@@ -5,12 +5,12 @@ import (
 
 	"github.com/vmihailenco/msgpack/v5"
 
-	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 type SubordinateInfo struct {
-	JWKS               jwx.JWKS                     `json:"jwks"`
+	JWKS               jwk.JWKS                     `json:"jwks"`
 	EntityType         string                       `json:"entity_type"`
 	EntityID           string                       `json:"entity_id"`
 	Metadata           *pkg.Metadata                `json:"metadata,omitempty"`

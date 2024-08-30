@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 // TrustMarkInfo is a type for holding a trust mark as represented in an EntityConfiguration
@@ -73,7 +74,7 @@ func (tm *TrustMarkInfo) VerifyFederation(ta *EntityStatementPayload) error {
 
 // VerifyExternal verifies the TrustMarkInfo by using the passed trust mark issuer jwks and optionally the passed
 // trust mark owner jwks
-func (tm *TrustMarkInfo) VerifyExternal(jwks jwx.JWKS, tmo ...TrustMarkOwnerSpec) error {
+func (tm *TrustMarkInfo) VerifyExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec) error {
 	mark, err := tm.TrustMark()
 	if err != nil {
 		return err
@@ -178,7 +179,7 @@ func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 
 // VerifyExternal verifies the TrustMark by using the passed trust mark issuer jwks and optionally the passed
 // trust mark owner jwks
-func (tm *TrustMark) VerifyExternal(jwks jwx.JWKS, tmo ...TrustMarkOwnerSpec) error {
+func (tm *TrustMark) VerifyExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec) error {
 	if err := verifyTime(&tm.IssuedAt, tm.ExpiresAt); err != nil {
 		return err
 	}
@@ -260,7 +261,7 @@ func (djwt DelegationJWT) VerifyFederation(ta *EntityStatementPayload) error {
 }
 
 // VerifyExternal verifies the DelegationJWT by using the passed trust mark owner jwks
-func (djwt DelegationJWT) VerifyExternal(jwks jwx.JWKS) error {
+func (djwt DelegationJWT) VerifyExternal(jwks jwk.JWKS) error {
 	if err := verifyTime(&djwt.IssuedAt, djwt.ExpiresAt); err != nil {
 		return errors.Wrap(err, "verify delegation jwt")
 	}

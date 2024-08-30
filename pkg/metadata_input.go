@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 //go:generate go run ../internal/generators/metadata.go
@@ -9,7 +9,7 @@ import (
 type commonMetadata struct {
 	SignedJWKSURI string    `json:"signed_jwks_uri,omitempty"`
 	JWKSURI       string    `json:"jwks_uri,omitempty"`
-	JWKS          *jwx.JWKS `json:"jwks,omitempty"`
+	JWKS          *jwk.JWKS `json:"jwks,omitempty"`
 
 	OrganizationName string   `json:"organization_name,omitempty"`
 	Contacts         []string `json:"contacts,omitempty"`

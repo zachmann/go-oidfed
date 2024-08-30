@@ -10,6 +10,7 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/zachmann/go-oidfed/internal/utils"
+	myjwk "github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 // ParsedJWT is a type extending jws.Message by holding the original jwt
@@ -46,7 +47,7 @@ func Parse(data []byte) (*ParsedJWT, error) {
 }
 
 // VerifyWithSet uses a jwk.Set to verify a *jws.Message, returning the decoded payload or an error
-func VerifyWithSet(msg *ParsedJWT, keys JWKS) ([]byte, error) {
+func VerifyWithSet(msg *ParsedJWT, keys myjwk.JWKS) ([]byte, error) {
 	if msg == nil || msg.Message == nil {
 		return nil, errors.New("jws.Verify: missing message")
 	}

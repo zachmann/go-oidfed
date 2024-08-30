@@ -8,11 +8,12 @@ import (
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/cache"
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 type TrustAnchor struct {
 	EntityID string   `yaml:"entity_id" json:"entity_id"`
-	JWKS     jwx.JWKS `yaml:"jwks" json:"jwks"`
+	JWKS     jwk.JWKS `yaml:"jwks" json:"jwks"`
 }
 
 type TrustAnchors []TrustAnchor
