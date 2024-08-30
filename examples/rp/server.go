@@ -170,8 +170,11 @@ func fedLeaf() *pkg.FederationLeaf {
 		}
 		var err error
 		_fedLeaf, err = pkg.NewFederationLeaf(
-			conf.EntityID, conf.AuthorityHints, conf.TrustAnchors, metadata, getKey("fed"),
-			jwa.ES512, 86400, getKey("oidc"), jwa.ES512,
+			conf.EntityID, conf.AuthorityHints, conf.TrustAnchors, metadata,
+			pkg.NewEntityStatementSigner(
+				getKey("fed"),
+				jwa.ES512,
+			), 86400, getKey("oidc"), jwa.ES512,
 		)
 		if err != nil {
 			log.Fatal(err)

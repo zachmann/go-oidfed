@@ -13,7 +13,8 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
+
+	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
 func mustNewKey() *ecdsa.PrivateKey {
@@ -41,29 +42,14 @@ func mustLoadKey(name string) crypto.Signer {
 }
 
 var keys map[string]crypto.Signer
-var jwks map[string]jwk.Set
+var jwks map[string]jwk.JWKS
 
 func initKeys(names ...string) {
 	keys = make(map[string]crypto.Signer)
-	jwks = make(map[string]jwk.Set)
+	jwks = make(map[string]jwk.JWKS)
 	for _, name := range names {
 		keys[name] = mustLoadKey(name)
-
-		key, err := jwk.New(keys[name].Public())
-		if err != nil {
-			log.Fatal(err)
-		}
-		if err = jwk.AssignKeyID(key); err != nil {
-			log.Fatal(err)
-		}
-		if err = key.Set(jwk.KeyUsageKey, jwk.ForSignature); err != nil {
-			log.Fatal(err)
-		}
-		if err = key.Set(jwk.AlgorithmKey, jwa.ES512); err != nil {
-			log.Fatal(err)
-		}
-		set := jwk.NewSet()
-		set.Add(key)
+		set := jwk.KeyToJWKS(keys[name].Public(), jwa.ES512)
 		jwks[name] = set
 	}
 }
@@ -71,8 +57,9 @@ func initKeys(names ...string) {
 func getKey(name string) crypto.Signer {
 	return keys[name]
 }
-func getJWKS(name string) jwk.Set {
-	return jwks[name]
+func getJWKS(name string) *jwk.JWKS {
+	set := jwks[name]
+	return &set
 }
 
 func exportECPrivateKeyAsPem(privkey *ecdsa.PrivateKey) []byte {
