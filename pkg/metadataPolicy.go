@@ -9,6 +9,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
+// MetadataPolicies is a type for holding the different MetadataPolicy
 type MetadataPolicies struct {
 	OpenIDProvider           MetadataPolicy `json:"openid_provider,omitempty"`
 	RelyingParty             MetadataPolicy `json:"openid_relying_party,omitempty"`
@@ -18,10 +19,16 @@ type MetadataPolicies struct {
 	FederationEntity         MetadataPolicy `json:"federation_entity,omitempty"`
 }
 
+// MetadataPolicy is a type for holding MetadataPolicyEntry for each relevant attribute
 type MetadataPolicy map[string]MetadataPolicyEntry
+
+// MetadataPolicyEntry is a type for holding the operator value for each operator
 type MetadataPolicyEntry map[PolicyOperatorName]any
+
+// PolicyOperatorName is the name of a PolicyOperator
 type PolicyOperatorName string
 
+// Verify verifies that the MetadataPolicy is valid
 func (p MetadataPolicy) Verify(pathInfo string) error {
 	for k, v := range p {
 		if err := v.Verify(fmt.Sprintf("%s.%s", pathInfo, k)); err != nil {
@@ -161,6 +168,7 @@ func mergeMetadataPolicyEntries(a, b MetadataPolicyEntry, pathInfo string) (Meta
 	return out, nil
 }
 
+// Verify verifies that the MetadataPolicyEntry is valid
 func (p MetadataPolicyEntry) Verify(pathInfo string) error {
 	activeOperators := utils.MapKeys(p)
 	for _, opN := range activeOperators {
@@ -188,6 +196,7 @@ func (p MetadataPolicyEntry) Verify(pathInfo string) error {
 	return nil
 }
 
+// ApplyTo applies this MetadataPolicyEntry to the passed value and returns the resulting value
 func (p MetadataPolicyEntry) ApplyTo(value any, pathInfo string) (any, error) {
 	var err error
 	essentialV, ok := p[PolicyOperatorEssential]

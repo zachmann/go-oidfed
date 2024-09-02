@@ -51,7 +51,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 	for _, op := range ops {
 		options += fmt.Sprintf(opOptionFmt, op.Issuer, utils.FirstNonEmpty(op.OrganizationName, op.Issuer))
 	}
-	io.WriteString(w, fmt.Sprintf(loginHtml, options))
+	_, _ = io.WriteString(w, fmt.Sprintf(loginHtml, options))
 }
 
 type stateData struct {
@@ -100,13 +100,13 @@ func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 			e += ": " + errorDescription
 		}
 		w.WriteHeader(444)
-		io.WriteString(w, e)
+		_, _ = io.WriteString(w, e)
 		return
 	}
 	stateInfo, found := stateDB[state]
 	if !found {
 		w.WriteHeader(444)
-		io.WriteString(w, "state mismatch")
+		_, _ = io.WriteString(w, "state mismatch")
 		return
 	}
 	params := url.Values{}
@@ -115,7 +115,7 @@ func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 	tokenRes, errRes, err := fedLeaf().CodeExchange(stateInfo.issuer, code, redirectURI, params)
 	if err != nil {
 		w.WriteHeader(500)
-		io.WriteString(w, err.Error())
+		_, _ = io.WriteString(w, err.Error())
 		return
 	}
 	if errRes != nil {
@@ -124,14 +124,14 @@ func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 			e += ": " + errRes.ErrorDescription
 		}
 		w.WriteHeader(444)
-		io.WriteString(w, e)
+		_, _ = io.WriteString(w, e)
 		return
 	}
 
 	msg, err := jws.ParseString(tokenRes.IDToken)
 	if err != nil {
 		w.WriteHeader(500)
-		io.WriteString(w, err.Error())
+		_, _ = io.WriteString(w, err.Error())
 		return
 	}
 	delete(stateDB, state)
@@ -139,12 +139,12 @@ func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(msg.Payload(), &msgData)
 	if err != nil {
 		w.WriteHeader(500)
-		io.WriteString(w, err.Error())
+		_, _ = io.WriteString(w, err.Error())
 		return
 	}
 
 	w.WriteHeader(200)
-	io.WriteString(w, fmt.Sprintf(userHtml, msgData["sub"], msgData["iss"]))
+	_, _ = io.WriteString(w, fmt.Sprintf(userHtml, msgData["sub"], msgData["iss"]))
 }
 
 var authBuilder *pkg.RequestObjectProducer
@@ -193,7 +193,7 @@ func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	w.Header().Set("Content-Type", "application/entity-statement+jwt")
-	w.Write(jwt)
+	_, _ = w.Write(jwt)
 }
 
 func initServer() {

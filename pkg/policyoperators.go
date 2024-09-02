@@ -8,13 +8,19 @@ import (
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
+// PolicyOperator is an interface implemented by policy operators
 type PolicyOperator interface {
+	// Merge merges two policy operator values and returns the result
 	Merge(a, b any, pathInfo string) (any, error)
+	// Apply applies the policy operator value to the attribute value and returns the result
 	Apply(value, policyValue any, essential bool, pathInfo string) (any, error)
+	// Name returns the PolicyOperatorName
 	Name() PolicyOperatorName
+	// MayCombineWith gives a list of PolicyOperatorName with which this PolicyOperator may be combined
 	MayCombineWith() []PolicyOperatorName
 }
 
+// Constants for PolicyOperatorNames
 const (
 	PolicyOperatorValue      PolicyOperatorName = "value"
 	PolicyOperatorDefault    PolicyOperatorName = "default"
@@ -39,6 +45,7 @@ var OperatorOrder = []PolicyOperatorName{
 
 var operators map[PolicyOperatorName]PolicyOperator
 
+// RegisterPolicyOperator registers a new PolicyOperator and therefore makes it available to be used
 func RegisterPolicyOperator(operator PolicyOperator) {
 	operators[operator.Name()] = operator
 }
@@ -50,19 +57,27 @@ type policyOperator struct {
 	combineWith []PolicyOperatorName
 }
 
+// Name implements the PolicyOperator interface
 func (op policyOperator) Name() PolicyOperatorName {
 	return op.name
 }
+
+// Merge implements the PolicyOperator interface
 func (op policyOperator) Merge(a, b any, pathInfo string) (any, error) {
 	return op.merger(a, b, pathInfo)
 }
+
+// Apply implements the PolicyOperator interface
 func (op policyOperator) Apply(value, policyValue any, essential bool, pathInfo string) (any, error) {
 	return op.applier(value, policyValue, essential, pathInfo)
 }
+
+// MayCombineWith implements the PolicyOperator interface
 func (op policyOperator) MayCombineWith() []PolicyOperatorName {
 	return op.combineWith
 }
 
+// NewPolicyOperator creates a new PolicyOperator from the passed functions and PolicyOperatorName
 func NewPolicyOperator(
 	name PolicyOperatorName,
 	merger func(a, b any, pathInfo string) (any, error),

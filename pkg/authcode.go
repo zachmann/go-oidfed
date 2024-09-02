@@ -16,6 +16,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal/jwx"
 )
 
+// OIDCErrorResponse is the error response of an oidc provider
 type OIDCErrorResponse struct {
 	Error            string `json:"error"`
 	ErrorDescription string `json:"error_description,omitempty"`
@@ -33,6 +34,7 @@ type OIDCTokenResponse struct {
 	Extra map[string]any `json:"-"`
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface
 func (res *OIDCTokenResponse) UnmarshalJSON(data []byte) error {
 	type oidcTokenResponse OIDCTokenResponse
 	r := oidcTokenResponse(*res)
@@ -45,6 +47,7 @@ func (res *OIDCTokenResponse) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// RequestObjectProducer is a generator for signed request objects
 type RequestObjectProducer struct {
 	EntityID string
 	lifetime int64
@@ -64,6 +67,7 @@ func NewRequestObjectProducer(
 	}
 }
 
+// RequestObject generates a signed request object jwt from the passed requestValues
 func (rop RequestObjectProducer) RequestObject(requestValues map[string]any) ([]byte, error) {
 	if requestValues == nil {
 		return nil, errors.New("request must contain 'aud' claim with OPs issuer identifier url")
@@ -94,6 +98,7 @@ func (rop RequestObjectProducer) RequestObject(requestValues map[string]any) ([]
 	return jwx.SignPayload(j, rop.alg, rop.key, nil)
 }
 
+// ClientAssertion creates a new signed client assertion jwt for the passed audience
 func (rop RequestObjectProducer) ClientAssertion(aud string) ([]byte, error) {
 	now := time.Now().Unix()
 	assertionValues := map[string]any{

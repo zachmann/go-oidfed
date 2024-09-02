@@ -20,17 +20,21 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
+// EndpointConf is a type for configuring an endpoint with an internal and external path
 type EndpointConf struct {
 	Internal string `yaml:"path"`
 	External string `yaml:"url"`
 }
 
+// Path returns the internal path
 func (c EndpointConf) Path() string {
 	if c.Internal == "" {
 		return c.External
 	}
 	return c.Internal
 }
+
+// URL returns the external url
 func (c EndpointConf) URL() string {
 	if c.External == "" {
 		return c.Internal
@@ -38,6 +42,7 @@ func (c EndpointConf) URL() string {
 	return c.External
 }
 
+// FedEntity is a type a that represents a federation entity that can have multiple purposes (TA/IA + TMI, etc.)
 type FedEntity struct {
 	*pkg.FederationEntity
 	*pkg.TrustMarkIssuer
@@ -46,6 +51,8 @@ type FedEntity struct {
 	server *fiber.App
 }
 
+// SubordinateStatementTypeConfig is a type for setting additional attributes that should go into the
+// SubordinateStatements for a specific entity type issued by this FedEntity
 type SubordinateStatementTypeConfig struct {
 	SubordinateStatementLifetime int64
 	Constraints                  *pkg.ConstraintSpecification
@@ -54,12 +61,16 @@ type SubordinateStatementTypeConfig struct {
 	Extra                        map[string]any
 }
 
+// SubordinateStatementsConfig is a type for setting MetadataPolicies and additional attributes that should go into the
+// SubordinateStatements issued by this FedEntity
 type SubordinateStatementsConfig struct {
 	MetadataPolicies *pkg.MetadataPolicies
 	Configs          map[string]*SubordinateStatementTypeConfig
 	resultingConfigs map[string]*SubordinateStatementTypeConfig
 }
 
+// Get returns the SubordinateStatementTypeConfig a specific entity type,
+// combining values for the specific entity type with general ones
 func (c *SubordinateStatementsConfig) Get(subordinateEntityType string) *SubordinateStatementTypeConfig {
 	if c.resultingConfigs == nil {
 		c.resultingConfigs = make(map[string]*SubordinateStatementTypeConfig)
@@ -134,6 +145,7 @@ func (*SubordinateStatementsConfig) applyConstraintsOverrides(base, overrides *S
 	}
 }
 
+// NewFedEntity creates a new FedEntity
 func NewFedEntity(
 	entityID string, authorityHints []string, metadata *pkg.Metadata,
 	privateSigningKey crypto.Signer, signingAlg jwa.SignatureAlgorithm, configurationLifetime int64,
@@ -195,14 +207,17 @@ func NewFedEntity(
 	return entity, nil
 }
 
+// HttpHandlerFunc returns a http.HandlerFunc for serving all the necessary endpoints
 func (fed FedEntity) HttpHandlerFunc() http.HandlerFunc {
 	return adaptor.FiberApp(fed.server)
 }
 
+// Listen starts a http server at the specific address for serving all the necessary endpoints
 func (fed FedEntity) Listen(addr string) error {
 	return fed.server.Listen(addr)
 }
 
+// CreateSubordinateStatement returns a pkg.EntityStatementPayload for the passed storage.SubordinateInfo
 func (fed FedEntity) CreateSubordinateStatement(subordinate *storage.SubordinateInfo) pkg.EntityStatementPayload {
 	now := time.Now()
 	subordinateStmtConfig := fed.SubordinateStatementsConfig.Get(subordinate.EntityType)

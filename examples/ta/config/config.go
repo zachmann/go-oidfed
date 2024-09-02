@@ -11,6 +11,7 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/fedentities"
 )
 
+// Config holds configuration for the entity
 type Config struct {
 	ServerPort            int                   `yaml:"server_port"`
 	EntityID              string                `yaml:"entity_id"`
@@ -25,6 +26,7 @@ type Config struct {
 	Endpoints             Endpoints             `yaml:"endpoints"`
 }
 
+// Endpoints holds configuration for the different possible endpoints
 type Endpoints struct {
 	FetchEndpoint   fedentities.EndpointConf `yaml:"fetch"`
 	ListEndpoint    fedentities.EndpointConf `yaml:"list"`
@@ -34,10 +36,12 @@ type Endpoints struct {
 
 var c Config
 
+// Get returns the Config
 func Get() Config {
 	return c
 }
 
+// Load loads the config from the given file
 func Load(filename string) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
@@ -69,5 +73,4 @@ func Load(filename string) {
 			log.Fatal(err)
 		}
 	}
-
 }

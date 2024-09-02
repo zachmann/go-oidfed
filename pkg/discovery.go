@@ -7,6 +7,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
+// OPDiscoverer is an interface that discovers OPs
 type OPDiscoverer interface {
 	Discover(authorities ...string) []*OpenIDProviderMetadata
 }
@@ -19,6 +20,7 @@ type SimpleOPDiscoverer struct{}
 // is a valid TrustChain between the op and one of the specified trust anchors
 type VerifiedChainsOPDiscoverer struct{}
 
+// OPDiscoveryFilter is an interface to filter discovered OPs
 type OPDiscoveryFilter interface {
 	Filter(*OpenIDProviderMetadata) bool
 }
@@ -27,10 +29,12 @@ type opDiscoveryFilter struct {
 	filter func(*OpenIDProviderMetadata) bool
 }
 
+// Filter implements the OPDiscoveryFilter interface
 func (f opDiscoveryFilter) Filter(metadata *OpenIDProviderMetadata) bool {
 	return f.filter(metadata)
 }
 
+// NewOPDiscoveryFilter returns an OPDiscoveryFilter a filter func
 func NewOPDiscoveryFilter(filter func(metadata *OpenIDProviderMetadata) bool) OPDiscoveryFilter {
 	return opDiscoveryFilter{filter: filter}
 }
@@ -39,10 +43,13 @@ type filterableVerifiedChainsOPDiscoverer struct {
 	Filters []OPDiscoveryFilter
 }
 
+// FilterableVerifiedChainsOPDiscoverer is a type implementing OPDiscoverer that is able to filter the discovered OPs
+// through a number of OPDiscoveryFilter
 type FilterableVerifiedChainsOPDiscoverer struct {
 	Filters []OPDiscoveryFilter
 }
 
+// Discover implements the OPDiscoverer interface
 func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	internal.Logf("Discovering OPs for authorities: %+q", authorities)
 	infos := make(map[string]*OpenIDProviderMetadata)
@@ -104,10 +111,12 @@ func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*Ope
 	return
 }
 
+// Discover implements the OPDiscoverer interface
 func (VerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (ops []*OpenIDProviderMetadata) {
 	return FilterableVerifiedChainsOPDiscoverer{}.Discover(authorities...)
 }
 
+// Discover implements the OPDiscoverer interface
 func (d filterableVerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	in := SimpleOPDiscoverer{}.Discover(authorities...)
 	for _, op := range in {
@@ -123,6 +132,8 @@ func (d filterableVerifiedChainsOPDiscoverer) Discover(authorities ...TrustAncho
 	}
 	return
 }
+
+// Discover implements the OPDiscoverer interface
 func (d FilterableVerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	discoverer := filterableVerifiedChainsOPDiscoverer{
 		Filters: append(
@@ -136,10 +147,13 @@ func (d FilterableVerifiedChainsOPDiscoverer) Discover(authorities ...TrustAncho
 	return discoverer.Discover(authorities...)
 }
 
+// OPDiscoveryFilterVerifiedChains is a OPDiscoveryFilter that filters the discovered OPs to the one that have a
+// valid TrustChain to one of the specified TrustAnchors
 type OPDiscoveryFilterVerifiedChains struct {
 	TrustAnchors TrustAnchors
 }
 
+// Filter implements the OPDiscoveryFilter interface
 func (f OPDiscoveryFilterVerifiedChains) Filter(op *OpenIDProviderMetadata) bool {
 	resolver := TrustResolver{
 		TrustAnchors:   f.TrustAnchors,
@@ -150,17 +164,22 @@ func (f OPDiscoveryFilterVerifiedChains) Filter(op *OpenIDProviderMetadata) bool
 
 type opDiscoveryFilterAutomaticRegistration struct{}
 
+// Filter implements the OPDiscoveryFilter interface
 func (opDiscoveryFilterAutomaticRegistration) Filter(op *OpenIDProviderMetadata) bool {
 	return utils.SliceContains(ClientRegistrationTypeAutomatic, op.ClientRegistrationTypesSupported)
 }
 
 type opDiscoveryFilterExplicitRegistration struct{}
 
+// Filter implements the OPDiscoveryFilter interface
 func (opDiscoveryFilterExplicitRegistration) Filter(op *OpenIDProviderMetadata) bool {
 	return utils.SliceContains(ClientRegistrationTypeExplicit, op.ClientRegistrationTypesSupported)
 }
 
+// OPDiscoveryFilterExplicitRegistration is an OPDiscoveryFilter that filters to OPs that support explicit registration
 var OPDiscoveryFilterExplicitRegistration opDiscoveryFilterExplicitRegistration
+
+// OPDiscoveryFilterAutomaticRegistration is an OPDiscoveryFilter that filters to OPs that support automatic registration
 var OPDiscoveryFilterAutomaticRegistration opDiscoveryFilterAutomaticRegistration
 
 func fetchList(listEndpoint, entityType string) ([]string, error) {
@@ -175,6 +194,8 @@ func fetchList(listEndpoint, entityType string) ([]string, error) {
 	return entities, nil
 }
 
+// OPDiscoveryFilterSupportedGrantTypesIncludes returns an OPDiscoveryFilter that filters to OPs that support the
+// passed grant types
 func OPDiscoveryFilterSupportedGrantTypesIncludes(neededGrantTypes ...string) OPDiscoveryFilter {
 	return NewOPDiscoveryFilter(
 		func(op *OpenIDProviderMetadata) bool {
@@ -186,6 +207,8 @@ func OPDiscoveryFilterSupportedGrantTypesIncludes(neededGrantTypes ...string) OP
 	)
 }
 
+// OPDiscoveryFilterSupportedScopesIncludes returns an OPDiscoveryFilter that filters to OPs that support the passed
+// scopes
 func OPDiscoveryFilterSupportedScopesIncludes(neededScopes ...string) OPDiscoveryFilter {
 	return NewOPDiscoveryFilter(
 		func(op *OpenIDProviderMetadata) bool {

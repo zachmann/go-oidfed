@@ -11,18 +11,21 @@ import (
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
+// NewBadgerStorage creates a new BadgerStorage at the passed storage location
 func NewBadgerStorage(path string) (*BadgerStorage, error) {
 	storage := &BadgerStorage{Path: path}
 	err := storage.Load()
 	return storage, err
 }
 
+// BadgerStorage is a type for a simple database storage backend -
 type BadgerStorage struct {
 	*badger.DB
 	Path   string
 	loaded bool
 }
 
+// SubordinateStorage gives a SubordinateBadgerStorage
 func (store *BadgerStorage) SubordinateStorage() *SubordinateBadgerStorage {
 	return &SubordinateBadgerStorage{
 		store: &BadgerSubStorage{
@@ -32,6 +35,7 @@ func (store *BadgerStorage) SubordinateStorage() *SubordinateBadgerStorage {
 	}
 }
 
+// Write writes a value to the database
 func (store *BadgerStorage) Write(key string, value any) error {
 	data, err := json.Marshal(value)
 	if err != nil {
@@ -45,6 +49,7 @@ func (store *BadgerStorage) Write(key string, value any) error {
 	return err
 }
 
+// Delete deletes the value associated with the given key from the database
 func (store *BadgerStorage) Delete(key string) error {
 	return store.Update(
 		func(txn *badger.Txn) error {
@@ -53,6 +58,7 @@ func (store *BadgerStorage) Delete(key string) error {
 	)
 }
 
+// Read reads the value for a given key into target
 func (store *BadgerStorage) Read(key string, target any) (bool, error) {
 	var notFound bool
 	err := store.View(
@@ -73,26 +79,36 @@ func (store *BadgerStorage) Read(key string, target any) (bool, error) {
 	return !notFound, err
 }
 
+// BadgerSubStorage is a type for a sub-storage of a BadgerStorage
 type BadgerSubStorage struct {
 	db     *BadgerStorage
 	subKey string
 }
 
+// Load loads the database
 func (store *BadgerSubStorage) Load() error {
 	return store.db.Load()
 }
 func (store *BadgerSubStorage) key(key string) string {
 	return fmt.Sprintf(store.subKey + ":" + key)
 }
+
+// Write writes a values to the sub-database
 func (store *BadgerSubStorage) Write(key string, value any) error {
 	return store.db.Write(store.key(key), value)
 }
+
+// Delete deletes the value associated with the given key from the sub-database
 func (store *BadgerSubStorage) Delete(key string) error {
 	return store.db.Delete(store.key(key))
 }
+
+// Read reads the value for a given key into target
 func (store *BadgerSubStorage) Read(key string, target any) (bool, error) {
 	return store.db.Read(store.key(key), target)
 }
+
+// ReadIterator uses the passed iterator function do iterate over all the key,=-value-pairs in this sub storage
 func (store *BadgerSubStorage) ReadIterator(do func(k, v []byte) error) error {
 	return store.db.View(
 		func(txn *badger.Txn) error {
@@ -116,6 +132,7 @@ func (store *BadgerSubStorage) ReadIterator(do func(k, v []byte) error) error {
 	)
 }
 
+// Load loads the database
 func (store *BadgerStorage) Load() error {
 	if store.loaded {
 		return nil
@@ -157,21 +174,27 @@ func removeFromSlice[C comparable](item C, slice []C) (out []C) {
 	return
 }
 
+// SubordinateBadgerStorage is a type implementing the SubordinateStorageBackend interface
 type SubordinateBadgerStorage struct {
 	store *BadgerSubStorage
 }
 
+// Load implements the SubordinateStorageBackend interface
 func (store *SubordinateBadgerStorage) Load() error {
 	return store.store.Load()
 }
+
+// Write implements the SubordinateStorageBackend interface
 func (store *SubordinateBadgerStorage) Write(entityID string, info SubordinateInfo) error {
 	return store.store.Write(entityID, info)
 }
 
+// Delete implements the SubordinateStorageBackend interface
 func (store *SubordinateBadgerStorage) Delete(entityID string) error {
 	return store.store.Delete(entityID)
 }
 
+// Read implements the SubordinateStorageBackend interface
 func (store *SubordinateBadgerStorage) Read(entityID string) (*SubordinateInfo, error) {
 	var info SubordinateInfo
 	found, err := store.store.Read(entityID, &info)
@@ -184,19 +207,24 @@ func (store *SubordinateBadgerStorage) Read(entityID string) (*SubordinateInfo, 
 	return &info, nil
 }
 
+// Q returns a SubordinateStorageQuery
 func (store *SubordinateBadgerStorage) Q() SubordinateStorageQuery {
 	return &BadgerSubordinateStorageQuery{db: store}
 }
 
+// BadgerSubordinateStorageQuery is a type implementing the SubordinateStorageQuery interface for a
+// SubordinateBadgerStorage
 type BadgerSubordinateStorageQuery struct {
 	db      *SubordinateBadgerStorage
 	filters []func(info SubordinateInfo) bool
 }
 
+// Subordinate implements the SubordinateStorageQuery interface
 func (q BadgerSubordinateStorageQuery) Subordinate(entityID string) (*SubordinateInfo, error) {
 	return q.db.Read(entityID)
 }
 
+// Subordinates implements the SubordinateStorageQuery interface
 func (q BadgerSubordinateStorageQuery) Subordinates() (infos []SubordinateInfo, err error) {
 	err = q.db.store.ReadIterator(
 		func(k, v []byte) error {
@@ -211,6 +239,7 @@ func (q BadgerSubordinateStorageQuery) Subordinates() (infos []SubordinateInfo, 
 	return
 }
 
+// EntityIDs implements the SubordinateStorageQuery interface
 func (q BadgerSubordinateStorageQuery) EntityIDs() (ids []string, err error) {
 	err = q.db.store.ReadIterator(
 		func(k, v []byte) error {
@@ -225,6 +254,7 @@ func (q BadgerSubordinateStorageQuery) EntityIDs() (ids []string, err error) {
 	return
 }
 
+// AddFilter implements the SubordinateStorageQuery interface
 func (q *BadgerSubordinateStorageQuery) AddFilter(filter SubordinateStorageQueryFilter, value any) error {
 	q.filters = append(
 		q.filters, func(info SubordinateInfo) bool {

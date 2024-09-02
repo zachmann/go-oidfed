@@ -9,6 +9,7 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
+// SubordinateInfo holds information about a subordinate for storage
 type SubordinateInfo struct {
 	JWKS               jwk.JWKS                     `json:"jwks"`
 	EntityType         string                       `json:"entity_type"`
@@ -22,6 +23,7 @@ type SubordinateInfo struct {
 	Extra              map[string]interface{}       `json:"-"`
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface
 func (info *SubordinateInfo) UnmarshalJSON(src []byte) error {
 	type subordinateInfo SubordinateInfo
 	ii := subordinateInfo(*info)
@@ -32,6 +34,7 @@ func (info *SubordinateInfo) UnmarshalJSON(src []byte) error {
 	return nil
 }
 
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
 func (info *SubordinateInfo) UnmarshalMsgpack(src []byte) error {
 	type subordinateInfo SubordinateInfo
 	ii := subordinateInfo(*info)
@@ -42,6 +45,7 @@ func (info *SubordinateInfo) UnmarshalMsgpack(src []byte) error {
 	return nil
 }
 
+// SubordinateStorageBackend is an interface to storage SubordinateInfo
 type SubordinateStorageBackend interface {
 	Write(entityID string, info SubordinateInfo) error
 	Q() SubordinateStorageQuery
@@ -49,6 +53,7 @@ type SubordinateStorageBackend interface {
 	Load() error
 }
 
+// SubordinateStorageQuery is an interface to query SubordinateInfo from storage
 type SubordinateStorageQuery interface {
 	Subordinate(entityID string) (*SubordinateInfo, error)
 	Subordinates() ([]SubordinateInfo, error)
@@ -56,6 +61,7 @@ type SubordinateStorageQuery interface {
 	AddFilter(filter SubordinateStorageQueryFilter, value any) error
 }
 
+// SubordinateStorageQueryFilter is function to filter SubordinateInfo
 type SubordinateStorageQueryFilter func(info SubordinateInfo, value any) bool
 
 type simpleSubordinateStorageQuery struct {
@@ -79,6 +85,8 @@ func (q *simpleSubordinateStorageQuery) applyFilter() {
 	}
 	q.base = filtered
 }
+
+// Subordinate implements the SubordinateStorageQuery interface
 func (q *simpleSubordinateStorageQuery) Subordinate(entityID string) (*SubordinateInfo, error) {
 	for _, i := range q.base {
 		if i.EntityID == entityID {
@@ -88,11 +96,13 @@ func (q *simpleSubordinateStorageQuery) Subordinate(entityID string) (*Subordina
 	return nil, nil
 }
 
+// Subordinates implements the SubordinateStorageQuery interface
 func (q *simpleSubordinateStorageQuery) Subordinates() ([]SubordinateInfo, error) {
 	q.applyFilter()
 	return q.base, nil
 }
 
+// EntityIDs implements the SubordinateStorageQuery interface
 func (q *simpleSubordinateStorageQuery) EntityIDs() ([]string, error) {
 	q.applyFilter()
 	ids := make([]string, len(q.base))
@@ -102,6 +112,7 @@ func (q *simpleSubordinateStorageQuery) EntityIDs() ([]string, error) {
 	return ids, nil
 }
 
+// AddFilter implements the SubordinateStorageQuery interface
 func (q *simpleSubordinateStorageQuery) AddFilter(
 	filter SubordinateStorageQueryFilter,
 	value any,

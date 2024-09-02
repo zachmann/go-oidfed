@@ -11,13 +11,16 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
+// TrustAnchor is a type for specifying trust anchors
 type TrustAnchor struct {
 	EntityID string   `yaml:"entity_id" json:"entity_id"`
 	JWKS     jwk.JWKS `yaml:"jwks" json:"jwks"`
 }
 
+// TrustAnchors is a slice of TrustAnchor
 type TrustAnchors []TrustAnchor
 
+// EntityIDs returns the entity ids as a []string
 func (anchors TrustAnchors) EntityIDs() (entityIDs []string) {
 	for _, ta := range anchors {
 		entityIDs = append(entityIDs, ta.EntityID)
@@ -25,6 +28,7 @@ func (anchors TrustAnchors) EntityIDs() (entityIDs []string) {
 	return
 }
 
+// NewTrustAnchorsFromEntityIDs returns TrustAnchors for the passed entity ids; this does not set jwk.JWKS
 func NewTrustAnchorsFromEntityIDs(anchorIDs ...string) (anchors TrustAnchors) {
 	for _, id := range anchorIDs {
 		anchors = append(anchors, TrustAnchor{EntityID: id})
@@ -32,6 +36,7 @@ func NewTrustAnchorsFromEntityIDs(anchorIDs ...string) (anchors TrustAnchors) {
 	return
 }
 
+// ResolveResponse is a type describing the response of a resolve request
 type ResolveResponse struct {
 	Issuer     string                 `json:"iss"`
 	Subject    string                 `json:"sub"`
@@ -71,6 +76,7 @@ func (r *ResolveResponse) UnmarshalJSON(data []byte) error {
 
 type jwsMessages []*jwx.ParsedJWT
 
+// MarshalJSON implements the json.Marshaler interface.
 func (m jwsMessages) MarshalJSON() ([]byte, error) {
 	jwts := make([]string, len(m))
 	for i, mm := range m {
@@ -250,6 +256,8 @@ func entityStmtCacheGet(subID, issID string) *EntityStatement {
 	return &stmt
 }
 
+// GetEntityConfiguration obtains the entity configuration for the passed entity id and returns it as an
+// EntityStatement
 func GetEntityConfiguration(entityID string) (*EntityStatement, error) {
 	if stmt := entityStmtCacheGet(entityID, entityID); stmt != nil {
 		internal.Logf("Got entity configuration for %+q from cache", entityID)
@@ -269,6 +277,7 @@ func GetEntityConfiguration(entityID string) (*EntityStatement, error) {
 	return stmt, nil
 }
 
+// FetchEntityStatement fetches an EntityStatement from a fetch endpoint
 func FetchEntityStatement(fetchEndpoint, subID, issID string) (*EntityStatement, error) {
 	if stmt := entityStmtCacheGet(subID, issID); stmt != nil {
 		return stmt, nil

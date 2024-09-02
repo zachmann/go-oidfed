@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// Metadata is a type for holding the different metadata types
 type Metadata struct {
 	OpenIDProvider           *OpenIDProviderMetadata           `json:"openid_provider,omitempty"`
 	RelyingParty             *OpenIDRelyingPartyMetadata       `json:"openid_relying_party,omitempty"`
@@ -20,6 +21,7 @@ type policyApplicable interface {
 	ApplyPolicy(policy MetadataPolicy) (any, error)
 }
 
+// ApplyPolicy applies MetadataPolicies to Metadata and returns the final Metadata
 func (m Metadata) ApplyPolicy(p *MetadataPolicies) (*Metadata, error) {
 	if p == nil {
 		return &m, nil
@@ -86,7 +88,10 @@ func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) 
 	return metadata, nil
 }
 
+// OAuthClientMetadata is a type for holding the metadata about an oauth client
 type OAuthClientMetadata OpenIDRelyingPartyMetadata
+
+// OAuthAuthorizationServerMetadata is a type for holding the metadata about an oauth authorization server
 type OAuthAuthorizationServerMetadata OpenIDProviderMetadata
 
 // MarshalJSON implements the json.Marshaler interface
@@ -103,13 +108,18 @@ func (m *OAuthAuthorizationServerMetadata) UnmarshalJSON(data []byte) error {
 	*m = OAuthAuthorizationServerMetadata(op)
 	return nil
 }
+
+// ApplyPolicy applies a MetadataPolicy to the OAuthAuthorizationServerMetadata
 func (m OAuthAuthorizationServerMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
 	return applyPolicy(&m, policy, "oauth_authorization_server")
 }
 
+// MarshalJSON implements the json.Marshaler interface
 func (m OAuthClientMetadata) MarshalJSON() ([]byte, error) {
 	return json.Marshal(OpenIDRelyingPartyMetadata(m))
 }
+
+// UnmarshalJSON implements the json.Unmarshaler interface
 func (m *OAuthClientMetadata) UnmarshalJSON(data []byte) error {
 	rp := OpenIDRelyingPartyMetadata(*m)
 	if err := json.Unmarshal(data, &rp); err != nil {
@@ -118,6 +128,8 @@ func (m *OAuthClientMetadata) UnmarshalJSON(data []byte) error {
 	*m = OAuthClientMetadata(rp)
 	return nil
 }
+
+// ApplyPolicy applies a MetadataPolicy to the OAuthClientMetadata
 func (m OAuthClientMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
 	return applyPolicy(&m, policy, "oauth_client")
 }

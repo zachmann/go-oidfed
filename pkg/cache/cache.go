@@ -12,11 +12,14 @@ import (
 	"github.com/zachmann/go-oidfed/internal"
 )
 
+// Cache is an interface for caching data
 type Cache interface {
 	Get(key string, target any) (bool, error)
 	Set(key string, value any, expiration time.Duration) error
 }
 
+// cacheWrapper is a type implementing the Cache interface and providing an
+// internal cache
 type cacheWrapper struct {
 	c *gocache.Cache
 }
@@ -31,6 +34,7 @@ func newCacheWrapper(defaultExpiration time.Duration) cacheWrapper {
 	}
 }
 
+// Get implements the Cache interface
 func (c cacheWrapper) Get(key string, target any) (bool, error) {
 	entryV, ok := c.c.Get(key)
 	if !ok {
@@ -44,6 +48,7 @@ func (c cacheWrapper) Get(key string, target any) (bool, error) {
 	return true, msgpack.Unmarshal(entry, target)
 }
 
+// Set implements the Cache interface
 func (c cacheWrapper) Set(key string, value any, expiration time.Duration) error {
 	data, err := msgpack.Marshal(value)
 	if err != nil {
@@ -59,29 +64,35 @@ func init() {
 	SetCache(newCacheWrapper(time.Hour))
 }
 
+// SetCache sets the Cache that is used
 func SetCache(cache Cache) {
 	cacheCache = cache
 }
 
+// Constants for keys for sub caches
 const (
 	KeyEntityStatement     = "entity_statement"
 	KeyOPMetadata          = "op_metadata"
 	KeyEntityConfiguration = "entity_configuration"
 )
 
+// Key combines a sub system prefix with the key to a cache key
 func Key(subsystem, subkey string) string {
 	return subsystem + ":" + subkey
 }
 
+// EntityStmtCacheKey constructs a cache key for an EntityStatementPayload
 func EntityStmtCacheKey(subID, issID string) string {
 	subkey := base64.URLEncoding.EncodeToString([]byte(subID)) + ":" + base64.URLEncoding.EncodeToString([]byte(issID))
 	return Key(KeyEntityStatement, subkey)
 }
 
+// Set caches a value for the given key and duration in the cache
 func Set(key string, value any, duration time.Duration) error {
 	return cacheCache.Set(key, value, duration)
 }
 
+// Get obtains a value for the given key from the cache
 func Get(key string, target any) (bool, error) {
 	return cacheCache.Get(key, target)
 }

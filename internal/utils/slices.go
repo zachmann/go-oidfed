@@ -14,6 +14,7 @@ func SliceContains[C comparable](v C, slice []C) bool {
 	return false
 }
 
+// ReflectSliceCast casts a slice to another type using reflection
 func ReflectSliceCast(slice, newType any) any {
 	if !IsSlice(slice) {
 		return slice

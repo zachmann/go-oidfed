@@ -9,6 +9,7 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/constants"
 )
 
+// AddResolveEndpoint adds a resolve endpoint
 func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 	fed.Metadata.FederationEntity.FederationResolveEndpoint = endpoint.URL()
 	fed.server.Get(

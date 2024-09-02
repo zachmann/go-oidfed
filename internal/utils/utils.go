@@ -50,6 +50,7 @@ func FieldTagNames(fields []*structs.Field, tag string) (names []string) {
 	return
 }
 
+// FirstNonEmpty is a utility function returning the first of the passed values that is not empty/zero
 func FirstNonEmpty[C comparable](possibleValues ...C) C {
 	var nullValue C
 	for _, v := range possibleValues {
@@ -60,6 +61,7 @@ func FirstNonEmpty[C comparable](possibleValues ...C) C {
 	return nullValue
 }
 
+// MergeMaps merges two or more maps into on; overwrite determines if values are overwritten if already set or not
 func MergeMaps(overwrite bool, mm ...map[string]any) map[string]any {
 	if !overwrite {
 		return MergeMaps(true, slices.Reverse(mm)...)

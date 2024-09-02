@@ -79,14 +79,14 @@ import (
 )
 
 `
-	out.WriteString(header)
+	_, _ = out.WriteString(header)
 
 	// Generate the new structs that include commonMetadata
 	for name, other := range others {
 		name = fmt.Sprintf("%s%s", strings.ToUpper(name[0:1]), name[1:])
-		out.WriteString(generateCombinedStruct(name, other, commonMetadata))
-		out.WriteString(generateMarshalUnmarshalFunctions(name))
-		out.WriteString(generateApplyPolicyFunction(name))
+		_, _ = out.WriteString(generateCombinedStruct(name, other, commonMetadata))
+		_, _ = out.WriteString(generateMarshalUnmarshalFunctions(name))
+		_, _ = out.WriteString(generateApplyPolicyFunction(name))
 	}
 }
 

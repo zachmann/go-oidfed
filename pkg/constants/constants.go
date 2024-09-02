@@ -1,5 +1,6 @@
 package constants
 
+// Constants for JWT Types
 const (
 	ContentTypeEntityStatement = "application/entity-statement+jwt"
 	ContentTypeResolveResponse = "application/resolve-response+jwt"
@@ -9,6 +10,7 @@ const (
 	JWTTypeResolveResponse     = "resolve-response+jwt"
 )
 
+// Constants for entity types
 const (
 	EntityTypeFederationEntity       = "federation_entity"
 	EntityTypeOpenIDRelyingParty     = "openid_relying_party"

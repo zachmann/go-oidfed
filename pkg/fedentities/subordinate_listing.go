@@ -7,6 +7,7 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
+// AddSubordinateListingEndpoint adds a subordinate listing endpoint
 func (fed *FedEntity) AddSubordinateListingEndpoint(endpoint EndpointConf, store storage.SubordinateStorageBackend) {
 	fed.Metadata.FederationEntity.FederationListEndpoint = endpoint.URL()
 	fed.server.Get(

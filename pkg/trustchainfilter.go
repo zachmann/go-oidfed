@@ -53,10 +53,12 @@ type trustChainChecker struct {
 	checker func(chain TrustChain) bool
 }
 
+// Check implements the TrustChainChecker interface
 func (c trustChainChecker) Check(chain TrustChain) bool {
 	return c.checker(chain)
 }
 
+// NewTrustChainsFilterFromCheckerFnc returns a new TrustChainsFilter from the passed checker function
 func NewTrustChainsFilterFromCheckerFnc(checker func(TrustChain) bool) TrustChainsFilter {
 	return NewTrustChainsFilterFromTrustChainChecker(trustChainChecker{checker: checker})
 }
@@ -74,7 +76,7 @@ func (c trustChainsCheckerTrustAnchor) Check(chain TrustChain) bool {
 }
 
 // TrustChainsFilterTrustAnchor returns a TrustChainsFilter for the passed trust anchor entity id.
-// The return TrustChainsFilter will filter TrustChains to only chains ending in the passed anchor.
+// The return TrustChainsFilter will filter TrustChains to only chains ending with the passed anchor.
 func TrustChainsFilterTrustAnchor(anchor string) TrustChainsFilter {
 	return NewTrustChainsFilterFromTrustChainChecker(trustChainsCheckerTrustAnchor{anchor: anchor})
 }
@@ -109,6 +111,8 @@ func (f trustChainsFilterPathLength) Filter(chains TrustChains) (final TrustChai
 // length
 var TrustChainsFilterMinPathLength TrustChainsFilter = trustChainsFilterPathLength{maxPathLen: -1}
 
+// TrustChainsFilterValidMetadata returns a TrustChainsFilter that filters the TrustChains to the ones with valid
+// Metadata
 var TrustChainsFilterValidMetadata = NewTrustChainsFilterFromCheckerFnc(
 	func(chain TrustChain) bool {
 		_, err := chain.Metadata()

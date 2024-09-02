@@ -8,10 +8,12 @@ import (
 	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
+// PolicyVerifier is a function that verifies a MetadataPolicyEntry
 type PolicyVerifier func(p MetadataPolicyEntry, pathInfo string) error
 
 var policyVerifiers []PolicyVerifier
 
+// RegisterPolicyVerifier registers a PolicyVerifier
 func RegisterPolicyVerifier(v PolicyVerifier) {
 	policyVerifiers = append(policyVerifiers, v)
 }

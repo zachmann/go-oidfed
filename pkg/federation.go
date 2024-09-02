@@ -82,6 +82,9 @@ func (f FederationEntity) EntityConfigurationPayload() *EntityStatementPayload {
 		Metadata:       f.Metadata,
 	}
 }
+
+// EntityConfigurationJWT creates and returns the signed jwt as a []byte for
+// the entity's entity configuration
 func (f FederationEntity) EntityConfigurationJWT() ([]byte, error) {
 	return f.EntityStatementSigner.JWT(f.EntityConfigurationPayload())
 }
@@ -92,10 +95,13 @@ func (f FederationEntity) SignEntityStatement(payload EntityStatementPayload) ([
 	return f.EntityStatementSigner.JWT(payload)
 }
 
+// RequestObjectProducer returns the entity's RequestObjectProducer
 func (f FederationLeaf) RequestObjectProducer() *RequestObjectProducer {
 	return f.oidcROProducer
 }
 
+// ResolveOPMetadata resolves and returns OpenIDProviderMetadata for the
+// passed issuer url
 func (f FederationLeaf) ResolveOPMetadata(issuer string) (*OpenIDProviderMetadata, error) {
 	var opm OpenIDProviderMetadata
 	set, err := cache.Get(cache.Key(cache.KeyOPMetadata, issuer), &opm)

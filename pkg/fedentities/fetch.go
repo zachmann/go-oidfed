@@ -8,6 +8,7 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
+// AddFetchEndpoint adds a fetch endpoint
 func (fed *FedEntity) AddFetchEndpoint(endpoint EndpointConf, store storage.SubordinateStorageBackend) {
 	fed.Metadata.FederationEntity.FederationFetchEndpoint = endpoint.URL()
 	fed.server.Get(

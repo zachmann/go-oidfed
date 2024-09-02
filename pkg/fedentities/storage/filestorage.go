@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// FileStorage is a storage backend for storing things in files
 type FileStorage struct {
 	files map[string]*file
 }
@@ -18,10 +19,12 @@ type file struct {
 	mutex sync.RWMutex
 }
 
+// subordinateFileStorage is a file based SubordinateStorageBackend
 type subordinateFileStorage struct {
 	*file
 }
 
+// NewFileStorage creates a new FileStorage at the given path
 func NewFileStorage(basepath string) *FileStorage {
 	return &FileStorage{
 		files: map[string]*file{
@@ -62,6 +65,7 @@ func (s subordinateFileStorage) Write(entityID string, info SubordinateInfo) err
 	return s.writeUnlocked(infos)
 }
 
+// Q implements the SubordinateStorageBackend interface and returns a SubordinateStorageQuery
 func (s subordinateFileStorage) Q() SubordinateStorageQuery {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -80,6 +84,7 @@ func (s subordinateFileStorage) Q() SubordinateStorageQuery {
 	}
 }
 
+// Delete implements the SubordinateStorageBackend
 func (s subordinateFileStorage) Delete(entityID string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -91,10 +96,12 @@ func (s subordinateFileStorage) Delete(entityID string) error {
 	return s.writeUnlocked(infos)
 }
 
+// Load implements the SubordinateStorageBackend
 func (subordinateFileStorage) Load() error {
 	return nil
 }
 
+// SubordinateStorage returns a file-based SubordinateStorageBackend
 func (store *FileStorage) SubordinateStorage() SubordinateStorageBackend {
 	return subordinateFileStorage{store.files["subordinates"]}
 }
