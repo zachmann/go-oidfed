@@ -264,7 +264,7 @@ var policyOperatorValue = NewPolicyOperator(
 			"conflicting values '%v' and '%v' when merging '%s' operator in '%s'", a, b, PolicyOperatorValue, pathInfo,
 		)
 	},
-	func(value, policyValue any, _ bool, pathInfo string) (any, error) {
+	func(value, policyValue any, _ bool, _ string) (any, error) {
 		if policyValue == nil {
 			return value, nil
 		}
@@ -290,7 +290,7 @@ var policyOperatorDefault = NewPolicyOperator(
 			pathInfo,
 		)
 	},
-	func(value, policyValue any, _ bool, pathInfo string) (any, error) {
+	func(value, policyValue any, _ bool, _ string) (any, error) {
 		if value == nil || reflect.ValueOf(value).IsZero() {
 			return utils.ReflectSliceCast(policyValue, utils.Slicify(value)), nil
 		}

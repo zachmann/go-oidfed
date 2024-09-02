@@ -227,7 +227,7 @@ func (q BadgerSubordinateStorageQuery) Subordinate(entityID string) (*Subordinat
 // Subordinates implements the SubordinateStorageQuery interface
 func (q BadgerSubordinateStorageQuery) Subordinates() (infos []SubordinateInfo, err error) {
 	err = q.db.store.ReadIterator(
-		func(k, v []byte) error {
+		func(_, v []byte) error {
 			var info SubordinateInfo
 			if err = json.Unmarshal(v, &info); err != nil {
 				return err
@@ -242,7 +242,7 @@ func (q BadgerSubordinateStorageQuery) Subordinates() (infos []SubordinateInfo, 
 // EntityIDs implements the SubordinateStorageQuery interface
 func (q BadgerSubordinateStorageQuery) EntityIDs() (ids []string, err error) {
 	err = q.db.store.ReadIterator(
-		func(k, v []byte) error {
+		func(_, v []byte) error {
 			var info SubordinateInfo
 			if err = json.Unmarshal(v, &info); err != nil {
 				return err
