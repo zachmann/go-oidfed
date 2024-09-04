@@ -24,14 +24,18 @@ type Config struct {
 	DataLocation          string                `yaml:"data_location"`
 	ReadableStorage       bool                  `yaml:"human_readable_storage"`
 	Endpoints             Endpoints             `yaml:"endpoints"`
+	TrustMarkSpecs        []pkg.TrustMarkSpec   `yaml:"trust_marks"`
 }
 
 // Endpoints holds configuration for the different possible endpoints
 type Endpoints struct {
-	FetchEndpoint   fedentities.EndpointConf `yaml:"fetch"`
-	ListEndpoint    fedentities.EndpointConf `yaml:"list"`
-	ResolveEndpoint fedentities.EndpointConf `yaml:"resolve"`
-	//TODO
+	FetchEndpoint                      fedentities.EndpointConf `yaml:"fetch"`
+	ListEndpoint                       fedentities.EndpointConf `yaml:"list"`
+	ResolveEndpoint                    fedentities.EndpointConf `yaml:"resolve"`
+	TrustMarkStatusEndpoint            fedentities.EndpointConf `yaml:"trust_mark_status"`
+	TrustMarkedEntitiesListingEndpoint fedentities.EndpointConf `yaml:"trust_mark_list"`
+	TrustMarkEndpoint                  fedentities.EndpointConf `yaml:"trust_mark"`
+	HistoricalKeysEndpoint             fedentities.EndpointConf `yaml:"historical_keys"`
 }
 
 var c Config

@@ -26,15 +26,18 @@ func main() {
 	log.Println("Loaded signing key")
 
 	var subordinateStorage storage.SubordinateStorageBackend
+	var trustMarkedEntitiesStorage storage.TrustMarkedEntitiesStorageBackend
 	if c.ReadableStorage {
 		warehouse := storage.NewFileStorage(c.DataLocation)
 		subordinateStorage = warehouse.SubordinateStorage()
+		trustMarkedEntitiesStorage = warehouse.TrustMarkedEntitiesStorage()
 	} else {
 		warehouse, err := storage.NewBadgerStorage(c.DataLocation)
 		if err != nil {
 			log.Fatal(err)
 		}
 		subordinateStorage = warehouse.SubordinateStorage()
+		trustMarkedEntitiesStorage = warehouse.TrustMarkedEntitiesStorage()
 	}
 	log.Println("Loaded storage backend")
 
@@ -58,13 +61,35 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	entity.MetadataPolicies = c.MetadataPolicy
 	// TODO other constraints etc.
+
+	if len(c.TrustMarkSpecs) > 0 {
+		entity.TrustMarkIssuer = pkg.NewTrustMarkIssuer(
+			c.EntityID, entity.GeneralJWTSigner.TrustMarkSigner(), c.TrustMarkSpecs,
+		)
+	}
 	log.Println("Initialized Entity")
 
-	entity.AddFetchEndpoint(c.Endpoints.FetchEndpoint, subordinateStorage)
-	entity.AddSubordinateListingEndpoint(c.Endpoints.ListEndpoint, subordinateStorage)
-	entity.AddResolveEndpoint(c.Endpoints.ResolveEndpoint)
+	if endpoint := c.Endpoints.FetchEndpoint; endpoint.IsSet() {
+		entity.AddFetchEndpoint(endpoint, subordinateStorage)
+	}
+	if endpoint := c.Endpoints.ListEndpoint; endpoint.IsSet() {
+		entity.AddSubordinateListingEndpoint(endpoint, subordinateStorage)
+	}
+	if endpoint := c.Endpoints.ResolveEndpoint; endpoint.IsSet() {
+		entity.AddResolveEndpoint(endpoint)
+	}
+	if endpoint := c.Endpoints.TrustMarkStatusEndpoint; endpoint.IsSet() {
+		entity.AddTrustMarkStatusEndpoint(endpoint, trustMarkedEntitiesStorage)
+	}
+	if endpoint := c.Endpoints.TrustMarkedEntitiesListingEndpoint; endpoint.IsSet() {
+		entity.AddTrustMarkedEntitiesListingEndpoint(endpoint, trustMarkedEntitiesStorage)
+	}
+	if endpoint := c.Endpoints.TrustMarkEndpoint; endpoint.IsSet() {
+		entity.AddTrustMarkEndpoint(endpoint, trustMarkedEntitiesStorage)
+	}
 	log.Println("Added Endpoints")
 
 	// subordinateStorage.Write(

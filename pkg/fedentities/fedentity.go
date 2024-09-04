@@ -26,6 +26,11 @@ type EndpointConf struct {
 	External string `yaml:"url"`
 }
 
+// IsSet returns a bool indicating if this endpoint was configured or not
+func (c EndpointConf) IsSet() bool {
+	return c.Internal != "" || c.External != ""
+}
+
 // Path returns the internal path
 func (c EndpointConf) Path() string {
 	if c.Internal == "" {
@@ -171,7 +176,6 @@ func NewFedEntity(
 	server.Use(recover.New())
 	server.Use(compress.New())
 	server.Use(logger.New())
-	//TODO middleware configurable?
 	entity := &FedEntity{
 		FederationEntity:            fed,
 		TrustMarkIssuer:             pkg.NewTrustMarkIssuer(entityID, generalSigner.TrustMarkSigner(), nil),

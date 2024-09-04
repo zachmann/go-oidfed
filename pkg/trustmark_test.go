@@ -14,25 +14,25 @@ var tmi1 = newMockTrustMarkIssuer(
 	"https://tmi.example.org", []TrustMarkSpec{
 		{
 			ID:       "https://trustmarks.org/tm1",
-			Lifetime: time.Hour,
+			Lifetime: DurationInSeconds{time.Hour},
 		},
 		{
 			ID:       "https://trustmarks.org/tm2",
-			Lifetime: time.Hour,
+			Lifetime: DurationInSeconds{time.Hour},
 			Ref:      "https://trustmarks.org/tm2/info",
 			LogoURI:  "https://trustmarks.org/tm2/logo",
 		},
 		{
 			ID:       "https://trustmarks.org/tm3",
-			Lifetime: time.Hour,
+			Lifetime: DurationInSeconds{time.Hour},
 		},
 		{
 			ID:       "https://trustmarks.org/tm4",
-			Lifetime: time.Hour,
+			Lifetime: DurationInSeconds{time.Hour},
 		},
 		{
 			ID:       "https://trustmarks.org/tm-delegated",
-			Lifetime: time.Hour,
+			Lifetime: DurationInSeconds{time.Hour},
 		},
 	},
 )
@@ -58,7 +58,7 @@ var tmi2 = newMockTrustMarkIssuer(
 		},
 		{
 			ID:       "https://trustmarks.org/tm-delegated",
-			Lifetime: time.Hour,
+			Lifetime: DurationInSeconds{time.Hour},
 		},
 	},
 )
@@ -126,7 +126,7 @@ func init() {
 	tmi1.AddTrustMark(
 		TrustMarkSpec{
 			ID:            "https://trustmarks.org/test",
-			Lifetime:      time.Hour,
+			Lifetime:      DurationInSeconds{time.Hour},
 			DelegationJWT: string(delegation),
 		},
 	)

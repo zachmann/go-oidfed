@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
+	"gopkg.in/yaml.v3"
 
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/jwx"
@@ -102,6 +103,22 @@ func extraMarshalHelper(explicitFields []byte, extra map[string]interface{}) ([]
 	return data, errors.WithStack(err)
 }
 
+func yamlExtraMarshalHelper(explicitFields []byte, extra map[string]interface{}) ([]byte, error) {
+	var m map[string]*yaml.Node
+	if err := yaml.Unmarshal(explicitFields, &m); err != nil {
+		return nil, err
+	}
+	for k, v := range extra {
+		node := &yaml.Node{}
+		if err := node.Encode(v); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		m[k] = node
+	}
+	data, err := yaml.Marshal(m)
+	return data, errors.WithStack(err)
+}
+
 // MarshalJSON implements the json.Marshaler interface.
 // It also marshals extra fields.
 func (e EntityStatementPayload) MarshalJSON() ([]byte, error) {
@@ -123,6 +140,24 @@ func unmarshalWithExtra(data []byte, target interface{}) (map[string]interface{}
 	}
 	s := structs.New(target)
 	for _, tag := range utils.FieldTagNames(s.Fields(), "json") {
+		delete(extra, tag)
+	}
+	if len(extra) == 0 {
+		extra = nil
+	}
+	return extra, nil
+}
+
+func yamlUnmarshalWithExtra(data *yaml.Node, target interface{}) (map[string]interface{}, error) {
+	if err := data.Decode(target); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	extra := make(map[string]interface{})
+	if err := data.Decode(&extra); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	s := structs.New(target)
+	for _, tag := range utils.FieldTagNames(s.Fields(), "yaml") {
 		delete(extra, tag)
 	}
 	if len(extra) == 0 {

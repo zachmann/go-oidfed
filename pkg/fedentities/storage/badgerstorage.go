@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
-
-	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
 // NewBadgerStorage creates a new BadgerStorage at the passed storage location
@@ -28,6 +26,16 @@ type BadgerStorage struct {
 // SubordinateStorage gives a SubordinateBadgerStorage
 func (store *BadgerStorage) SubordinateStorage() *SubordinateBadgerStorage {
 	return &SubordinateBadgerStorage{
+		store: &BadgerSubStorage{
+			db:     store,
+			subKey: "subordinates",
+		},
+	}
+}
+
+// TrustMarkedEntitiesStorage gives a TrustMarkedEntitiesBadgerStorage
+func (store *BadgerStorage) TrustMarkedEntitiesStorage() *TrustMarkedEntitiesBadgerStorage {
+	return &TrustMarkedEntitiesBadgerStorage{
 		store: &BadgerSubStorage{
 			db:     store,
 			subKey: "subordinates",
@@ -108,14 +116,18 @@ func (store *BadgerSubStorage) Read(key string, target any) (bool, error) {
 	return store.db.Read(store.key(key), target)
 }
 
-// ReadIterator uses the passed iterator function do iterate over all the key,=-value-pairs in this sub storage
-func (store *BadgerSubStorage) ReadIterator(do func(k, v []byte) error) error {
+// ReadIterator uses the passed iterator function do iterate over all the key-value-pairs in this sub storage
+func (store *BadgerSubStorage) ReadIterator(do func(k, v []byte) error, prefix ...string) error {
+	var prfx string
+	if len(prefix) > 0 {
+		prfx = prefix[0]
+	}
 	return store.db.View(
 		func(txn *badger.Txn) error {
 			it := txn.NewIterator(badger.DefaultIteratorOptions)
 			defer it.Close()
-			prefix := []byte(store.subKey + ":")
-			for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			scanPrefix := []byte(store.subKey + ":" + prfx)
+			for it.Seek(scanPrefix); it.ValidForPrefix(scanPrefix); it.Next() {
 				item := it.Item()
 				k := item.Key()
 				err := item.Value(
@@ -156,22 +168,6 @@ func (store *BadgerStorage) Load() error {
 	}()
 	store.loaded = true
 	return nil
-}
-
-func addToSliceIfNotExists[C comparable](item C, slice []C) []C {
-	if !utils.SliceContains(item, slice) {
-		slice = append(slice, item)
-	}
-	return slice
-}
-
-func removeFromSlice[C comparable](item C, slice []C) (out []C) {
-	for _, i := range slice {
-		if i != item {
-			out = append(out, i)
-		}
-	}
-	return
 }
 
 // SubordinateBadgerStorage is a type implementing the SubordinateStorageBackend interface
@@ -263,4 +259,50 @@ func (q *BadgerSubordinateStorageQuery) AddFilter(filter SubordinateStorageQuery
 	)
 	return nil
 
+}
+
+// TrustMarkedEntitiesBadgerStorage is a type implementing the TrustMarkedEntitiesStorageBackend interface
+type TrustMarkedEntitiesBadgerStorage struct {
+	store *BadgerSubStorage
+}
+
+func (store *TrustMarkedEntitiesBadgerStorage) key(trustMarkID, entityID string) string {
+	return fmt.Sprintf("%s|%s", trustMarkID, entityID)
+}
+
+// Load implements the SubordinateStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) Load() error {
+	return store.store.Load()
+}
+
+// Write implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) Write(trustMarkID, entityID string) error {
+	return store.store.Write(store.key(trustMarkID, entityID), entityID)
+}
+
+// Delete implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) Delete(trustMarkID, entityID string) error {
+	return store.store.Delete(store.key(trustMarkID, entityID))
+}
+
+// TrustMarkedEntities implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) TrustMarkedEntities(trustMarkID string) (entityIDs []string, err error) {
+	err = store.store.ReadIterator(
+		func(_, v []byte) error {
+			var id string
+			if err = json.Unmarshal(v, &id); err != nil {
+				return err
+			}
+			entityIDs = append(entityIDs, id)
+			return nil
+		},
+		trustMarkID,
+	)
+	return
+}
+
+// HasTrustMark implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) HasTrustMark(trustMarkID, entityID string) (bool, error) {
+	var id string
+	return store.store.Read(store.key(trustMarkID, entityID), &id)
 }

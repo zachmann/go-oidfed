@@ -45,7 +45,7 @@ func (info *SubordinateInfo) UnmarshalMsgpack(src []byte) error {
 	return nil
 }
 
-// SubordinateStorageBackend is an interface to storage SubordinateInfo
+// SubordinateStorageBackend is an interface to store SubordinateInfo
 type SubordinateStorageBackend interface {
 	Write(entityID string, info SubordinateInfo) error
 	Q() SubordinateStorageQuery

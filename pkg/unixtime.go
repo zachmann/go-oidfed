@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 )
 
 // Unixtime is a type for handling unix timestamps
@@ -41,4 +42,44 @@ func verifyTime(iat, exp *Unixtime) error {
 		return errors.New("expired")
 	}
 	return nil
+}
+
+// NewDurationInSeconds returns a DurationInSeconds from a number of seconds
+func NewDurationInSeconds(seconds float64) DurationInSeconds {
+	return DurationInSeconds{time.Duration(seconds * float64(time.Second))}
+}
+
+// DurationInSeconds is a type for handling time.Duration expressed in seconds
+type DurationInSeconds struct {
+	time.Duration
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (d *DurationInSeconds) UnmarshalJSON(src []byte) error {
+	var f float64
+	if err := json.Unmarshal(src, &f); err != nil {
+		return err
+	}
+	*d = DurationInSeconds{time.Duration(f) * time.Second}
+	return nil
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface.
+func (d *DurationInSeconds) UnmarshalYAML(value *yaml.Node) error {
+	var f float64
+	if err := value.Decode(&f); err != nil {
+		return err
+	}
+	*d = DurationInSeconds{time.Duration(f) * time.Second}
+	return nil
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+func (d DurationInSeconds) MarshalJSON() ([]byte, error) {
+	return json.Marshal(float64(d.Nanoseconds()) / 1e9)
+}
+
+// MarshalYAML implements the yaml.Marshaler interface.
+func (d DurationInSeconds) MarshalYAML() (any, error) {
+	return yaml.Marshal(float64(d.Nanoseconds()) / float64(time.Second))
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
@@ -278,13 +279,61 @@ type TrustMarkIssuer struct {
 
 // TrustMarkSpec describes a TrustMark for a TrustMarkIssuer
 type TrustMarkSpec struct {
-	ID                       string
-	Lifetime                 time.Duration
-	Ref                      string
-	LogoURI                  string
-	Extra                    map[string]any
-	IncludeExtraClaimsInInfo bool
-	DelegationJWT            string
+	ID                       string            `json:"trust_mark_id" yaml:"trust_mark_id"`
+	Lifetime                 DurationInSeconds `json:"lifetime" yaml:"lifetime"`
+	Ref                      string            `json:"ref" yaml:"ref"`
+	LogoURI                  string            `json:"logo_uri" yaml:"logo_uri"`
+	Extra                    map[string]any    `json:"-" yaml:"-"`
+	IncludeExtraClaimsInInfo bool              `json:"include_extra_claims_in_info" yaml:"include_extra_claims_in_info"`
+	DelegationJWT            string            `json:"delegation_jwt" yaml:"delegation_jwt"`
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (tms TrustMarkSpec) MarshalJSON() ([]byte, error) {
+	type Alias TrustMarkSpec
+	explicitFields, err := json.Marshal(Alias(tms))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return extraMarshalHelper(explicitFields, tms.Extra)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (tms *TrustMarkSpec) UnmarshalJSON(data []byte) error {
+	type Alias TrustMarkSpec
+	mm := Alias(*tms)
+
+	extra, err := unmarshalWithExtra(data, &mm)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	mm.Extra = extra
+	*tms = TrustMarkSpec(mm)
+	return nil
+}
+
+// MarshalYAML implements the yaml.Marshaler interface
+func (tms TrustMarkSpec) MarshalYAML() (any, error) {
+	type Alias TrustMarkSpec
+	explicitFields, err := yaml.Marshal(Alias(tms))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return yamlExtraMarshalHelper(explicitFields, tms.Extra)
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface
+func (tms *TrustMarkSpec) UnmarshalYAML(data *yaml.Node) error {
+	type Alias TrustMarkSpec
+	mm := Alias(*tms)
+
+	extra, err := yamlUnmarshalWithExtra(data, &mm)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	mm.Extra = extra
+	*tms = TrustMarkSpec(mm)
+	return nil
 }
 
 // NewTrustMarkIssuer creates a new TrustMarkIssuer
@@ -307,6 +356,15 @@ func (tmi *TrustMarkIssuer) AddTrustMark(spec TrustMarkSpec) {
 	tmi.trustMarks[spec.ID] = spec
 }
 
+// TrustMarkIDs returns a slice of the trust mark ids for which this TrustMarKIssuer can issue TrustMarks
+func (tmi *TrustMarkIssuer) TrustMarkIDs() []string {
+	trustMarkIDs := make([]string, 0, len(tmi.trustMarks))
+	for id := range tmi.trustMarks {
+		trustMarkIDs = append(trustMarkIDs, id)
+	}
+	return trustMarkIDs
+}
+
 // IssueTrustMark issues a TrustMarkInfo for the passed trust mark id and subject; optionally  a custom lifetime can
 // be passed
 func (tmi TrustMarkIssuer) IssueTrustMark(trustMarkID, sub string, lifetime ...time.Duration) (*TrustMarkInfo, error) {
@@ -325,7 +383,7 @@ func (tmi TrustMarkIssuer) IssueTrustMark(trustMarkID, sub string, lifetime ...t
 		DelegationJWT: spec.DelegationJWT,
 		Extra:         spec.Extra,
 	}
-	lf := spec.Lifetime
+	lf := spec.Lifetime.Duration
 	if len(lifetime) > 0 {
 		lf = lifetime[0]
 	}

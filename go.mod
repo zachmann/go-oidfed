@@ -14,6 +14,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/vmihailenco/msgpack/v5 v5.4.1
+	gopkg.in/yaml.v3 v3.0.1
 	tideland.dev/go/slices v0.2.0
 )
 
