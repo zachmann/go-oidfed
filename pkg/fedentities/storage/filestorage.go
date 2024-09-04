@@ -208,7 +208,14 @@ func (s trustMarkedEntitiesFileStorage) TrustMarkedEntities(trustMarkID string) 
 	if err != nil {
 		return nil, err
 	}
-	return infosMap[trustMarkID], nil
+	if trustMarkID != "" {
+		return infosMap[trustMarkID], nil
+	}
+	var entityIDs []string
+	for _, ids := range infosMap {
+		entityIDs = append(entityIDs, ids...)
+	}
+	return entityIDs, nil
 }
 
 // HasTrustMark implements the TrustMarkedEntitiesStorageBackend

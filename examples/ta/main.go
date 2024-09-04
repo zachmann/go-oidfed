@@ -76,7 +76,7 @@ func main() {
 		entity.AddFetchEndpoint(endpoint, subordinateStorage)
 	}
 	if endpoint := c.Endpoints.ListEndpoint; endpoint.IsSet() {
-		entity.AddSubordinateListingEndpoint(endpoint, subordinateStorage)
+		entity.AddSubordinateListingEndpoint(endpoint, subordinateStorage, trustMarkedEntitiesStorage)
 	}
 	if endpoint := c.Endpoints.ResolveEndpoint; endpoint.IsSet() {
 		entity.AddResolveEndpoint(endpoint)

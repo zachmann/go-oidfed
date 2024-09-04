@@ -1,6 +1,7 @@
 package fedentities
 
 import (
+	arrays "github.com/adam-hanna/arrayOperations"
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/zachmann/go-oidfed/pkg"
@@ -8,7 +9,10 @@ import (
 )
 
 // AddSubordinateListingEndpoint adds a subordinate listing endpoint
-func (fed *FedEntity) AddSubordinateListingEndpoint(endpoint EndpointConf, store storage.SubordinateStorageBackend) {
+func (fed *FedEntity) AddSubordinateListingEndpoint(
+	endpoint EndpointConf, store storage.SubordinateStorageBackend,
+	trustMarkStore storage.TrustMarkedEntitiesStorageBackend,
+) {
 	fed.Metadata.FederationEntity.FederationListEndpoint = endpoint.URL()
 	fed.server.Get(
 		endpoint.Path(), func(ctx *fiber.Ctx) error {
@@ -17,6 +21,7 @@ func (fed *FedEntity) AddSubordinateListingEndpoint(endpoint EndpointConf, store
 				ctx.Query("trust_mark_id"),
 				ctx.QueryBool("intermediate"),
 				store.Q(),
+				trustMarkStore,
 			)
 		},
 	)
@@ -29,8 +34,24 @@ func filterEntityType(info storage.SubordinateInfo, value any) bool {
 
 func handleSubordinateListing(
 	ctx *fiber.Ctx, entityType string, trustMarked bool, trustMarkID string,
-	intermediate bool, q storage.SubordinateStorageQuery,
+	intermediate bool, q storage.SubordinateStorageQuery, trustMarkedEntitiesStorage storage.
+		TrustMarkedEntitiesStorageBackend,
 ) error {
+	if intermediate {
+		ctx.Status(fiber.StatusBadRequest)
+		return ctx.JSON(pkg.ErrorUnsupportedParameter("parameter 'intermediate' is not supported"))
+	}
+	if trustMarkedEntitiesStorage == nil {
+		if trustMarked {
+			ctx.Status(fiber.StatusBadRequest)
+			return ctx.JSON(pkg.ErrorUnsupportedParameter("parameter 'trust_marked' is not supported"))
+		}
+		if trustMarkID != "" {
+			ctx.Status(fiber.StatusBadRequest)
+			return ctx.JSON(pkg.ErrorUnsupportedParameter("parameter 'trust_mark_id' is not supported"))
+		}
+	}
+
 	if q == nil {
 		return ctx.JSON([]string{})
 	}
@@ -40,15 +61,21 @@ func handleSubordinateListing(
 			return ctx.JSON(pkg.ErrorServerError(err.Error()))
 		}
 	}
-	// TODO add other filters
-	if intermediate {
-		ctx.Status(fiber.StatusBadRequest)
-		return ctx.JSON(pkg.ErrorUnsupportedParameter("parameter 'intermediate' is not supported"))
-	}
+
 	ids, err := q.EntityIDs()
 	if err != nil {
 		ctx.Status(fiber.StatusInternalServerError)
 		return ctx.JSON(pkg.ErrorServerError(err.Error()))
 	}
+
+	if trustMarkID != "" || trustMarked {
+		trustMarkedEntities, err := trustMarkedEntitiesStorage.TrustMarkedEntities(trustMarkID)
+		if err != nil {
+			ctx.Status(fiber.StatusInternalServerError)
+			return ctx.JSON(pkg.ErrorServerError(err.Error()))
+		}
+		ids = arrays.Intersect(ids, trustMarkedEntities)
+	}
+
 	return ctx.JSON(ids)
 }
