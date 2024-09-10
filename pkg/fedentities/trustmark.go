@@ -14,6 +14,7 @@ import (
 func (fed *FedEntity) AddTrustMarkEndpoint(
 	endpoint EndpointConf,
 	store storage.TrustMarkedEntitiesStorageBackend,
+	checkers map[string]EntityChecker,
 ) {
 	fed.Metadata.FederationEntity.FederationTrustMarkEndpoint = endpoint.URL()
 	fed.server.Get(
@@ -52,10 +53,40 @@ func (fed *FedEntity) AddTrustMarkEndpoint(
 				return ctx.JSON(pkg.ErrorServerError(err.Error()))
 			}
 			if !hasTM {
-				ctx.Status(fiber.StatusNotFound)
-				return ctx.JSON(
-					pkg.ErrorNotFound("subject does not have this trust mark"),
+				// subject does not have the trust mark,
+				// check if it is entitled to do so
+				var checker EntityChecker
+				if checkers != nil {
+					checker = checkers[trustMarkID]
+				}
+				if checker == nil {
+					ctx.Status(fiber.StatusNotFound)
+					return ctx.JSON(
+						pkg.ErrorNotFound("subject does not have this trust mark"),
+					)
+				}
+				entityConfig, err := pkg.GetEntityConfiguration(sub)
+				if err != nil {
+					ctx.Status(fiber.StatusBadRequest)
+					return ctx.JSON(pkg.ErrorInvalidRequest("could not obtain entity configuration"))
+				}
+				ok, _, errResponse := checker.Check(
+					entityConfig, entityConfig.Metadata.GuessEntityTypes(),
 				)
+				if !ok {
+					ctx.Status(fiber.StatusNotFound)
+					return ctx.JSON(
+						pkg.ErrorNotFound(
+							"subject does not have this trust mark and is not" +
+								" entitled to get it: " + errResponse.ErrorDescription,
+						),
+					)
+				}
+				// ok, so we add sub to the list and issue the trust mark
+				if err = store.Write(trustMarkID, sub); err != nil {
+					ctx.Status(fiber.StatusInternalServerError)
+					return ctx.JSON(pkg.ErrorServerError(err.Error()))
+				}
 			}
 			tm, err := fed.IssueTrustMark(trustMarkID, sub)
 			if err != nil {

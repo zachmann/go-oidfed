@@ -65,10 +65,22 @@ func main() {
 	entity.TrustMarkOwners = c.TrustMarkOwners
 	entity.TrustMarks = c.TrustMarks
 
+	var trustMarkCheckerMap map[string]fedentities.EntityChecker
 	if len(c.TrustMarkSpecs) > 0 {
-		entity.TrustMarkIssuer = pkg.NewTrustMarkIssuer(
-			c.EntityID, entity.GeneralJWTSigner.TrustMarkSigner(), c.TrustMarkSpecs,
-		)
+		specs := make([]pkg.TrustMarkSpec, len(c.TrustMarkSpecs))
+		for i, s := range c.TrustMarkSpecs {
+			specs[i] = s.TrustMarkSpec
+			if s.CheckerConfig.Type != "" {
+				if trustMarkCheckerMap == nil {
+					trustMarkCheckerMap = make(map[string]fedentities.EntityChecker)
+				}
+				trustMarkCheckerMap[s.ID], err = fedentities.EntityCheckerFromEntityCheckerConfig(s.CheckerConfig)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+		entity.TrustMarkIssuer = pkg.NewTrustMarkIssuer(c.EntityID, entity.GeneralJWTSigner.TrustMarkSigner(), specs)
 	}
 	log.Println("Initialized Entity")
 
@@ -88,7 +100,7 @@ func main() {
 		entity.AddTrustMarkedEntitiesListingEndpoint(endpoint, trustMarkedEntitiesStorage)
 	}
 	if endpoint := c.Endpoints.TrustMarkEndpoint; endpoint.IsSet() {
-		entity.AddTrustMarkEndpoint(endpoint, trustMarkedEntitiesStorage)
+		entity.AddTrustMarkEndpoint(endpoint, trustMarkedEntitiesStorage, trustMarkCheckerMap)
 	}
 	if endpoint := c.Endpoints.EnrollmentEndpoint; endpoint.IsSet() {
 		var checker fedentities.EntityChecker

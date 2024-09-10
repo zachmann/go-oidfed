@@ -5,8 +5,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/fatih/structs"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
+	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/fedentities"
 )
@@ -24,10 +27,52 @@ type Config struct {
 	DataLocation          string                      `yaml:"data_location"`
 	ReadableStorage       bool                        `yaml:"human_readable_storage"`
 	Endpoints             Endpoints                   `yaml:"endpoints"`
-	TrustMarkSpecs        []pkg.TrustMarkSpec         `yaml:"trust_mark_specs"`
+	TrustMarkSpecs        []extendedTrustMarkSpec     `yaml:"trust_mark_specs"`
 	TrustMarks            []pkg.TrustMarkInfo         `yaml:"trust_marks"`
 	TrustMarkIssuers      pkg.AllowedTrustMarkIssuers `yaml:"trust_mark_issuers"`
 	TrustMarkOwners       pkg.TrustMarkOwners         `yaml:"trust_mark_owners"`
+}
+
+type extendedTrustMarkSpec struct {
+	CheckerConfig     fedentities.EntityCheckerConfig `yaml:"checker"`
+	pkg.TrustMarkSpec `yaml:",inline"`
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface
+func (e *extendedTrustMarkSpec) UnmarshalYAML(node *yaml.Node) error {
+	type forChecker struct {
+		CheckerConfig fedentities.EntityCheckerConfig `yaml:"checker"`
+	}
+	mm := e.TrustMarkSpec
+	var fc forChecker
+
+	if err := node.Decode(&fc); err != nil {
+		return errors.WithStack(err)
+	}
+	if err := node.Decode(&mm); err != nil {
+		return errors.WithStack(err)
+	}
+	extra := make(map[string]interface{})
+	if err := node.Decode(&extra); err != nil {
+		return errors.WithStack(err)
+	}
+	s1 := structs.New(fc)
+	s2 := structs.New(mm)
+	for _, tag := range utils.FieldTagNames(s1.Fields(), "yaml") {
+		delete(extra, tag)
+	}
+	for _, tag := range utils.FieldTagNames(s2.Fields(), "yaml") {
+		delete(extra, tag)
+	}
+	if len(extra) == 0 {
+		extra = nil
+	}
+
+	mm.Extra = extra
+	e.TrustMarkSpec = mm
+	e.CheckerConfig = fc.CheckerConfig
+	e.IncludeExtraClaimsInInfo = true
+	return nil
 }
 
 // Endpoints holds configuration for the different possible endpoints
