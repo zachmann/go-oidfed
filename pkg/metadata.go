@@ -17,6 +17,22 @@ type Metadata struct {
 	FederationEntity         *FederationEntityMetadata         `json:"federation_entity,omitempty"`
 }
 
+// GuessEntityTypes returns a slice of entity types for which metadata is set
+func (m Metadata) GuessEntityTypes() (entityTypes []string) {
+	value := reflect.ValueOf(m)
+	typ := value.Type()
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Field(i)
+		if field.Kind() == reflect.Ptr && !field.IsNil() {
+			structField := typ.Field(i)
+			jsonTag := structField.Tag.Get("json")
+			jsonTag = strings.TrimSuffix(jsonTag, ",omitempty")
+			entityTypes = append(entityTypes, jsonTag)
+		}
+	}
+	return
+}
+
 type policyApplicable interface {
 	ApplyPolicy(policy MetadataPolicy) (any, error)
 }

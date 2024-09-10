@@ -14,9 +14,9 @@ import (
 
 // TrustMarkInfo is a type for holding a trust mark as represented in an EntityConfiguration
 type TrustMarkInfo struct {
-	ID           string                 `json:"id"`
-	TrustMarkJWT string                 `json:"trust_mark"`
-	Extra        map[string]interface{} `json:"-"`
+	ID           string                 `json:"id" yaml:"id"`
+	TrustMarkJWT string                 `json:"trust_mark" yaml:"trust_mark"`
+	Extra        map[string]interface{} `json:"-" yaml:"-"`
 	trustmark    *TrustMark
 }
 

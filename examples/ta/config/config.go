@@ -13,18 +13,21 @@ import (
 
 // Config holds configuration for the entity
 type Config struct {
-	ServerPort            int                   `yaml:"server_port"`
-	EntityID              string                `yaml:"entity_id"`
-	AuthorityHints        []string              `yaml:"authority_hints"`
-	MetadataPolicyFile    string                `yaml:"metadata_policy_file"`
-	MetadataPolicy        *pkg.MetadataPolicies `yaml:"-"`
-	SigningKeyFile        string                `yaml:"signing_key_file"`
-	ConfigurationLifetime int64                 `yaml:"configuration_lifetime"`
-	OrganizationName      string                `yaml:"organization_name"`
-	DataLocation          string                `yaml:"data_location"`
-	ReadableStorage       bool                  `yaml:"human_readable_storage"`
-	Endpoints             Endpoints             `yaml:"endpoints"`
-	TrustMarkSpecs        []pkg.TrustMarkSpec   `yaml:"trust_marks"`
+	ServerPort            int                         `yaml:"server_port"`
+	EntityID              string                      `yaml:"entity_id"`
+	AuthorityHints        []string                    `yaml:"authority_hints"`
+	MetadataPolicyFile    string                      `yaml:"metadata_policy_file"`
+	MetadataPolicy        *pkg.MetadataPolicies       `yaml:"-"`
+	SigningKeyFile        string                      `yaml:"signing_key_file"`
+	ConfigurationLifetime int64                       `yaml:"configuration_lifetime"`
+	OrganizationName      string                      `yaml:"organization_name"`
+	DataLocation          string                      `yaml:"data_location"`
+	ReadableStorage       bool                        `yaml:"human_readable_storage"`
+	Endpoints             Endpoints                   `yaml:"endpoints"`
+	TrustMarkSpecs        []pkg.TrustMarkSpec         `yaml:"trust_mark_specs"`
+	TrustMarks            []pkg.TrustMarkInfo         `yaml:"trust_marks"`
+	TrustMarkIssuers      pkg.AllowedTrustMarkIssuers `yaml:"trust_mark_issuers"`
+	TrustMarkOwners       pkg.TrustMarkOwners         `yaml:"trust_mark_owners"`
 }
 
 // Endpoints holds configuration for the different possible endpoints
@@ -36,6 +39,13 @@ type Endpoints struct {
 	TrustMarkedEntitiesListingEndpoint fedentities.EndpointConf `yaml:"trust_mark_list"`
 	TrustMarkEndpoint                  fedentities.EndpointConf `yaml:"trust_mark"`
 	HistoricalKeysEndpoint             fedentities.EndpointConf `yaml:"historical_keys"`
+
+	EnrollmentEndpoint extendedEndpointConfig `yaml:"enroll"`
+}
+
+type extendedEndpointConfig struct {
+	fedentities.EndpointConf `yaml:",inline"`
+	CheckerConfig            fedentities.EntityCheckerConfig `yaml:"checker"`
 }
 
 var c Config

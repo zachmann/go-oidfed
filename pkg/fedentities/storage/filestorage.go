@@ -74,9 +74,9 @@ func (s subordinateFileStorage) Write(entityID string, info SubordinateInfo) err
 		if !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
-		if infos == nil {
-			infos = make(map[string]SubordinateInfo)
-		}
+	}
+	if infos == nil {
+		infos = make(map[string]SubordinateInfo)
 	}
 	infos[entityID] = info
 	return s.writeUnlocked(infos)
@@ -166,9 +166,9 @@ func (s trustMarkedEntitiesFileStorage) Write(trustMarkID, entityID string) erro
 		if !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
-		if infos == nil {
-			infos = make(map[string][]string)
-		}
+	}
+	if infos == nil {
+		infos = make(map[string][]string)
 	}
 	tme, ok := infos[trustMarkID]
 	if !ok {

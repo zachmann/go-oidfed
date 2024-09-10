@@ -1,6 +1,8 @@
 package fedentities
 
 import (
+	"slices"
+
 	arrays "github.com/adam-hanna/arrayOperations"
 	"github.com/gofiber/fiber/v2"
 
@@ -29,7 +31,7 @@ func (fed *FedEntity) AddSubordinateListingEndpoint(
 
 func filterEntityType(info storage.SubordinateInfo, value any) bool {
 	v, ok := value.(string)
-	return ok && info.EntityType == v
+	return ok && slices.Contains(info.EntityTypes, v)
 }
 
 func handleSubordinateListing(

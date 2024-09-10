@@ -180,6 +180,7 @@ func fedLeaf() *pkg.FederationLeaf {
 			log.Fatal(err)
 		}
 	}
+	_fedLeaf.TrustMarks = conf.TrustMarks
 	return _fedLeaf
 }
 

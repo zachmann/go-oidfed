@@ -49,13 +49,9 @@ func main() {
 			},
 		},
 		signingKey, jwa.ES512, c.ConfigurationLifetime, fedentities.SubordinateStatementsConfig{
-			MetadataPolicies: nil,
-			Configs: map[string]*fedentities.SubordinateStatementTypeConfig{
-				"": {
-					SubordinateStatementLifetime: 3600,
-					// TODO read all of this from config or a storage backend
-				},
-			},
+			MetadataPolicies:             nil,
+			SubordinateStatementLifetime: 3600,
+			// TODO read all of this from config or a storage backend
 		},
 	)
 	if err != nil {
@@ -64,6 +60,10 @@ func main() {
 
 	entity.MetadataPolicies = c.MetadataPolicy
 	// TODO other constraints etc.
+
+	entity.TrustMarkIssuers = c.TrustMarkIssuers
+	entity.TrustMarkOwners = c.TrustMarkOwners
+	entity.TrustMarks = c.TrustMarks
 
 	if len(c.TrustMarkSpecs) > 0 {
 		entity.TrustMarkIssuer = pkg.NewTrustMarkIssuer(
@@ -89,6 +89,16 @@ func main() {
 	}
 	if endpoint := c.Endpoints.TrustMarkEndpoint; endpoint.IsSet() {
 		entity.AddTrustMarkEndpoint(endpoint, trustMarkedEntitiesStorage)
+	}
+	if endpoint := c.Endpoints.EnrollmentEndpoint; endpoint.IsSet() {
+		var checker fedentities.EntityChecker
+		if checkerConfig := endpoint.CheckerConfig; checkerConfig.Type != "" {
+			checker, err = fedentities.EntityCheckerFromEntityCheckerConfig(checkerConfig)
+			if err != nil {
+				panic(err)
+			}
+		}
+		entity.AddEnrollEndpoint(endpoint.EndpointConf, subordinateStorage, checker)
 	}
 	log.Println("Added Endpoints")
 

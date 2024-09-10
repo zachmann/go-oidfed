@@ -212,8 +212,8 @@ type TrustMarkOwners map[string]TrustMarkOwnerSpec
 
 // TrustMarkOwnerSpec describes the owner of a trust mark
 type TrustMarkOwnerSpec struct {
-	ID   string   `json:"sub"`
-	JWKS jwk.JWKS `json:"jwks"`
+	ID   string   `json:"sub" yaml:"entity_id"`
+	JWKS jwk.JWKS `json:"jwks" yaml:"jwks"`
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.

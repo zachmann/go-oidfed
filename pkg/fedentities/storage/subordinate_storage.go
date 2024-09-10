@@ -12,7 +12,7 @@ import (
 // SubordinateInfo holds information about a subordinate for storage
 type SubordinateInfo struct {
 	JWKS               jwk.JWKS                     `json:"jwks"`
-	EntityType         string                       `json:"entity_type"`
+	EntityTypes        []string                     `json:"entity_types"`
 	EntityID           string                       `json:"entity_id"`
 	Metadata           *pkg.Metadata                `json:"metadata,omitempty"`
 	MetadataPolicy     *pkg.MetadataPolicies        `json:"metadata_policy,omitempty"`

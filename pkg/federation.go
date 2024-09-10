@@ -21,7 +21,10 @@ type FederationEntity struct {
 	AuthorityHints        []string
 	ConfigurationLifetime int64
 	*EntityStatementSigner
-	jwks jwk.JWKS
+	jwks             jwk.JWKS
+	TrustMarks       []TrustMarkInfo
+	TrustMarkIssuers AllowedTrustMarkIssuers
+	TrustMarkOwners  TrustMarkOwners
 }
 
 // FederationLeaf is a type for a leaf entity and holds all relevant information about it; it can also be used to
@@ -73,13 +76,16 @@ func NewFederationLeaf(
 func (f FederationEntity) EntityConfigurationPayload() *EntityStatementPayload {
 	now := time.Now()
 	return &EntityStatementPayload{
-		Issuer:         f.EntityID,
-		Subject:        f.EntityID,
-		IssuedAt:       Unixtime{now},
-		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(f.ConfigurationLifetime))},
-		JWKS:           f.jwks,
-		AuthorityHints: f.AuthorityHints,
-		Metadata:       f.Metadata,
+		Issuer:           f.EntityID,
+		Subject:          f.EntityID,
+		IssuedAt:         Unixtime{now},
+		ExpiresAt:        Unixtime{now.Add(time.Second * time.Duration(f.ConfigurationLifetime))},
+		JWKS:             f.jwks,
+		AuthorityHints:   f.AuthorityHints,
+		Metadata:         f.Metadata,
+		TrustMarks:       f.TrustMarks,
+		TrustMarkIssuers: f.TrustMarkIssuers,
+		TrustMarkOwners:  f.TrustMarkOwners,
 	}
 }
 
