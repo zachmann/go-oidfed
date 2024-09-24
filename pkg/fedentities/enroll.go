@@ -19,7 +19,10 @@ func (fed *FedEntity) AddEnrollEndpoint(
 	store storage.SubordinateStorageBackend,
 	checker EntityChecker,
 ) {
-	fed.Metadata.FederationEntity.FederationFetchEndpoint = endpoint.URL()
+	if fed.Metadata.FederationEntity.Extra == nil {
+		fed.Metadata.FederationEntity.Extra = make(map[string]interface{})
+	}
+	fed.Metadata.FederationEntity.Extra["federation_enroll_endpoint"] = endpoint.URL()
 	fed.server.Get(
 		endpoint.Path(), func(ctx *fiber.Ctx) error {
 			var req enrollRequest
