@@ -168,12 +168,12 @@ func (c MultipleEntityCheckerAnd) Check(
 
 // UnmarshalYAML implements the yaml.Unmarshaler and EntityChecker interfaces
 func (c *MultipleEntityCheckerAnd) UnmarshalYAML(node *yaml.Node) error {
-	var datas [][]byte
+	var datas []EntityCheckerConfig
 	if err := node.Decode(&datas); err != nil {
 		return errors.WithStack(err)
 	}
 	for _, data := range datas {
-		checker, err := EntityCheckerFromYAMLConfig(data)
+		checker, err := EntityCheckerFromEntityCheckerConfig(data)
 		if err != nil {
 			return errors.WithStack(err)
 		}
