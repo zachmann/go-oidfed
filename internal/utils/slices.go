@@ -87,15 +87,15 @@ func ReflectUnion(a, b any) any {
 	bs := Slicify(b)
 	out := reflect.ValueOf(as)
 	bV := reflect.ValueOf(bs)
-	if out.Len() == 0 {
-		return bV.Interface()
-	}
 	if bV.Len() == 0 {
 		return out.Interface()
 	}
-	if out.Index(0).Type() != bV.Index(0).Type() {
+	if out.Len() == 0 || out.Index(0).Type() != bV.Index(0).Type() {
 		bs = ReflectSliceCast(bs, as)
 		bV = reflect.ValueOf(bs)
+	}
+	if out.Len() == 0 {
+		return bV.Interface()
 	}
 	for i := 0; i < bV.Len(); i++ {
 		v := bV.Index(i)
