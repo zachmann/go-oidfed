@@ -61,12 +61,8 @@ func VerifyWithSet(msg *ParsedJWT, keys myjwk.JWKS) ([]byte, error) {
 		alg = head.Algorithm()
 		kid = head.KeyID()
 	}
-	buf, err := msg.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
 	if alg == "" && kid == "" {
-		return jws.VerifySet(buf, keys.Set)
+		return jws.VerifySet(msg.RawJWT, keys.Set)
 	}
 	for i := 0; i < keys.Len(); i++ {
 		k, ok := keys.Get(i)
@@ -79,7 +75,7 @@ func VerifyWithSet(msg *ParsedJWT, keys myjwk.JWKS) ([]byte, error) {
 		if !utils.StringsEqualIfSet(kid, k.KeyID()) {
 			continue
 		}
-		pay, err := jws.Verify(buf, alg, k)
+		pay, err := jws.Verify(msg.RawJWT, alg, k)
 		if err == nil {
 			return pay, nil
 		}
