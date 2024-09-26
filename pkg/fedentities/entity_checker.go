@@ -42,6 +42,7 @@ func init() {
 	RegisterEntityChecker("trust_mark", func() EntityChecker { return &TrustMarkEntityChecker{} })
 	RegisterEntityChecker("trust_path", func() EntityChecker { return &TrustPathEntityChecker{} })
 	RegisterEntityChecker("authority_hints", func() EntityChecker { return &AuthorityHintEntityChecker{} })
+	RegisterEntityChecker("entity_id", func() EntityChecker { return &EntityIDEntityChecker{} })
 	RegisterEntityChecker("multiple_and", func() EntityChecker { return &MultipleEntityCheckerAnd{} })
 	RegisterEntityChecker("multiple_or", func() EntityChecker { return &MultipleEntityCheckerOr{} })
 }
@@ -289,6 +290,38 @@ func (c TrustPathEntityChecker) Check(
 			Error:            "forbidden",
 			ErrorDescription: "no valid trust path to trust anchors found",
 		}
+	}
+	return true, 0, nil
+}
+
+// EntityIDEntityChecker checks that the entity has a
+// certain entity id
+type EntityIDEntityChecker struct {
+	AllowedIDs []string `yaml:"entity_ids"`
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler and EntityChecker interface
+func (c *EntityIDEntityChecker) UnmarshalYAML(node *yaml.Node) error {
+	type Alias EntityIDEntityChecker
+	alias := Alias(*c)
+	err := node.Decode(&alias)
+	if err != nil {
+		return err
+	}
+	*c = EntityIDEntityChecker(alias)
+	return nil
+}
+
+// Check implements the EntityChecker interface
+func (c EntityIDEntityChecker) Check(
+	entityConfiguration *pkg.EntityStatement,
+	_ []string,
+) (bool, int, *pkg.Error) {
+	if !slices.Contains(c.AllowedIDs, entityConfiguration.Subject) {
+		errRes := pkg.ErrorInvalidRequest(
+			fmt.Sprintf("this entity is not allowed"),
+		)
+		return false, fiber.StatusBadRequest, &errRes
 	}
 	return true, 0, nil
 }
