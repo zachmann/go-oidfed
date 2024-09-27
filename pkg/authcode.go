@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -130,7 +129,6 @@ func (f FederationLeaf) GetAuthorizationURL(
 	if err != nil {
 		return "", err
 	}
-	scopes := strings.Split(scope, " ")
 	requestParams := map[string]any{}
 	for k, v := range additionalParams {
 		if len(v) == 1 {
@@ -143,7 +141,7 @@ func (f FederationLeaf) GetAuthorizationURL(
 	requestParams["redirect_uri"] = redirectURI
 	requestParams["state"] = state
 	requestParams["response_type"] = "code"
-	requestParams["scope"] = scopes
+	requestParams["scope"] = scope
 
 	requestObject, err := f.oidcROProducer.RequestObject(requestParams)
 	if err != nil {
