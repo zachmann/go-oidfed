@@ -66,7 +66,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		authBuilder = pkg.NewRequestObjectProducer(conf.EntityID, getKey("oidc"), jwa.ES512, 60)
 	}
 	op := r.URL.Query().Get("op")
-	state := randASCIIString(32)
+	state := randASCIIString(64)
 	pkceChallenge := pkce.NewS256PKCE(randASCIIString(20))
 	stateDB[state] = stateData{
 		codeChallange: pkceChallenge,
