@@ -8,33 +8,9 @@ import (
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/cache"
-	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
-// TrustAnchor is a type for specifying trust anchors
-type TrustAnchor struct {
-	EntityID string   `yaml:"entity_id" json:"entity_id"`
-	JWKS     jwk.JWKS `yaml:"jwks" json:"jwks"`
-}
-
-// TrustAnchors is a slice of TrustAnchor
-type TrustAnchors []TrustAnchor
-
-// EntityIDs returns the entity ids as a []string
-func (anchors TrustAnchors) EntityIDs() (entityIDs []string) {
-	for _, ta := range anchors {
-		entityIDs = append(entityIDs, ta.EntityID)
-	}
-	return
-}
-
-// NewTrustAnchorsFromEntityIDs returns TrustAnchors for the passed entity ids; this does not set jwk.JWKS
-func NewTrustAnchorsFromEntityIDs(anchorIDs ...string) (anchors TrustAnchors) {
-	for _, id := range anchorIDs {
-		anchors = append(anchors, TrustAnchor{EntityID: id})
-	}
-	return
-}
+const cacheGracePeriod = time.Hour
 
 // ResolveResponse is a type describing the response of a resolve request
 type ResolveResponse struct {
@@ -259,37 +235,64 @@ func entityStmtCacheGet(subID, issID string) *EntityStatement {
 // GetEntityConfiguration obtains the entity configuration for the passed entity id and returns it as an
 // EntityStatement
 func GetEntityConfiguration(entityID string) (*EntityStatement, error) {
-	if stmt := entityStmtCacheGet(entityID, entityID); stmt != nil {
-		internal.Logf("Got entity configuration for %+q from cache", entityID)
+	return getEntityStatementOrConfiguration(
+		entityID, entityID, func() ([]byte, error) {
+			return entityStatementObtainer.GetEntityConfiguration(entityID)
+		},
+	)
+}
+
+func getEntityStatementOrConfiguration(
+	subID, issID string,
+	obtainerFnc func() ([]byte, error),
+) (*EntityStatement, error) {
+
+	if stmt := entityStmtCacheGet(subID, issID); stmt != nil {
+		internal.Log("Obtained entity statement from cache")
+		go func() {
+			if time.Until(stmt.ExpiresAt.Time) <= cacheGracePeriod {
+				internal.Log("Within grace period, refreshing entity statement")
+				_, err := obtainAndSetEntityStatementOrConfiguration(
+					subID,
+					issID, obtainerFnc,
+				)
+				if err != nil {
+					internal.Log(err)
+				}
+			}
+		}()
 		return stmt, nil
 	}
-	body, err := entityStatementObtainer.GetEntityConfiguration(entityID)
+	return obtainAndSetEntityStatementOrConfiguration(subID, issID, obtainerFnc)
+}
+
+func obtainAndSetEntityStatementOrConfiguration(
+	subID, issID string,
+	obtainerFnc func() ([]byte, error),
+) (*EntityStatement, error) {
+	body, err := obtainerFnc()
 	if err != nil {
-		internal.Logf("Could not obtain entity configuration for %+q", entityID)
+		internal.Log(err)
 		return nil, err
 	}
+	internal.Log("Obtained entity statement from http")
 	stmt, err := ParseEntityStatement(body)
 	if err != nil {
-		internal.Logf("Could not parse entity configuration: %s", body)
+		internal.Log(err)
 		return nil, err
 	}
-	entityStmtCacheSet(entityID, entityID, stmt)
+	entityStmtCacheSet(subID, issID, stmt)
 	return stmt, nil
 }
 
 // FetchEntityStatement fetches an EntityStatement from a fetch endpoint
 func FetchEntityStatement(fetchEndpoint, subID, issID string) (*EntityStatement, error) {
-	if stmt := entityStmtCacheGet(subID, issID); stmt != nil {
-		return stmt, nil
-	}
-	body, err := entityStatementObtainer.FetchEntityStatement(fetchEndpoint, subID, issID)
-	if err != nil {
-		return nil, err
-	}
-	stmt, err := ParseEntityStatement(body)
-	if err != nil {
-		return nil, err
-	}
-	entityStmtCacheSet(subID, issID, stmt)
-	return stmt, nil
+	return getEntityStatementOrConfiguration(
+		subID, issID, func() ([]byte, error) {
+			return entityStatementObtainer.FetchEntityStatement(
+				fetchEndpoint,
+				subID, issID,
+			)
+		},
+	)
 }
