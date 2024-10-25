@@ -173,7 +173,7 @@ func TestTrustResolver_ResolveWithType(t *testing.T) {
 					},
 				},
 				StartingEntity: proxy.EntityID,
-				Type:           "openid_provider",
+				Types:          []string{"openid_provider"},
 			},
 			includedMetadata: []string{"openid_provider"},
 		},
@@ -187,9 +187,29 @@ func TestTrustResolver_ResolveWithType(t *testing.T) {
 					},
 				},
 				StartingEntity: proxy.EntityID,
-				Type:           "openid_relying_party",
+				Types:          []string{"openid_relying_party"},
 			},
 			includedMetadata: []string{"openid_relying_party"},
+		},
+		{
+			name: "proxy as op_rp: ta1",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: ta1.EntityID,
+						JWKS:     ta1.data.JWKS,
+					},
+				},
+				StartingEntity: proxy.EntityID,
+				Types: []string{
+					"openid_provider",
+					"openid_relying_party",
+				},
+			},
+			includedMetadata: []string{
+				"openid_provider",
+				"openid_relying_party",
+			},
 		},
 	}
 	for _, test := range tests {

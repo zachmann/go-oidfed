@@ -2,11 +2,13 @@ package utils
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 )
 
-// NilAllButOneByTag sets all fields of a struct to their zero values except for the field with the specified JSON tag.
-func NilAllButOneByTag(v interface{}, jsonTag string) {
+// NilAllExceptByTag sets all fields of a struct to their zero values except for
+// the fields with the specified JSON tags.
+func NilAllExceptByTag(v interface{}, jsonTags []string) {
 	if v == nil {
 		return
 	}
@@ -27,10 +29,9 @@ func NilAllButOneByTag(v interface{}, jsonTag string) {
 			baseTag = fieldType.Name
 		}
 
-		// If this is not the field to keep, set it to its zero value
-		if baseTag != jsonTag {
+		// If this is none of the fields to keep, set it to its zero value
+		if !slices.Contains(jsonTags, baseTag) {
 			field.Set(reflect.Zero(field.Type()))
 		}
 	}
-
 }

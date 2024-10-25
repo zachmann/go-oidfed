@@ -65,7 +65,7 @@ func (m jwsMessages) MarshalJSON() ([]byte, error) {
 type TrustResolver struct {
 	TrustAnchors   []TrustAnchor
 	StartingEntity string
-	Type           string
+	Types          []string
 	trustTree      trustTree
 }
 
@@ -83,8 +83,8 @@ func (r *TrustResolver) Resolve() {
 	if err != nil {
 		return
 	}
-	if r.Type != "" {
-		utils.NilAllButOneByTag(starting.Metadata, r.Type)
+	if len(r.Types) > 0 {
+		utils.NilAllExceptByTag(starting.Metadata, r.Types)
 	}
 	r.trustTree.Entity = starting
 	r.trustTree.resolve(r.TrustAnchors)
