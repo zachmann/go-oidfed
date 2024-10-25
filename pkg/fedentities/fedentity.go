@@ -20,6 +20,8 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
+const entityConfigurationCachePeriod = 5 * time.Second
+
 // EndpointConf is a type for configuring an endpoint with an internal and external path
 type EndpointConf struct {
 	Internal string `yaml:"path"`
@@ -117,7 +119,7 @@ func NewFedEntity(
 			if err != nil {
 				return ctx.Status(fiber.StatusInternalServerError).JSON(pkg.ErrorServerError(err.Error()))
 			}
-			err = cache.Set(cacheKey, jwt, 5*time.Second)
+			err = cache.Set(cacheKey, jwt, entityConfigurationCachePeriod)
 			if err != nil {
 				internal.Log(err)
 			}
