@@ -41,8 +41,10 @@ type entityStatementExported struct {
 // MarshalMsgpack implements the msgpack.Marshaler interface for usage with caching
 func (e EntityStatement) MarshalMsgpack() ([]byte, error) {
 	ee := entityStatementExported{
-		JWTMsg:  *e.jwtMsg,
 		Payload: e.EntityStatementPayload,
+	}
+	if e.jwtMsg != nil {
+		ee.JWTMsg = *e.jwtMsg
 	}
 	data, err := msgpack.Marshal(ee)
 	return data, err

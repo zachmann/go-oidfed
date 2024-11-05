@@ -71,11 +71,12 @@ func SetCache(cache Cache) {
 
 // Constants for keys for sub caches
 const (
-	KeyEntityStatement     = "entity_statement"
-	KeyOPMetadata          = "op_metadata"
-	KeyEntityConfiguration = "entity_configuration"
-	KeyTrustTree           = "trust_tree"
-	KeyTrustTreeChains     = "trust_tree_chains"
+	KeyEntityStatement            = "entity_statement"
+	KeyOPMetadata                 = "op_metadata"
+	KeyEntityConfiguration        = "entity_configuration"
+	KeyTrustTree                  = "trust_tree"
+	KeyTrustTreeChains            = "trust_tree_chains"
+	KeyTrustChainResolvedMetadata = "trustchain_resolved_metadata"
 )
 
 // Key combines a sub system prefix with the key to a cache key

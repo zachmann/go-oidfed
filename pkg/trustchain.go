@@ -2,13 +2,26 @@ package pkg
 
 import (
 	"github.com/pkg/errors"
+	"github.com/vmihailenco/msgpack/v5"
+	"golang.org/x/crypto/sha3"
 	"tideland.dev/go/slices"
 
+	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/zachmann/go-oidfed/pkg/cache"
 )
 
 // TrustChain is a slice of *EntityStatements
 type TrustChain []*EntityStatement
+
+func (c TrustChain) hash() ([]byte, error) {
+	data, err := msgpack.Marshal(c)
+	if err != nil {
+		return nil, err
+	}
+	hash := sha3.Sum256(data)
+	return hash[:], nil
+}
 
 // ExpiresAt returns the expiration time of the TrustChain as a UNIX time stamp
 func (c TrustChain) ExpiresAt() Unixtime {
@@ -27,6 +40,11 @@ func (c TrustChain) ExpiresAt() Unixtime {
 // Metadata returns the final Metadata for this TrustChain,
 // i.e. the Metadata of the leaf entity with MetadataPolicies of authorities applied to it.
 func (c TrustChain) Metadata() (*Metadata, error) {
+	if m, set, err := c.cacheGetMetadata(); err != nil {
+		internal.Log(err.Error())
+	} else if set {
+		return m, nil
+	}
 	if len(c) == 0 {
 		return nil, errors.New("trust chain empty")
 	}
@@ -57,7 +75,14 @@ func (c TrustChain) Metadata() (*Metadata, error) {
 	if m == nil {
 		m = &Metadata{}
 	}
-	return m.ApplyPolicy(combinedPolicy)
+	final, err := m.ApplyPolicy(combinedPolicy)
+	if err != nil {
+		return nil, err
+	}
+	if err = c.cacheSetMetadata(final); err != nil {
+		internal.Log(err.Error())
+	}
+	return final, nil
 }
 
 // Messages returns the jwts of the TrustChain
@@ -66,4 +91,29 @@ func (c TrustChain) Messages() (msgs jwsMessages) {
 		msgs = append(msgs, cc.jwtMsg)
 	}
 	return
+}
+
+func (c TrustChain) cacheGetMetadata() (
+	metadata *Metadata, set bool, err error,
+) {
+	hash, err := c.hash()
+	if err != nil {
+		return nil, false, err
+	}
+	metadata = &Metadata{}
+	set, err = cache.Get(
+		cache.Key(cache.KeyTrustChainResolvedMetadata, string(hash)), metadata,
+	)
+	return
+}
+
+func (c TrustChain) cacheSetMetadata(metadata *Metadata) error {
+	hash, err := c.hash()
+	if err != nil {
+		return err
+	}
+	return cache.Set(
+		cache.Key(cache.KeyTrustChainResolvedMetadata, string(hash)), metadata,
+		Until(c.ExpiresAt()),
+	)
 }
