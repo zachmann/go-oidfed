@@ -9,23 +9,31 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/constants"
 )
 
+type resolveRequest struct {
+	Subject     string   `json:"sub" form:"sub" query:"sub"`
+	Anchor      string   `json:"anchor" form:"anchor" query:"anchor"`
+	EntityTypes []string `json:"type" form:"type" query:"type"`
+}
+
 // AddResolveEndpoint adds a resolve endpoint
 func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 	fed.Metadata.FederationEntity.FederationResolveEndpoint = endpoint.URL()
 	fed.server.Get(
 		endpoint.Path(), func(ctx *fiber.Ctx) error {
-			ta := ctx.Query("anchor")
-			sub := ctx.Query("sub")
-			entityType := ctx.Query("type")
-			if ta == "" {
+			var req resolveRequest
+			if err := ctx.QueryParser(&req); err != nil {
+				ctx.Status(fiber.StatusBadRequest)
+				return ctx.JSON(pkg.ErrorInvalidRequest("could not parse request parameters: " + err.Error()))
+			}
+			if req.Anchor == "" {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'anchor' not given"))
 			}
-			if sub == "" {
+			if req.Subject == "" {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'sub' not given"))
 			}
-			taConfig, err := pkg.GetEntityConfiguration(ta)
+			taConfig, err := pkg.GetEntityConfiguration(req.Anchor)
 			if err != nil {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("could not obtain entity configuration for trust anchor"))
@@ -33,12 +41,12 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 			resolver := pkg.TrustResolver{
 				TrustAnchors: []pkg.TrustAnchor{
 					{
-						EntityID: ta,
+						EntityID: req.Anchor,
 						JWKS:     taConfig.JWKS,
 					},
 				},
-				StartingEntity: sub,
-				Type:           entityType,
+				StartingEntity: req.Subject,
+				Types:          req.EntityTypes,
 			}
 			chains := resolver.ResolveToValidChains()
 			if len(chains) == 0 {
@@ -57,7 +65,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 			}
 			res := pkg.ResolveResponse{
 				Issuer:     fed.FederationEntity.EntityID,
-				Subject:    sub,
+				Subject:    req.Subject,
 				IssuedAt:   pkg.Unixtime{Time: time.Now()},
 				ExpiresAt:  selectedChain.ExpiresAt(),
 				Metadata:   metadata,
