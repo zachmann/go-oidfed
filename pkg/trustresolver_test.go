@@ -66,6 +66,19 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 			expectedChains: ta1Chains,
 		},
 		{
+			name: "cached rp1: ta1",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: ta1.EntityID,
+						JWKS:     ta1.data.JWKS,
+					},
+				},
+				StartingEntity: rp1.EntityID,
+			},
+			expectedChains: ta1Chains,
+		},
+		{
 			name: "rp1: ta2",
 			resolver: TrustResolver{
 				TrustAnchors: TrustAnchors{

@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/vmihailenco/msgpack/v5"
+	"golang.org/x/crypto/sha3"
+
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
@@ -69,9 +72,40 @@ type TrustResolver struct {
 	trustTree      trustTree
 }
 
+func (r TrustResolver) hash() ([]byte, error) {
+	tas := make([]string, len(r.TrustAnchors))
+	for i, ta := range r.TrustAnchors {
+		tas[i] = ta.EntityID
+	}
+	var forSerialization = struct {
+		StartingEntity string
+		TAs            []string
+		Types          []string
+	}{
+		StartingEntity: r.StartingEntity,
+		TAs:            tas,
+		Types:          r.Types,
+	}
+	data, err := msgpack.Marshal(forSerialization)
+	if err != nil {
+		return nil, err
+	}
+	hash := sha3.Sum256(data)
+	return hash[:], nil
+}
+
 // ResolveToValidChains starts the trust chain resolution process, building an internal trust tree,
 // verifies the signatures, integrity, expirations, and metadata policies and returns all possible valid TrustChains
 func (r *TrustResolver) ResolveToValidChains() TrustChains {
+	chains, set, err := r.cacheGetTrustChains()
+	if err != nil {
+		set = false
+		internal.Log(err.Error())
+	}
+	if set {
+		internal.Log("Obtained trust chains from cache")
+		return chains
+	}
 	r.Resolve()
 	r.VerifySignatures()
 	return r.Chains().Filter(TrustChainsFilterValidMetadata)
@@ -79,6 +113,12 @@ func (r *TrustResolver) ResolveToValidChains() TrustChains {
 
 // Resolve starts the trust chain resolution process, building an internal trust tree
 func (r *TrustResolver) Resolve() {
+	if found, err := r.cacheGetTrustTree(); err != nil {
+		internal.Log(err.Error())
+	} else if found {
+		internal.Log("Obtained trust tree from cache")
+		return
+	}
 	starting, err := GetEntityConfiguration(r.StartingEntity)
 	if err != nil {
 		return
@@ -88,15 +128,28 @@ func (r *TrustResolver) Resolve() {
 	}
 	r.trustTree.Entity = starting
 	r.trustTree.resolve(r.TrustAnchors)
+	if err = r.cacheSetTrustTree(); err != nil {
+		internal.Log(err.Error())
+	}
 }
 
 // VerifySignatures verifies the signatures of the internal trust tree
 func (r *TrustResolver) VerifySignatures() {
 	r.trustTree.verifySignatures(r.TrustAnchors)
+	if err := r.cacheSetTrustTree(); err != nil {
+		internal.Log(err.Error())
+	}
 }
 
 // Chains returns the TrustChains in the internal trust tree
 func (r TrustResolver) Chains() (chains TrustChains) {
+	chains, set, err := r.cacheGetTrustChains()
+	if err != nil {
+		internal.Log(err.Error())
+	}
+	if set {
+		return chains
+	}
 	cs := r.trustTree.chains()
 	if cs == nil {
 		return nil
@@ -104,19 +157,74 @@ func (r TrustResolver) Chains() (chains TrustChains) {
 	for _, c := range cs {
 		chains = append(chains, append(TrustChain{r.trustTree.Entity}, c...))
 	}
+	if err = r.cacheSetTrustChains(chains); err != nil {
+		internal.Log(err.Error())
+	}
 	return
+}
+
+func (r TrustResolver) cacheGetTrustChains() (
+	chains TrustChains, set bool, err error,
+) {
+	hash, err := r.hash()
+	if err != nil {
+		return nil, false, err
+	}
+	set, err = cache.Get(
+		cache.Key(cache.KeyTrustTreeChains, string(hash)), &chains,
+	)
+	return
+}
+
+func (r TrustResolver) cacheSetTrustChains(chains TrustChains) error {
+	hash, err := r.hash()
+	if err != nil {
+		return err
+	}
+	return cache.Set(
+		cache.Key(cache.KeyTrustTreeChains, string(hash)), chains,
+		Until(r.trustTree.expiresAt),
+	)
+}
+
+func (r *TrustResolver) cacheGetTrustTree() (
+	set bool, err error,
+) {
+	hash, err := r.hash()
+	if err != nil {
+		return false, err
+	}
+	set, err = cache.Get(
+		cache.Key(cache.KeyTrustTree, string(hash)), &r.trustTree,
+	)
+	return
+}
+func (r TrustResolver) cacheSetTrustTree() error {
+	hash, err := r.hash()
+	if err != nil {
+		return err
+	}
+	return cache.Set(
+		cache.Key(cache.KeyTrustTree, string(hash)), r.trustTree,
+		Until(r.trustTree.expiresAt),
+	)
 }
 
 // trustTree is a type for holding EntityStatements in a tree
 type trustTree struct {
-	Entity      *EntityStatement
-	Subordinate *EntityStatement
-	Authorities []trustTree
+	Entity             *EntityStatement
+	Subordinate        *EntityStatement
+	Authorities        []trustTree
+	signaturesVerified bool
+	expiresAt          Unixtime
 }
 
 func (t *trustTree) resolve(anchors TrustAnchors) {
 	if t.Entity == nil {
 		return
+	}
+	if t.Entity.ExpiresAt.Before(t.expiresAt.Time) {
+		t.expiresAt = t.Entity.ExpiresAt
 	}
 	if utils.SliceContains(t.Entity.Issuer, anchors.EntityIDs()) {
 		return
@@ -145,6 +253,9 @@ func (t *trustTree) resolve(anchors TrustAnchors) {
 		if subordinateStmt.Issuer != aID || subordinateStmt.Subject != t.Entity.Issuer || !subordinateStmt.TimeValid() {
 			continue
 		}
+		if subordinateStmt.ExpiresAt.Before(t.expiresAt.Time) {
+			t.expiresAt = subordinateStmt.ExpiresAt
+		}
 		tt := trustTree{
 			Entity:      aStmt,
 			Subordinate: subordinateStmt,
@@ -155,6 +266,9 @@ func (t *trustTree) resolve(anchors TrustAnchors) {
 }
 
 func (t *trustTree) verifySignatures(anchors TrustAnchors) bool {
+	if t.signaturesVerified {
+		return true
+	}
 	if t.Subordinate != nil {
 		for _, ta := range anchors {
 			if utils.Equal(ta.EntityID, t.Entity.Issuer, t.Entity.Subject, t.Subordinate.Issuer) {
@@ -163,7 +277,8 @@ func (t *trustTree) verifySignatures(anchors TrustAnchors) bool {
 				if jwks.Set == nil {
 					jwks = t.Entity.JWKS
 				}
-				return t.Entity.Verify(jwks) && t.Subordinate.Verify(jwks)
+				t.signaturesVerified = t.Entity.Verify(jwks) && t.Subordinate.Verify(jwks)
+				return t.signaturesVerified
 			}
 		}
 	}
@@ -184,7 +299,8 @@ func (t *trustTree) verifySignatures(anchors TrustAnchors) bool {
 		iValid++
 	}
 	t.Authorities = t.Authorities[:iValid]
-	return len(t.Authorities) > 0
+	t.signaturesVerified = len(t.Authorities) > 0
+	return t.signaturesVerified
 }
 
 func (t trustTree) chains() (chains []TrustChain) {

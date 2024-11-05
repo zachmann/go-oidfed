@@ -33,6 +33,11 @@ func (u Unixtime) MarshalJSON() ([]byte, error) {
 	return json.Marshal(float64(u.UnixNano()) / 1e9)
 }
 
+// Until returns the time.Duration from now until an Unixtime
+func Until(u Unixtime) time.Duration {
+	return time.Until(u.Time)
+}
+
 func verifyTime(iat, exp *Unixtime) error {
 	now := time.Now()
 	if iat != nil && !iat.IsZero() && iat.After(now) {
