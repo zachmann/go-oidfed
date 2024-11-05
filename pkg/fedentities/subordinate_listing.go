@@ -15,9 +15,12 @@ func (fed *FedEntity) AddSubordinateListingEndpoint(
 	endpoint EndpointConf, store storage.SubordinateStorageBackend,
 	trustMarkStore storage.TrustMarkedEntitiesStorageBackend,
 ) {
-	fed.Metadata.FederationEntity.FederationListEndpoint = endpoint.URL()
+	fed.Metadata.FederationEntity.FederationListEndpoint = endpoint.ValidateURL(fed.FederationEntity.EntityID)
+	if endpoint.Path == "" {
+		return
+	}
 	fed.server.Get(
-		endpoint.Path(), func(ctx *fiber.Ctx) error {
+		endpoint.Path, func(ctx *fiber.Ctx) error {
 			return handleSubordinateListing(
 				ctx, ctx.Query("entity_type"), ctx.QueryBool("trust_marked"),
 				ctx.Query("trust_mark_id"),

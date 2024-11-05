@@ -22,9 +22,12 @@ func (fed *FedEntity) AddEnrollEndpoint(
 	if fed.Metadata.FederationEntity.Extra == nil {
 		fed.Metadata.FederationEntity.Extra = make(map[string]interface{})
 	}
-	fed.Metadata.FederationEntity.Extra["federation_enroll_endpoint"] = endpoint.URL()
+	fed.Metadata.FederationEntity.Extra["federation_enroll_endpoint"] = endpoint.ValidateURL(fed.FederationEntity.EntityID)
+	if endpoint.Path == "" {
+		return
+	}
 	fed.server.Get(
-		endpoint.Path(), func(ctx *fiber.Ctx) error {
+		endpoint.Path, func(ctx *fiber.Ctx) error {
 			var req enrollRequest
 			if err := ctx.QueryParser(&req); err != nil {
 				ctx.Status(fiber.StatusBadRequest)

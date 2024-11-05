@@ -3,6 +3,7 @@ package fedentities
 import (
 	"crypto"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -24,29 +25,23 @@ const entityConfigurationCachePeriod = 5 * time.Second
 
 // EndpointConf is a type for configuring an endpoint with an internal and external path
 type EndpointConf struct {
-	Internal string `yaml:"path"`
-	External string `yaml:"url"`
+	Path string `yaml:"path"`
+	URL  string `yaml:"url"`
 }
 
 // IsSet returns a bool indicating if this endpoint was configured or not
 func (c EndpointConf) IsSet() bool {
-	return c.Internal != "" || c.External != ""
+	return c.Path != "" || c.URL != ""
 }
 
-// Path returns the internal path
-func (c EndpointConf) Path() string {
-	if c.Internal == "" {
-		return c.External
+// ValidateURL validates that an external URL is set,
+// and if not prefixes the internal path with the passed rootURL and sets it
+// at the external url
+func (c *EndpointConf) ValidateURL(rootURL string) string {
+	if c.URL == "" {
+		c.URL, _ = url.JoinPath(rootURL, c.Path)
 	}
-	return c.Internal
-}
-
-// URL returns the external url
-func (c EndpointConf) URL() string {
-	if c.External == "" {
-		return c.Internal
-	}
-	return c.External
+	return c.URL
 }
 
 // FedEntity is a type a that represents a federation entity that can have multiple purposes (TA/IA + TMI, etc.)

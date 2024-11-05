@@ -10,9 +10,12 @@ import (
 
 // AddFetchEndpoint adds a fetch endpoint
 func (fed *FedEntity) AddFetchEndpoint(endpoint EndpointConf, store storage.SubordinateStorageBackend) {
-	fed.Metadata.FederationEntity.FederationFetchEndpoint = endpoint.URL()
+	fed.Metadata.FederationEntity.FederationFetchEndpoint = endpoint.ValidateURL(fed.FederationEntity.EntityID)
+	if endpoint.Path == "" {
+		return
+	}
 	fed.server.Get(
-		endpoint.Path(), func(ctx *fiber.Ctx) error {
+		endpoint.Path, func(ctx *fiber.Ctx) error {
 			sub := ctx.Query("sub")
 			if sub == "" {
 				ctx.Status(fiber.StatusBadRequest)

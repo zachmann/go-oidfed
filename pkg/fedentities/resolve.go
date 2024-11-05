@@ -17,9 +17,12 @@ type resolveRequest struct {
 
 // AddResolveEndpoint adds a resolve endpoint
 func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
-	fed.Metadata.FederationEntity.FederationResolveEndpoint = endpoint.URL()
+	fed.Metadata.FederationEntity.FederationResolveEndpoint = endpoint.ValidateURL(fed.FederationEntity.EntityID)
+	if endpoint.Path == "" {
+		return
+	}
 	fed.server.Get(
-		endpoint.Path(), func(ctx *fiber.Ctx) error {
+		endpoint.Path, func(ctx *fiber.Ctx) error {
 			var req resolveRequest
 			if err := ctx.QueryParser(&req); err != nil {
 				ctx.Status(fiber.StatusBadRequest)

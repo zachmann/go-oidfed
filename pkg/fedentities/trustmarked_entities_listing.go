@@ -14,9 +14,12 @@ func (fed *FedEntity) AddTrustMarkedEntitiesListingEndpoint(
 	endpoint EndpointConf,
 	store storage.TrustMarkedEntitiesStorageBackend,
 ) {
-	fed.Metadata.FederationEntity.FederationTrustMarkListEndpoint = endpoint.URL()
+	fed.Metadata.FederationEntity.FederationTrustMarkListEndpoint = endpoint.ValidateURL(fed.FederationEntity.EntityID)
+	if endpoint.Path == "" {
+		return
+	}
 	fed.server.Get(
-		endpoint.Path(), func(ctx *fiber.Ctx) error {
+		endpoint.Path, func(ctx *fiber.Ctx) error {
 			trustMarkID := ctx.Query("trust_mark_id")
 			sub := ctx.Query("sub")
 			if trustMarkID == "" {
