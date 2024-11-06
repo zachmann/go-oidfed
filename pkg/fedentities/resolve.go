@@ -11,7 +11,7 @@ import (
 
 type resolveRequest struct {
 	Subject     string   `json:"sub" form:"sub" query:"sub"`
-	Anchor      string   `json:"anchor" form:"anchor" query:"anchor"`
+	Anchor      []string `json:"anchor" form:"anchor" query:"anchor"`
 	EntityTypes []string `json:"type" form:"type" query:"type"`
 }
 
@@ -28,7 +28,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("could not parse request parameters: " + err.Error()))
 			}
-			if req.Anchor == "" {
+			if len(req.Anchor) == 0 {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'anchor' not given"))
 			}
@@ -36,18 +36,8 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'sub' not given"))
 			}
-			taConfig, err := pkg.GetEntityConfiguration(req.Anchor)
-			if err != nil {
-				ctx.Status(fiber.StatusBadRequest)
-				return ctx.JSON(pkg.ErrorInvalidRequest("could not obtain entity configuration for trust anchor"))
-			}
 			resolver := pkg.TrustResolver{
-				TrustAnchors: []pkg.TrustAnchor{
-					{
-						EntityID: req.Anchor,
-						JWKS:     taConfig.JWKS,
-					},
-				},
+				TrustAnchors:   pkg.NewTrustAnchorsFromEntityIDs(req.Anchor...),
 				StartingEntity: req.Subject,
 				Types:          req.EntityTypes,
 			}
@@ -60,9 +50,10 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 			metadata, _ := selectedChain.Metadata()
 			// err cannot be != nil, since ResolveToValidChains only gives chains with valid metadata
 			leaf := selectedChain[0]
+			ta := selectedChain[len(selectedChain)-1]
 			var verifiedTMs []pkg.TrustMarkInfo
 			for _, tm := range leaf.TrustMarks {
-				if err = tm.VerifyFederation(&taConfig.EntityStatementPayload); err == nil {
+				if err := tm.VerifyFederation(&ta.EntityStatementPayload); err == nil {
 					verifiedTMs = append(verifiedTMs, tm)
 				}
 			}
