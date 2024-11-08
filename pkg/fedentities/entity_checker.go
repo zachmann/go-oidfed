@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
@@ -280,12 +281,13 @@ func (c TrustPathEntityChecker) Check(
 	entityTypes []string,
 ) (bool, int, *pkg.Error) {
 
-	resolver := pkg.TrustResolver{
-		TrustAnchors:   c.TrustAnchors,
-		StartingEntity: entityConfiguration.Subject,
-	}
-	chains := resolver.ResolveToValidChains()
-	if len(chains) == 0 {
+	ok := pkg.DefaultMetadataResolver.ResolvePossible(
+		apimodel.ResolveRequest{
+			Subject: entityConfiguration.Subject,
+			Anchor:  c.TrustAnchors.EntityIDs(),
+		},
+	)
+	if !ok {
 		return false, fiber.StatusForbidden, &pkg.Error{
 			Error:            "forbidden",
 			ErrorDescription: "no valid trust path to trust anchors found",

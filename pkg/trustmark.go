@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
@@ -157,25 +158,26 @@ func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 			return errors.New("verify trustmark: trust mark issuer is not allowed by trust anchor")
 		}
 	}
-	tmiChains := (&TrustResolver{
-		TrustAnchors: []TrustAnchor{
-			{
-				EntityID: ta.Subject,
-				JWKS:     ta.JWKS,
-			},
+	tmi, err := DefaultMetadataResolver.Resolve(
+		apimodel.ResolveRequest{
+			Subject: tm.Issuer,
+			Anchor:  []string{ta.Subject},
 		},
-		StartingEntity: tm.Issuer,
-	}).ResolveToValidChains()
-	if len(tmiChains) == 0 {
-		return errors.New("verify trustmark: cannot find valid trustchain for trust mark issuer")
+	)
+	if err != nil {
+		return errors.Wrap(err, "error while resolving trust mark issuer")
 	}
-	tmi := tmiChains[0][0]
+	if tmi == nil || tmi.FederationEntity == nil || tmi.FederationEntity.JWKS == nil {
+		return errors.New("no jwks found for trust mark issuer")
+	}
+	// TODO those might not be set and might not be equivalent to the jwks in the entity configuration
+	jwks := tmi.FederationEntity.JWKS
 	tmo, tmoFound := ta.TrustMarkOwners[tm.ID]
 	if !tmoFound {
 		// no delegation
-		return tm.VerifyExternal(tmi.JWKS)
+		return tm.VerifyExternal(*jwks)
 	}
-	return tm.VerifyExternal(tmi.JWKS, tmo)
+	return tm.VerifyExternal(*jwks, tmo)
 }
 
 // VerifyExternal verifies the TrustMark by using the passed trust mark issuer jwks and optionally the passed
@@ -184,7 +186,7 @@ func (tm *TrustMark) VerifyExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec) er
 	if err := verifyTime(&tm.IssuedAt, tm.ExpiresAt); err != nil {
 		return err
 	}
-	if _, err := jwx.VerifyWithSet(tm.jwtMsg, jwks); err != nil {
+	if _, err := tm.jwtMsg.VerifyWithSet(jwks); err != nil {
 		return errors.Wrap(err, "verify trustmark")
 	}
 	if len(tmo) == 0 {
@@ -257,7 +259,7 @@ func (djwt DelegationJWT) VerifyFederation(ta *EntityStatementPayload) error {
 	if !ok {
 		return errors.New("verify delegation jwt: unknown trust mark owner")
 	}
-	_, err := jwx.VerifyWithSet(djwt.jwtMsg, owner.JWKS)
+	_, err := djwt.jwtMsg.VerifyWithSet(owner.JWKS)
 	return errors.Wrap(err, "verify delegation jwt")
 }
 
@@ -266,7 +268,7 @@ func (djwt DelegationJWT) VerifyExternal(jwks jwk.JWKS) error {
 	if err := verifyTime(&djwt.IssuedAt, djwt.ExpiresAt); err != nil {
 		return errors.Wrap(err, "verify delegation jwt")
 	}
-	_, err := jwx.VerifyWithSet(djwt.jwtMsg, jwks)
+	_, err := djwt.jwtMsg.VerifyWithSet(jwks)
 	return errors.Wrap(err, "verify delegation jwt")
 }
 

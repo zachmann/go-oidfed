@@ -47,8 +47,8 @@ func Parse(data []byte) (*ParsedJWT, error) {
 }
 
 // VerifyWithSet uses a jwk.Set to verify a *jws.Message, returning the decoded payload or an error
-func VerifyWithSet(msg *ParsedJWT, keys myjwk.JWKS) ([]byte, error) {
-	if msg == nil || msg.Message == nil {
+func (p *ParsedJWT) VerifyWithSet(keys myjwk.JWKS) ([]byte, error) {
+	if p == nil || p.Message == nil {
 		return nil, errors.New("jws.Verify: missing message")
 	}
 	if keys.Set == nil || keys.Len() == 0 {
@@ -56,13 +56,13 @@ func VerifyWithSet(msg *ParsedJWT, keys myjwk.JWKS) ([]byte, error) {
 	}
 	var alg jwa.SignatureAlgorithm
 	var kid string
-	if msg.Signatures() != nil {
-		head := msg.Signatures()[0].ProtectedHeaders()
+	if p.Signatures() != nil {
+		head := p.Signatures()[0].ProtectedHeaders()
 		alg = head.Algorithm()
 		kid = head.KeyID()
 	}
 	if alg == "" && kid == "" {
-		return jws.VerifySet(msg.RawJWT, keys.Set)
+		return jws.VerifySet(p.RawJWT, keys.Set)
 	}
 	for i := 0; i < keys.Len(); i++ {
 		k, ok := keys.Get(i)
@@ -75,12 +75,21 @@ func VerifyWithSet(msg *ParsedJWT, keys myjwk.JWKS) ([]byte, error) {
 		if !utils.StringsEqualIfSet(kid, k.KeyID()) {
 			continue
 		}
-		pay, err := jws.Verify(msg.RawJWT, alg, k)
+		pay, err := jws.Verify(p.RawJWT, alg, k)
 		if err == nil {
 			return pay, nil
 		}
 	}
 	return nil, errors.New(`failed to verify message with any of the keys in the jwk.Set object`)
+}
+
+// VerifyType verifies that the header typ has a certain value
+func (p *ParsedJWT) VerifyType(typ string) bool {
+	if p.Signatures() == nil {
+		return false
+	}
+	head := p.Signatures()[0].ProtectedHeaders()
+	return head.Type() == typ
 }
 
 // SignWithType creates a signed JWT of the passed type for the passed payload using the

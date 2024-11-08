@@ -7,7 +7,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/pkg/errors"
 
-	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/cache"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
@@ -117,26 +117,15 @@ func (f FederationLeaf) ResolveOPMetadata(issuer string) (*OpenIDProviderMetadat
 	if set {
 		return &opm, nil
 	}
-	tr := TrustResolver{
-		TrustAnchors:   f.TrustAnchors,
-		StartingEntity: issuer,
-	}
-	chains := tr.ResolveToValidChains()
-	chains = chains.Filter(TrustChainsFilterMinPathLength)
-	if len(chains) == 0 {
-		return nil, errors.New("no trust chain found")
-	}
-	chain := chains[0]
-	m, err := chain.Metadata()
+	metadata, err := DefaultMetadataResolver.Resolve(
+		apimodel.ResolveRequest{
+			Subject:     issuer,
+			Anchor:      f.TrustAnchors.EntityIDs(),
+			EntityTypes: []string{"openid_provider"},
+		},
+	)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrap(err, "no trust chain with valid metadata found")
 	}
-	delta := time.Until(chain.ExpiresAt().Add(-time.Minute)) // we subtract a one-minute puffer
-	if delta > 0 {
-		err = cache.Set(cache.Key(cache.KeyOPMetadata, issuer), m.OpenIDProvider, delta)
-		if err != nil {
-			internal.Log(err)
-		}
-	}
-	return m.OpenIDProvider, nil
+	return metadata.OpenIDProvider, nil
 }

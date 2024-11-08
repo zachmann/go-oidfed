@@ -6,14 +6,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/constants"
 )
-
-type resolveRequest struct {
-	Subject     string   `json:"sub" form:"sub" query:"sub"`
-	Anchor      []string `json:"anchor" form:"anchor" query:"anchor"`
-	EntityTypes []string `json:"type" form:"type" query:"type"`
-}
 
 // AddResolveEndpoint adds a resolve endpoint
 func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
@@ -23,7 +18,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 	}
 	fed.server.Get(
 		endpoint.Path, func(ctx *fiber.Ctx) error {
-			var req resolveRequest
+			var req apimodel.ResolveRequest
 			if err := ctx.QueryParser(&req); err != nil {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("could not parse request parameters: " + err.Error()))
@@ -46,7 +41,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 				ctx.Status(fiber.StatusNotFound)
 				return ctx.JSON(pkg.ErrorInvalidRequest("no valid trust path between sub and anchor found"))
 			}
-			selectedChain := chains[0]
+			selectedChain := chains.Filter(pkg.TrustChainsFilterMinPathLength)[0]
 			metadata, _ := selectedChain.Metadata()
 			// err cannot be != nil, since ResolveToValidChains only gives chains with valid metadata
 			leaf := selectedChain[0]

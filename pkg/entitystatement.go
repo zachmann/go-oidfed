@@ -26,7 +26,7 @@ type EntityStatement struct {
 
 // Verify verifies that the EntityStatement jwt is valid
 func (e EntityStatement) Verify(keys jwk.JWKS) bool {
-	_, err := jwx.VerifyWithSet(e.jwtMsg, keys)
+	_, err := e.jwtMsg.VerifyWithSet(keys)
 	if err != nil {
 		internal.Log(err)
 	}

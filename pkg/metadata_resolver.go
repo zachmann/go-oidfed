@@ -1,0 +1,176 @@
+package pkg
+
+import (
+	"encoding/json"
+
+	"github.com/pkg/errors"
+
+	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/zachmann/go-oidfed/pkg/apimodel"
+	"github.com/zachmann/go-oidfed/pkg/constants"
+)
+
+// MetadataResolver is type for resolving the metadata from a StartingEntity to
+// one or multiple TrustAnchors
+type MetadataResolver interface {
+	Resolve(request apimodel.ResolveRequest) (*Metadata, error)
+	ResolvePossible(request apimodel.ResolveRequest) bool
+}
+
+// DefaultMetadataResolver is the default MetadataResolver used within the
+// library to resolve Metadata
+var DefaultMetadataResolver MetadataResolver = LocalMetadataResolver{}
+
+// LocalMetadataResolver is a MetadataResolver that resolves trust chains and
+// evaluates metadata policies to obtain the final Metadata; it does not use
+// a resolve endpoint
+type LocalMetadataResolver struct{}
+
+// Resolve implements the MetadataResolver interface
+func (r LocalMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Metadata, error) {
+	tr := TrustResolver{
+		TrustAnchors:   NewTrustAnchorsFromEntityIDs(req.Anchor...),
+		StartingEntity: req.Subject,
+		Types:          req.EntityTypes,
+	}
+	chains := tr.ResolveToValidChains()
+	chains = chains.Filter(TrustChainsFilterMinPathLength)
+	if len(chains) == 0 {
+		return nil, errors.New("no trust chain found")
+	}
+	for _, chain := range chains {
+		m, err := chain.Metadata()
+		if err == nil {
+			return m, nil
+		}
+	}
+	return nil, errors.New("no trust chain with valid metadata found")
+}
+
+// ResolvePossible implements the MetadataResolver interface
+func (r LocalMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) bool {
+	tr := TrustResolver{
+		TrustAnchors:   NewTrustAnchorsFromEntityIDs(req.Anchor...),
+		StartingEntity: req.Subject,
+		Types:          req.EntityTypes,
+	}
+	chains := tr.ResolveToValidChains()
+	return len(chains) > 0
+}
+
+// SimpleRemoteMetadataResolver is a MetadataResolver that utilizes a given
+// ResolveEndpoint
+type SimpleRemoteMetadataResolver struct {
+	ResolveEndpoint string
+}
+
+// ResolveResponse returns the ResolveResponse from a response endpoint
+func (r SimpleRemoteMetadataResolver) ResolveResponse(req apimodel.ResolveRequest) (
+	*ResolveResponse, error,
+) {
+	body, err := internal.DefaultHttpResolveObtainer.Resolve(r.ResolveEndpoint, req)
+	if err != nil {
+		return nil, err
+	}
+	// TODO me might want to parse the parse the body differently in case of
+	//  an error and differentiate between different error cases
+	return ParseResolveResponse(body)
+}
+
+// Resolve implements the MetadataResolver interface
+func (r SimpleRemoteMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Metadata, error) {
+	res, err := r.ResolveResponse(req)
+	if err != nil {
+		return nil, err
+	}
+	return res.Metadata, nil
+}
+
+// ResolvePossible implements the MetadataResolver interface
+func (r SimpleRemoteMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) bool {
+	res, err := r.ResolveResponse(req)
+	if err != nil {
+		internal.Log(err.Error())
+		return false
+	}
+	return res != nil && res.Subject == req.Subject
+}
+
+// ParseResolveResponse parses a jwt into a ResolveResponse
+func ParseResolveResponse(body []byte) (*ResolveResponse, error) {
+	r, err := jwx.Parse(body)
+	if err != nil {
+		return nil, err
+	}
+	if !r.VerifyType(constants.JWTTypeResolveResponse) {
+		return nil, errors.Errorf("response does not have '%s' JWT type", constants.JWTTypeResolveResponse)
+	}
+	var res ResolveResponse
+	if err = json.Unmarshal(r.Payload(), &res); err != nil {
+		return nil, err
+	}
+	return &res, err
+}
+
+// SmartRemoteMetadataResolver is a MetadataResolver that utilizes remote
+// resolve endpoints. It will iterate through the resolve endpoints of the
+// given TrustAnchors and stop if one is successful,
+// if no resolve endpoint is successful, local resolving is used
+type SmartRemoteMetadataResolver struct{}
+
+// Resolve implements the MetadataResolver interface
+func (r SmartRemoteMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Metadata, error) {
+	for _, tr := range req.Anchor {
+		entityConfig, err := GetEntityConfiguration(tr)
+		if err != nil {
+			internal.Logf("error while obtaining entity configuration: %v", err)
+			continue
+		}
+		var resolveEndpoint string
+		if entityConfig != nil && entityConfig.Metadata != nil && entityConfig.Metadata.FederationEntity != nil {
+			resolveEndpoint = entityConfig.Metadata.FederationEntity.FederationResolveEndpoint
+		}
+		if resolveEndpoint == "" {
+			continue
+		}
+		remoteResolver := SimpleRemoteMetadataResolver{
+			ResolveEndpoint: resolveEndpoint,
+		}
+		m, err := remoteResolver.Resolve(req)
+		if err != nil {
+			internal.Logf("error while obtaining resolve response: %v", err)
+			continue
+		}
+		return m, nil
+	}
+	return LocalMetadataResolver{}.Resolve(req)
+}
+
+// ResolvePossible implements the MetadataResolver interface
+func (r SmartRemoteMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) bool {
+	for _, tr := range req.Anchor {
+		entityConfig, err := GetEntityConfiguration(tr)
+		if err != nil {
+			internal.Logf("error while obtaining entity configuration: %v", err)
+			continue
+		}
+		var resolveEndpoint string
+		if entityConfig != nil && entityConfig.Metadata != nil && entityConfig.Metadata.FederationEntity != nil {
+			resolveEndpoint = entityConfig.Metadata.FederationEntity.FederationResolveEndpoint
+		}
+		if resolveEndpoint == "" {
+			continue
+		}
+		remoteResolver := SimpleRemoteMetadataResolver{
+			ResolveEndpoint: resolveEndpoint,
+		}
+		if remoteResolver.ResolvePossible(req) {
+			// TODO if we have a differentiation between "no trust chain possible"
+			//  and other error cases, we can rely on the "no trust chain possible"
+			//  also in the negativ case
+			return true
+		}
+	}
+	return LocalMetadataResolver{}.ResolvePossible(req)
+}
