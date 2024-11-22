@@ -10,16 +10,16 @@ import (
 )
 
 type config struct {
-	EntityID           string              `yaml:"entity_id"`
-	TrustAnchors       pkg.TrustAnchors    `yaml:"trust_anchors"`
-	AuthorityHints     []string            `yaml:"authority_hints"`
-	OrganisationName   string              `yaml:"organisation_name"`
-	ServerAddr         string              `yaml:"server_addr"`
-	KeyStorage         string              `yaml:"key_storage"`
-	OnlyAutomaticOPs   bool                `yaml:"filter_to_automatic_ops"`
-	EnableDebugLog     bool                `yaml:"enable_debug_log"`
-	TrustMarks         []pkg.TrustMarkInfo `yaml:"trust_marks"`
-	UseResolveEndpoint bool                `yaml:"use_resolve_endpoint"`
+	EntityID           string             `yaml:"entity_id"`
+	TrustAnchors       pkg.TrustAnchors   `yaml:"trust_anchors"`
+	AuthorityHints     []string           `yaml:"authority_hints"`
+	OrganisationName   string             `yaml:"organisation_name"`
+	ServerAddr         string             `yaml:"server_addr"`
+	KeyStorage         string             `yaml:"key_storage"`
+	OnlyAutomaticOPs   bool               `yaml:"filter_to_automatic_ops"`
+	EnableDebugLog     bool               `yaml:"enable_debug_log"`
+	TrustMarks         pkg.TrustMarkInfos `yaml:"trust_marks"`
+	UseResolveEndpoint bool               `yaml:"use_resolve_endpoint"`
 }
 
 var conf *config

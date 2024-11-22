@@ -15,6 +15,7 @@ import (
 // one or multiple TrustAnchors
 type MetadataResolver interface {
 	Resolve(request apimodel.ResolveRequest) (*Metadata, error)
+	ResolveResponsePayload(request apimodel.ResolveRequest) (ResolveResponsePayload, error)
 	ResolvePossible(request apimodel.ResolveRequest) bool
 }
 
@@ -29,6 +30,15 @@ type LocalMetadataResolver struct{}
 
 // Resolve implements the MetadataResolver interface
 func (r LocalMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Metadata, error) {
+	res, _, err := r.resolveResponsePayloadWithoutTrustMarks(req)
+	return res.Metadata, err
+}
+
+func (r LocalMetadataResolver) resolveResponsePayloadWithoutTrustMarks(
+	req apimodel.ResolveRequest,
+) (
+	res ResolveResponsePayload, chain TrustChain, err error,
+) {
 	tr := TrustResolver{
 		TrustAnchors:   NewTrustAnchorsFromEntityIDs(req.Anchor...),
 		StartingEntity: req.Subject,
@@ -37,15 +47,32 @@ func (r LocalMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Metadata, 
 	chains := tr.ResolveToValidChains()
 	chains = chains.Filter(TrustChainsFilterMinPathLength)
 	if len(chains) == 0 {
-		return nil, errors.New("no trust chain found")
+		err = errors.New("no trust chain found")
+		return
 	}
-	for _, chain := range chains {
+	for _, chain = range chains {
 		m, err := chain.Metadata()
 		if err == nil {
-			return m, nil
+			res.TrustChain = chain.Messages()
+			res.Metadata = m
+			return res, chain, nil
 		}
 	}
-	return nil, errors.New("no trust chain with valid metadata found")
+	err = errors.New("no trust chain with valid metadata found")
+	return
+}
+
+// ResolveResponsePayload implements the MetadataResolver interface
+func (r LocalMetadataResolver) ResolveResponsePayload(req apimodel.ResolveRequest) (
+	res ResolveResponsePayload, err error,
+) {
+	var chain TrustChain
+	res, chain, err = r.resolveResponsePayloadWithoutTrustMarks(req)
+	if err != nil {
+		return
+	}
+	res.TrustMarks = chain[0].TrustMarks.VerifiedFederation(&chain[len(chain)-1].EntityStatementPayload)
+	return
 }
 
 // ResolvePossible implements the MetadataResolver interface
@@ -73,8 +100,7 @@ func (r SimpleRemoteMetadataResolver) ResolveResponse(req apimodel.ResolveReques
 	if err != nil {
 		return nil, err
 	}
-	// TODO me might want to parse the parse the body differently in case of
-	//  an error and differentiate between different error cases
+	// TODO parse for errors
 	return ParseResolveResponse(body)
 }
 
@@ -85,6 +111,17 @@ func (r SimpleRemoteMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Met
 		return nil, err
 	}
 	return res.Metadata, nil
+}
+
+// ResolveResponsePayload implements the MetadataResolver interface
+func (r SimpleRemoteMetadataResolver) ResolveResponsePayload(req apimodel.ResolveRequest) (
+	ResolveResponsePayload, error,
+) {
+	res, err := r.ResolveResponse(req)
+	if err != nil {
+		return ResolveResponsePayload{}, err
+	}
+	return res.ResolveResponsePayload, nil
 }
 
 // ResolvePossible implements the MetadataResolver interface
@@ -121,6 +158,14 @@ type SmartRemoteMetadataResolver struct{}
 
 // Resolve implements the MetadataResolver interface
 func (r SmartRemoteMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Metadata, error) {
+	res, err := r.ResolveResponsePayload(req)
+	return res.Metadata, err
+}
+
+// ResolveResponsePayload implements the MetadataResolver interface
+func (r SmartRemoteMetadataResolver) ResolveResponsePayload(req apimodel.ResolveRequest) (
+	ResolveResponsePayload, error,
+) {
 	for _, tr := range req.Anchor {
 		entityConfig, err := GetEntityConfiguration(tr)
 		if err != nil {
@@ -137,14 +182,14 @@ func (r SmartRemoteMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Meta
 		remoteResolver := SimpleRemoteMetadataResolver{
 			ResolveEndpoint: resolveEndpoint,
 		}
-		m, err := remoteResolver.Resolve(req)
+		res, err := remoteResolver.ResolveResponsePayload(req)
 		if err != nil {
 			internal.Logf("error while obtaining resolve response: %v", err)
 			continue
 		}
-		return m, nil
+		return res, nil
 	}
-	return LocalMetadataResolver{}.Resolve(req)
+	return LocalMetadataResolver{}.ResolveResponsePayload(req)
 }
 
 // ResolvePossible implements the MetadataResolver interface

@@ -22,7 +22,7 @@ type FederationEntity struct {
 	ConfigurationLifetime int64
 	*EntityStatementSigner
 	jwks             jwk.JWKS
-	TrustMarks       []TrustMarkInfo
+	TrustMarks       TrustMarkInfos
 	TrustMarkIssuers AllowedTrustMarkIssuers
 	TrustMarkOwners  TrustMarkOwners
 }

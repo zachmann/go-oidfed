@@ -13,6 +13,45 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
+// TrustMarkInfos is a slice of TrustMarkInfo
+type TrustMarkInfos []TrustMarkInfo
+
+// VerifiedFederation verifies all TrustMarkInfos by using the passed trust anchor and returns only the valid TrustMarkInfos
+func (tms TrustMarkInfos) VerifiedFederation(ta *EntityStatementPayload) (verified TrustMarkInfos) {
+	for _, tm := range tms {
+		if err := tm.VerifyFederation(ta); err == nil {
+			verified = append(verified, tm)
+		}
+	}
+	return
+}
+
+// VerifiedExternal verifies all TrustMarkInfos by using the passed trust mark issuer jwks and optionally the passed
+// trust mark owner jwks and returns only the valid TrustMarkInfos
+func (tms TrustMarkInfos) VerifiedExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec) (verified TrustMarkInfos) {
+	for _, tm := range tms {
+		if err := tm.VerifyExternal(jwks, tmo...); err == nil {
+			verified = append(verified, tm)
+		}
+	}
+	return
+}
+
+// Find uses the passed function to find the first matching TrustMarkInfo
+func (tms TrustMarkInfos) Find(matcher func(info TrustMarkInfo) bool) *TrustMarkInfo {
+	for _, tm := range tms {
+		if matcher(tm) {
+			return &tm
+		}
+	}
+	return nil
+}
+
+// FindByID returns the (first) TrustMarkInfo with the passed id
+func (tms TrustMarkInfos) FindByID(id string) *TrustMarkInfo {
+	return tms.Find(func(info TrustMarkInfo) bool { return info.ID == id })
+}
+
 // TrustMarkInfo is a type for holding a trust mark as represented in an EntityConfiguration
 type TrustMarkInfo struct {
 	ID           string                 `json:"id" yaml:"id"`
@@ -158,7 +197,7 @@ func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 			return errors.New("verify trustmark: trust mark issuer is not allowed by trust anchor")
 		}
 	}
-	tmi, err := DefaultMetadataResolver.Resolve(
+	res, err := DefaultMetadataResolver.ResolveResponsePayload(
 		apimodel.ResolveRequest{
 			Subject: tm.Issuer,
 			Anchor:  []string{ta.Subject},
@@ -167,17 +206,25 @@ func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 	if err != nil {
 		return errors.Wrap(err, "error while resolving trust mark issuer")
 	}
-	if tmi == nil || tmi.FederationEntity == nil || tmi.FederationEntity.JWKS == nil {
+	var tmi *EntityStatement
+	if len(res.TrustChain) > 0 {
+		tmi, err = ParseEntityStatement(res.TrustChain[0].RawJWT)
+	} else {
+		tmi, err = GetEntityConfiguration(tm.Issuer)
+	}
+	if err != nil {
+		return errors.Wrap(err, "error while parsing trust mark issuer entity statement")
+	}
+	if tmi == nil || tmi.JWKS.Len() == 0 {
 		return errors.New("no jwks found for trust mark issuer")
 	}
-	// TODO those might not be set and might not be equivalent to the jwks in the entity configuration
-	jwks := tmi.FederationEntity.JWKS
+	jwks := tmi.JWKS
 	tmo, tmoFound := ta.TrustMarkOwners[tm.ID]
 	if !tmoFound {
 		// no delegation
-		return tm.VerifyExternal(*jwks)
+		return tm.VerifyExternal(jwks)
 	}
-	return tm.VerifyExternal(*jwks, tmo)
+	return tm.VerifyExternal(jwks, tmo)
 }
 
 // VerifyExternal verifies the TrustMark by using the passed trust mark issuer jwks and optionally the passed

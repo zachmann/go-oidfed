@@ -46,20 +46,16 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 			// err cannot be != nil, since ResolveToValidChains only gives chains with valid metadata
 			leaf := selectedChain[0]
 			ta := selectedChain[len(selectedChain)-1]
-			var verifiedTMs []pkg.TrustMarkInfo
-			for _, tm := range leaf.TrustMarks {
-				if err := tm.VerifyFederation(&ta.EntityStatementPayload); err == nil {
-					verifiedTMs = append(verifiedTMs, tm)
-				}
-			}
 			res := pkg.ResolveResponse{
-				Issuer:     fed.FederationEntity.EntityID,
-				Subject:    req.Subject,
-				IssuedAt:   pkg.Unixtime{Time: time.Now()},
-				ExpiresAt:  selectedChain.ExpiresAt(),
-				Metadata:   metadata,
-				TrustMarks: verifiedTMs,
-				TrustChain: selectedChain.Messages(),
+				Issuer:    fed.FederationEntity.EntityID,
+				Subject:   req.Subject,
+				IssuedAt:  pkg.Unixtime{Time: time.Now()},
+				ExpiresAt: selectedChain.ExpiresAt(),
+				ResolveResponsePayload: pkg.ResolveResponsePayload{
+					Metadata:   metadata,
+					TrustMarks: leaf.TrustMarks.VerifiedFederation(&ta.EntityStatementPayload),
+					TrustChain: selectedChain.Messages(),
+				},
 			}
 			jwt, err := fed.GeneralJWTSigner.ResolveResponseSigner().JWT(res)
 			if err != nil {

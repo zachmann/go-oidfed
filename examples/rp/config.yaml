@@ -9,3 +9,4 @@ authority_hints:
 key_storage: /keys
 filter_to_automatic_ops: false
 enable_debug_log: true
+use_resolve_endpoint: true

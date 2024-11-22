@@ -19,7 +19,7 @@ type SubordinateInfo struct {
 	Constraints        *pkg.ConstraintSpecification `json:"constraints,omitempty"`
 	CriticalExtensions []string                     `json:"crit,omitempty"`
 	MetadataPolicyCrit []pkg.PolicyOperatorName     `json:"metadata_policy_crit,omitempty"`
-	TrustMarks         []pkg.TrustMarkInfo          `json:"trust_marks,omitempty"`
+	TrustMarks         pkg.TrustMarkInfos           `json:"trust_marks,omitempty"`
 	Extra              map[string]interface{}       `json:"-"`
 }
 

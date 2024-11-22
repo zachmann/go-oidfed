@@ -28,7 +28,7 @@ type Config struct {
 	ReadableStorage       bool                        `yaml:"human_readable_storage"`
 	Endpoints             Endpoints                   `yaml:"endpoints"`
 	TrustMarkSpecs        []extendedTrustMarkSpec     `yaml:"trust_mark_specs"`
-	TrustMarks            []pkg.TrustMarkInfo         `yaml:"trust_marks"`
+	TrustMarks            pkg.TrustMarkInfos          `yaml:"trust_marks"`
 	TrustMarkIssuers      pkg.AllowedTrustMarkIssuers `yaml:"trust_mark_issuers"`
 	TrustMarkOwners       pkg.TrustMarkOwners         `yaml:"trust_mark_owners"`
 }
