@@ -23,7 +23,7 @@ type FederationEntity struct {
 	ConfigurationLifetime int64
 	*EntityStatementSigner
 	jwks             jwk.JWKS
-	TrustMarks       []TrustMarkInfo
+	TrustMarks       []EntityConfigurationTrustMarkConfig
 	TrustMarkIssuers AllowedTrustMarkIssuers
 	TrustMarkOwners  TrustMarkOwners
 }
@@ -76,6 +76,20 @@ func NewFederationLeaf(
 // EntityConfigurationPayload returns an EntityStatementPayload for this FederationEntity
 func (f FederationEntity) EntityConfigurationPayload() *EntityStatementPayload {
 	now := time.Now()
+	var tms []TrustMarkInfo
+	for _, tmc := range f.TrustMarks {
+		tm, err := tmc.TrustMarkJWT()
+		if err != nil {
+			internal.Log(err.Error())
+			continue
+		}
+		tms = append(
+			tms, TrustMarkInfo{
+				ID:           tmc.TrustMarkID,
+				TrustMarkJWT: tm,
+			},
+		)
+	}
 	return &EntityStatementPayload{
 		Issuer:           f.EntityID,
 		Subject:          f.EntityID,
@@ -84,7 +98,7 @@ func (f FederationEntity) EntityConfigurationPayload() *EntityStatementPayload {
 		JWKS:             f.jwks,
 		AuthorityHints:   f.AuthorityHints,
 		Metadata:         f.Metadata,
-		TrustMarks:       f.TrustMarks,
+		TrustMarks:       tms,
 		TrustMarkIssuers: f.TrustMarkIssuers,
 		TrustMarkOwners:  f.TrustMarkOwners,
 	}

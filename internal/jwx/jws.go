@@ -6,11 +6,13 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jws"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/zachmann/go-oidfed/internal/utils"
 	myjwk "github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 // ParsedJWT is a type extending jws.Message by holding the original jwt
@@ -112,4 +114,14 @@ func SignPayload(payload []byte, signingAlg jwa.SignatureAlgorithm, key crypto.S
 		return nil, err
 	}
 	return jws.Sign(payload, signingAlg, key, jws.WithHeaders(headers))
+}
+
+// GetExp returns the expiration of a jwt
+func GetExp(bytes []byte) (exp unixtime.Unixtime, err error) {
+	parsed, err := jwt.Parse(bytes, nil)
+	if err != nil {
+		err = errors.WithStack(err)
+		return
+	}
+	return unixtime.Unixtime{Time: parsed.Expiration()}, nil
 }
