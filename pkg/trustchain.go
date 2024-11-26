@@ -9,6 +9,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/cache"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 // TrustChain is a slice of *EntityStatements
@@ -24,9 +25,9 @@ func (c TrustChain) hash() ([]byte, error) {
 }
 
 // ExpiresAt returns the expiration time of the TrustChain as a UNIX time stamp
-func (c TrustChain) ExpiresAt() Unixtime {
+func (c TrustChain) ExpiresAt() unixtime.Unixtime {
 	if len(c) == 0 {
-		return Unixtime{}
+		return unixtime.Unixtime{}
 	}
 	exp := c[0].ExpiresAt
 	for i := 1; i < len(c); i++ {
@@ -114,6 +115,6 @@ func (c TrustChain) cacheSetMetadata(metadata *Metadata) error {
 	}
 	return cache.Set(
 		cache.Key(cache.KeyTrustChainResolvedMetadata, string(hash)), metadata,
-		Until(c.ExpiresAt()),
+		unixtime.Until(c.ExpiresAt()),
 	)
 }

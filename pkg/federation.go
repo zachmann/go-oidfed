@@ -10,6 +10,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/pkg/cache"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 // FederationEntity is a type for an entity participating in federations.
@@ -78,8 +79,8 @@ func (f FederationEntity) EntityConfigurationPayload() *EntityStatementPayload {
 	return &EntityStatementPayload{
 		Issuer:           f.EntityID,
 		Subject:          f.EntityID,
-		IssuedAt:         Unixtime{now},
-		ExpiresAt:        Unixtime{now.Add(time.Second * time.Duration(f.ConfigurationLifetime))},
+		IssuedAt:         unixtime.Unixtime{Time: now},
+		ExpiresAt:        unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(f.ConfigurationLifetime))},
 		JWKS:             f.jwks,
 		AuthorityHints:   f.AuthorityHints,
 		Metadata:         f.Metadata,

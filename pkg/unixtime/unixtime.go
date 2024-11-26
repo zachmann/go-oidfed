@@ -1,4 +1,4 @@
-package pkg
+package unixtime
 
 import (
 	"encoding/json"
@@ -38,7 +38,8 @@ func Until(u Unixtime) time.Duration {
 	return time.Until(u.Time)
 }
 
-func verifyTime(iat, exp *Unixtime) error {
+// VerifyTime verifies the iat and exp times with regard to the current time
+func VerifyTime(iat, exp *Unixtime) error {
 	now := time.Now()
 	if iat != nil && !iat.IsZero() && iat.After(now) {
 		return errors.New("not yet valid")

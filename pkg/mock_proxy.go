@@ -11,6 +11,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type mockProxy struct {
@@ -50,8 +51,8 @@ func (proxy mockProxy) EntityStatementPayload() EntityStatementPayload {
 	payload := EntityStatementPayload{
 		Issuer:         proxy.EntityID,
 		Subject:        proxy.EntityID,
-		IssuedAt:       Unixtime{now},
-		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
+		IssuedAt:       unixtime.Unixtime{Time: now},
+		ExpiresAt:      unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:           proxy.jwks,
 		Audience:       "",
 		AuthorityHints: proxy.authorities,

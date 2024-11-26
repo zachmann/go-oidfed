@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 var mockupData mockHttp
@@ -120,10 +122,10 @@ func (d *mockHttp) AddTMI(tmi mockTMI) {
 				Issuer:         tmi.EntityID,
 				Subject:        tmi.EntityID,
 				AuthorityHints: tmi.authorities,
-				IssuedAt: Unixtime{
+				IssuedAt: unixtime.Unixtime{
 					Time: now,
 				},
-				ExpiresAt: Unixtime{
+				ExpiresAt: unixtime.Unixtime{
 					Time: now.Add(defaultEntityConfigurationLifetime),
 				},
 				JWKS: tmi.jwks,

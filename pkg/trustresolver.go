@@ -11,6 +11,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/cache"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 const cacheGracePeriod = time.Hour
@@ -19,8 +20,8 @@ const cacheGracePeriod = time.Hour
 type ResolveResponse struct {
 	Issuer     string                 `json:"iss"`
 	Subject    string                 `json:"sub"`
-	IssuedAt   Unixtime               `json:"iat"`
-	ExpiresAt  Unixtime               `json:"exp"`
+	IssuedAt   unixtime.Unixtime      `json:"iat"`
+	ExpiresAt  unixtime.Unixtime      `json:"exp"`
 	Audience   string                 `json:"aud,omitempty"`
 	Metadata   *Metadata              `json:"metadata,omitempty"`
 	TrustMarks []TrustMarkInfo        `json:"trust_marks,omitempty"`
@@ -183,7 +184,7 @@ func (r TrustResolver) cacheSetTrustChains(chains TrustChains) error {
 	}
 	return cache.Set(
 		cache.Key(cache.KeyTrustTreeChains, string(hash)), chains,
-		Until(r.trustTree.expiresAt),
+		unixtime.Until(r.trustTree.expiresAt),
 	)
 }
 
@@ -206,7 +207,7 @@ func (r TrustResolver) cacheSetTrustTree() error {
 	}
 	return cache.Set(
 		cache.Key(cache.KeyTrustTree, string(hash)), r.trustTree,
-		Until(r.trustTree.expiresAt),
+		unixtime.Until(r.trustTree.expiresAt),
 	)
 }
 
@@ -216,7 +217,7 @@ type trustTree struct {
 	Subordinate        *EntityStatement
 	Authorities        []trustTree
 	signaturesVerified bool
-	expiresAt          Unixtime
+	expiresAt          unixtime.Unixtime
 }
 
 func (t *trustTree) resolve(anchors TrustAnchors) {

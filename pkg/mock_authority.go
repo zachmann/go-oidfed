@@ -11,6 +11,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type mockAuthority struct {
@@ -62,8 +63,8 @@ func newMockAuthority(entityID string, data EntityStatementPayload) mockAuthorit
 func (a mockAuthority) EntityStatementPayload() *EntityStatementPayload {
 	now := time.Now()
 	payload := a.data
-	payload.IssuedAt = Unixtime{now}
-	payload.ExpiresAt = Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))}
+	payload.IssuedAt = unixtime.Unixtime{Time: now}
+	payload.ExpiresAt = unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))}
 	return &payload
 }
 
@@ -78,8 +79,8 @@ func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntitySta
 	payload := EntityStatementPayload{
 		Issuer:             a.EntityID,
 		Subject:            subID,
-		IssuedAt:           Unixtime{now},
-		ExpiresAt:          Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
+		IssuedAt:           unixtime.Unixtime{Time: now},
+		ExpiresAt:          unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:               jwks,
 		MetadataPolicy:     a.data.MetadataPolicy,
 		MetadataPolicyCrit: a.data.MetadataPolicyCrit,

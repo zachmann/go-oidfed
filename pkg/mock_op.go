@@ -11,6 +11,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type mockOP struct {
@@ -42,8 +43,8 @@ func (op mockOP) EntityStatementPayload() EntityStatementPayload {
 	payload := EntityStatementPayload{
 		Issuer:         op.EntityID,
 		Subject:        op.EntityID,
-		IssuedAt:       Unixtime{now},
-		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
+		IssuedAt:       unixtime.Unixtime{Time: now},
+		ExpiresAt:      unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:           op.jwks,
 		Audience:       "",
 		AuthorityHints: op.authorities,

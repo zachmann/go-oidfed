@@ -7,6 +7,7 @@ import (
 
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/constants"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type resolveRequest struct {
@@ -60,7 +61,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 			res := pkg.ResolveResponse{
 				Issuer:     fed.FederationEntity.EntityID,
 				Subject:    req.Subject,
-				IssuedAt:   pkg.Unixtime{Time: time.Now()},
+				IssuedAt:   unixtime.Unixtime{Time: time.Now()},
 				ExpiresAt:  selectedChain.ExpiresAt(),
 				Metadata:   metadata,
 				TrustMarks: verifiedTMs,
