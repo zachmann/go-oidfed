@@ -26,20 +26,25 @@ type mockProxy struct {
 func newMockProxy(
 	entityID string,
 	rp *OpenIDRelyingPartyMetadata, op *OpenIDProviderMetadata,
-) mockProxy {
+) *mockProxy {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
 	op.Issuer = entityID
-	p := mockProxy{
+	p := &mockProxy{
 		EntityID:              entityID,
 		rpMetadata:            rp,
 		opMetadata:            op,
 		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
 		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512),
 	}
+	mockEntityConfiguration(p.EntityID, p)
 	return p
+}
+
+func (proxy mockProxy) EntityConfigurationJWT() ([]byte, error) {
+	return proxy.EntityStatementSigner.JWT(proxy.EntityStatementPayload())
 }
 
 func (proxy mockProxy) EntityStatementPayload() EntityStatementPayload {

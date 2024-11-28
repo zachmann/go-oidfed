@@ -3,17 +3,45 @@ package pkg
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/md5"
 	"crypto/rand"
+	"fmt"
+	"time"
 
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type mockTMI struct {
 	TrustMarkIssuer
 	authorities []string
 	jwks        jwk.JWKS
+}
+
+func (tmi mockTMI) EntityConfigurationJWT() ([]byte, error) {
+	return tmi.GeneralJWTSigner.EntityStatementSigner().JWT(tmi.EntityStatementPayload())
+}
+
+func (tmi mockTMI) EntityStatementPayload() EntityStatementPayload {
+	now := time.Now()
+	orgID := fmt.Sprintf("%x", md5.Sum([]byte(tmi.EntityID)))
+	payload := EntityStatementPayload{
+		Issuer:         tmi.EntityID,
+		Subject:        tmi.EntityID,
+		AuthorityHints: tmi.authorities,
+		IssuedAt:       unixtime.Unixtime{Time: now},
+		ExpiresAt:      unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))},
+		JWKS:           tmi.jwks,
+		Metadata: &Metadata{
+			FederationEntity: &FederationEntityMetadata{
+				FederationTrustMarkStatusEndpoint: "TODO", //TODO
+				OrganizationName:                  fmt.Sprintf("Organization: %s", orgID[:8]),
+			},
+		},
+	}
+	return payload
 }
 
 func (tmi *mockTMI) AddAuthority(authorityID string) {
@@ -28,16 +56,18 @@ func newMockTrustMarkOwner(entityID string, ownedTrustMarks []OwnedTrustMark) *T
 	return NewTrustMarkOwner(entityID, NewTrustMarkDelegationSigner(sk, jwa.ES512), ownedTrustMarks)
 }
 
-func newMockTrustMarkIssuer(entityID string, trustMarkSpecs []TrustMarkSpec) mockTMI {
+func newMockTrustMarkIssuer(entityID string, trustMarkSpecs []TrustMarkSpec) *mockTMI {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
 	tmi := NewTrustMarkIssuer(entityID, NewTrustMarkSigner(sk, jwa.ES512), trustMarkSpecs)
-	return mockTMI{
+	mock := &mockTMI{
 		TrustMarkIssuer: *tmi,
 		jwks:            jwk.KeyToJWKS(tmi.key.Public(), tmi.alg),
 	}
+	mockEntityConfiguration(mock.EntityID, mock)
+	return mock
 }
 
 func (tmi mockTMI) GetSubordinateInfo() mockSubordinateInfo {

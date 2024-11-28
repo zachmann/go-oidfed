@@ -8,11 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jarcoal/httpmock"
+
 	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/http"
 )
 
 func setup() {
-	entityStatementObtainer = mockupData
+	httpmock.ActivateNonDefault(http.Do().GetClient())
 	internal.EnableDebugLogging()
 	// cache.UseRedisCache(&redis.Options{Addr: "localhost:6379"})
 }

@@ -2,12 +2,16 @@ package pkg
 
 import (
 	"encoding/json"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/constants"
+	"github.com/zachmann/go-oidfed/internal/http"
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/cache"
@@ -323,12 +327,6 @@ func (t trustTree) chains() (chains []TrustChain) {
 	return
 }
 
-var entityStatementObtainer internal.EntityStatementObtainer
-
-func init() {
-	entityStatementObtainer = internal.DefaultHttpEntityStatementObtainer
-}
-
 func entityStmtCacheSet(subID, issID string, stmt *EntityStatement) {
 	if err := cache.Set(
 		cache.EntityStmtCacheKey(subID, issID), stmt, time.Until(stmt.ExpiresAt.Time),
@@ -353,15 +351,14 @@ func entityStmtCacheGet(subID, issID string) *EntityStatement {
 // EntityStatement
 func GetEntityConfiguration(entityID string) (*EntityStatement, error) {
 	return getEntityStatementOrConfiguration(
-		entityID, entityID, func() ([]byte, error) {
-			return entityStatementObtainer.GetEntityConfiguration(entityID)
+		entityID, entityID, func() (*EntityStatement, error) {
+			return httpGetEntityConfiguration(entityID)
 		},
 	)
 }
 
 func getEntityStatementOrConfiguration(
-	subID, issID string,
-	obtainerFnc func() ([]byte, error),
+	subID, issID string, obtainerFnc func() (*EntityStatement, error),
 ) (*EntityStatement, error) {
 
 	if stmt := entityStmtCacheGet(subID, issID); stmt != nil {
@@ -384,32 +381,52 @@ func getEntityStatementOrConfiguration(
 }
 
 func obtainAndSetEntityStatementOrConfiguration(
-	subID, issID string,
-	obtainerFnc func() ([]byte, error),
+	subID, issID string, obtainerFnc func() (*EntityStatement, error),
 ) (*EntityStatement, error) {
-	body, err := obtainerFnc()
+	stmt, err := obtainerFnc()
 	if err != nil {
 		internal.Log(err)
 		return nil, err
 	}
 	internal.Log("Obtained entity statement from http")
-	stmt, err := ParseEntityStatement(body)
-	if err != nil {
-		internal.Log(err)
-		return nil, err
-	}
 	entityStmtCacheSet(subID, issID, stmt)
 	return stmt, nil
+}
+
+func httpGetEntityConfiguration(
+	entityID string,
+) (*EntityStatement, error) {
+	uri := strings.TrimSuffix(entityID, "/") + constants.FederationSuffix
+	internal.Logf("Obtaining entity configuration from %+q", uri)
+	res, errRes, err := http.Get(uri, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	if errRes != nil {
+		return nil, errRes.Err()
+	}
+	return ParseEntityStatement(res.Body())
 }
 
 // FetchEntityStatement fetches an EntityStatement from a fetch endpoint
 func FetchEntityStatement(fetchEndpoint, subID, issID string) (*EntityStatement, error) {
 	return getEntityStatementOrConfiguration(
-		subID, issID, func() ([]byte, error) {
-			return entityStatementObtainer.FetchEntityStatement(
-				fetchEndpoint,
-				subID, issID,
-			)
+		subID, issID, func() (*EntityStatement, error) {
+			return httpFetchEntityStatement(fetchEndpoint, subID, issID)
 		},
 	)
+}
+func httpFetchEntityStatement(fetchEndpoint, subID, issID string) (*EntityStatement, error) {
+	uri := fetchEndpoint
+	params := url.Values{}
+	params.Add("sub", subID)
+	params.Add("iss", issID)
+	res, errRes, err := http.Get(uri, params, nil)
+	if err != nil {
+		return nil, err
+	}
+	if errRes != nil {
+		return nil, errRes.Err()
+	}
+	return ParseEntityStatement(res.Body())
 }

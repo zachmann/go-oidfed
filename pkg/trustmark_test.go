@@ -132,11 +132,8 @@ func init() {
 		},
 	)
 
-	taWithTmo.RegisterSubordinate(&tmi1)
-	taWithTmo.RegisterSubordinate(&tmi2)
-	mockupData.AddTMI(tmi1)
-	mockupData.AddTMI(tmi2)
-	mockupData.AddAuthority(taWithTmo)
+	taWithTmo.RegisterSubordinate(tmi1)
+	taWithTmo.RegisterSubordinate(tmi2)
 }
 
 func TestTrustMarkOwner_DelegationJWT(t *testing.T) {

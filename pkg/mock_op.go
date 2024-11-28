@@ -22,18 +22,23 @@ type mockOP struct {
 	metadata *OpenIDProviderMetadata
 }
 
-func newMockOP(entityID string, metadata *OpenIDProviderMetadata) mockOP {
+func (op mockOP) EntityConfigurationJWT() ([]byte, error) {
+	return op.EntityStatementSigner.JWT(op.EntityStatementPayload())
+}
+
+func newMockOP(entityID string, metadata *OpenIDProviderMetadata) *mockOP {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
 	metadata.Issuer = entityID
-	o := mockOP{
+	o := &mockOP{
 		EntityID:              entityID,
 		metadata:              metadata,
 		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
 		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512),
 	}
+	mockEntityConfiguration(o.EntityID, o)
 	return o
 }
 
