@@ -118,7 +118,7 @@ func SignPayload(payload []byte, signingAlg jwa.SignatureAlgorithm, key crypto.S
 
 // GetExp returns the expiration of a jwt
 func GetExp(bytes []byte) (exp unixtime.Unixtime, err error) {
-	parsed, err := jwt.Parse(bytes, nil)
+	parsed, err := jwt.Parse(bytes)
 	if err != nil {
 		err = errors.WithStack(err)
 		return

@@ -32,6 +32,19 @@ func (tm TrustMarkInfo) MarshalJSON() ([]byte, error) {
 	return extraMarshalHelper(explicitFields, tm.Extra)
 }
 
+// ParseTrustMark parses a trust mark jwt into a TrustMark
+func ParseTrustMark(data []byte) (*TrustMark, error) {
+	m, err := jwx.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+	t := &TrustMark{jwtMsg: m}
+	if err = json.Unmarshal(m.Payload(), t); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
 // UnmarshalJSON implements the json.Unmarshaler interface.
 // It also unmarshalls additional fields into the Extra claim.
 func (tm *TrustMarkInfo) UnmarshalJSON(data []byte) error {
@@ -49,12 +62,8 @@ func (tm *TrustMarkInfo) UnmarshalJSON(data []byte) error {
 // TrustMark returns the TrustMark for this TrustMarkInfo
 func (tm *TrustMarkInfo) TrustMark() (*TrustMark, error) {
 	if tm.trustmark == nil || tm.trustmark.jwtMsg == nil {
-		m, err := jwx.Parse([]byte(tm.TrustMarkJWT))
+		t, err := ParseTrustMark([]byte(tm.TrustMarkJWT))
 		if err != nil {
-			return nil, err
-		}
-		t := &TrustMark{jwtMsg: m}
-		if err = json.Unmarshal(m.Payload(), t); err != nil {
 			return nil, err
 		}
 		tm.trustmark = t
