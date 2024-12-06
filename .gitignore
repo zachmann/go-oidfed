@@ -1,2 +1,4 @@
 /examples/rp/mkcertRootCA.pem
 /examples/rp/keys/
+/examples/rp/config.yaml
+/examples/ta/config.yaml

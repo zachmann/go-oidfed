@@ -8,4 +8,9 @@ authority_hints:
   - "https://trust-anchor.spid-cie.fedservice.lh/"
 key_storage: /keys
 filter_to_automatic_ops: false
-enable_debug_log: true
+enable_debug_log: false
+trust_marks:
+  - trust_mark_id: https://tm.example.org/tm
+    trust_mark_issuer: https://tm.example.org/
+    min_lifetime: 60
+    refresh_grace_period: 3600
