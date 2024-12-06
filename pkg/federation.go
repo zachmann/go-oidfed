@@ -136,7 +136,7 @@ func (f FederationLeaf) ResolveOPMetadata(issuer string) (*OpenIDProviderMetadat
 	metadata, err := DefaultMetadataResolver.Resolve(
 		apimodel.ResolveRequest{
 			Subject:     issuer,
-			Anchor:      f.TrustAnchors.EntityIDs(),
+			TrustAnchor: f.TrustAnchors.EntityIDs(),
 			EntityTypes: []string{"openid_provider"},
 		},
 	)

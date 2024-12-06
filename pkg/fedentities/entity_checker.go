@@ -278,8 +278,8 @@ func (c TrustPathEntityChecker) Check(
 
 	ok := pkg.DefaultMetadataResolver.ResolvePossible(
 		apimodel.ResolveRequest{
-			Subject: entityConfiguration.Subject,
-			Anchor:  c.TrustAnchors.EntityIDs(),
+			Subject:     entityConfiguration.Subject,
+			TrustAnchor: c.TrustAnchors.EntityIDs(),
 		},
 	)
 	if !ok {

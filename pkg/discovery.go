@@ -161,8 +161,8 @@ type OPDiscoveryFilterVerifiedChains struct {
 func (f OPDiscoveryFilterVerifiedChains) Filter(op *OpenIDProviderMetadata) bool {
 	confirmedValid, _ := DefaultMetadataResolver.ResolvePossible(
 		apimodel.ResolveRequest{
-			Subject: op.Issuer,
-			Anchor:  f.TrustAnchors.EntityIDs(),
+			Subject:     op.Issuer,
+			TrustAnchor: f.TrustAnchors.EntityIDs(),
 		},
 	)
 	return confirmedValid

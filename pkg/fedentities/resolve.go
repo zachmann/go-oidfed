@@ -26,7 +26,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("could not parse request parameters: " + err.Error()))
 			}
-			if len(req.Anchor) == 0 {
+			if len(req.TrustAnchor) == 0 {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'anchor' not given"))
 			}
@@ -35,7 +35,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'sub' not given"))
 			}
 			resolver := pkg.TrustResolver{
-				TrustAnchors:   pkg.NewTrustAnchorsFromEntityIDs(req.Anchor...),
+				TrustAnchors:   pkg.NewTrustAnchorsFromEntityIDs(req.TrustAnchor...),
 				StartingEntity: req.Subject,
 				Types:          req.EntityTypes,
 			}

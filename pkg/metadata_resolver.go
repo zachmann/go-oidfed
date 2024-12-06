@@ -42,7 +42,7 @@ func (LocalMetadataResolver) resolveResponsePayloadWithoutTrustMarks(
 	res ResolveResponsePayload, chain TrustChain, err error,
 ) {
 	tr := TrustResolver{
-		TrustAnchors:   NewTrustAnchorsFromEntityIDs(req.Anchor...),
+		TrustAnchors:   NewTrustAnchorsFromEntityIDs(req.TrustAnchor...),
 		StartingEntity: req.Subject,
 		Types:          req.EntityTypes,
 	}
@@ -80,7 +80,7 @@ func (r LocalMetadataResolver) ResolveResponsePayload(req apimodel.ResolveReques
 // ResolvePossible implements the MetadataResolver interface
 func (LocalMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) (bool, bool) {
 	tr := TrustResolver{
-		TrustAnchors:   NewTrustAnchorsFromEntityIDs(req.Anchor...),
+		TrustAnchors:   NewTrustAnchorsFromEntityIDs(req.TrustAnchor...),
 		StartingEntity: req.Subject,
 		Types:          req.EntityTypes,
 	}
@@ -209,7 +209,7 @@ func (r SmartRemoteMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Meta
 func (SmartRemoteMetadataResolver) ResolveResponsePayload(req apimodel.ResolveRequest) (
 	ResolveResponsePayload, error,
 ) {
-	for _, tr := range req.Anchor {
+	for _, tr := range req.TrustAnchor {
 		entityConfig, err := GetEntityConfiguration(tr)
 		if err != nil {
 			internal.Logf("error while obtaining entity configuration: %v", err)
@@ -237,7 +237,7 @@ func (SmartRemoteMetadataResolver) ResolveResponsePayload(req apimodel.ResolveRe
 
 // ResolvePossible implements the MetadataResolver interface
 func (SmartRemoteMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) (bool, bool) {
-	for _, tr := range req.Anchor {
+	for _, tr := range req.TrustAnchor {
 		entityConfig, err := GetEntityConfiguration(tr)
 		if err != nil {
 			internal.Logf("error while obtaining entity configuration: %v", err)

@@ -209,8 +209,8 @@ func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 	}
 	res, err := DefaultMetadataResolver.ResolveResponsePayload(
 		apimodel.ResolveRequest{
-			Subject: tm.Issuer,
-			Anchor:  []string{ta.Subject},
+			Subject:     tm.Issuer,
+			TrustAnchor: []string{ta.Subject},
 		},
 	)
 	if err != nil {
