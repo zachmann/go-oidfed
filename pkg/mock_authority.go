@@ -32,7 +32,7 @@ func (a mockAuthority) FetchResponse(sub string) ([]byte, error) {
 	return a.EntityStatementSigner.JWT(pay)
 }
 
-func (a mockAuthority) Subordinates(entityType string) (subordinates []string, err error) {
+func (a mockAuthority) Subordinates(_ string) (subordinates []string, err error) {
 	for _, sub := range a.subordinates {
 		subordinates = append(subordinates, sub.entityID)
 	}

@@ -22,7 +22,7 @@ type mockedSubordinateLister interface {
 func mockEntityConfiguration(entityID string, signer mockedEntityConfigurationSigner) {
 	uri := strings.TrimSuffix(entityID, "/") + constants.FederationSuffix
 	httpmock.RegisterResponder(
-		"GET", uri, func(request *http.Request) (*http.Response, error) {
+		"GET", uri, func(_ *http.Request) (*http.Response, error) {
 			res, err := signer.EntityConfigurationJWT()
 			if err != nil {
 				return nil, err
