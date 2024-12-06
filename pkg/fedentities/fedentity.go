@@ -19,6 +19,7 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/cache"
 	"github.com/zachmann/go-oidfed/pkg/constants"
 	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 const entityConfigurationCachePeriod = 5 * time.Second
@@ -141,8 +142,8 @@ func (fed FedEntity) CreateSubordinateStatement(subordinate *storage.Subordinate
 	return pkg.EntityStatementPayload{
 		Issuer:             fed.FederationEntity.EntityID,
 		Subject:            subordinate.EntityID,
-		IssuedAt:           pkg.Unixtime{Time: now},
-		ExpiresAt:          pkg.Unixtime{Time: now.Add(time.Duration(fed.SubordinateStatementLifetime) * time.Second)},
+		IssuedAt:           unixtime.Unixtime{Time: now},
+		ExpiresAt:          unixtime.Unixtime{Time: now.Add(time.Duration(fed.SubordinateStatementLifetime) * time.Second)},
 		SourceEndpoint:     fed.Metadata.FederationEntity.FederationFetchEndpoint,
 		JWKS:               subordinate.JWKS,
 		Metadata:           subordinate.Metadata,

@@ -4,59 +4,85 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 func TestTrustChains_ExpiresAt(t *testing.T) {
 	tests := []struct {
 		name            string
 		chain           TrustChain
-		expiresExpected Unixtime
+		expiresExpected unixtime.Unixtime
 	}{
 		{
 			name:            "emtpy",
 			chain:           TrustChain{},
-			expiresExpected: Unixtime{},
+			expiresExpected: unixtime.Unixtime{},
 		},
 		{
 			name: "single",
 			chain: TrustChain{
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: Unixtime{time.Unix(5, 0)}}},
+				&EntityStatement{
+					EntityStatementPayload: EntityStatementPayload{
+						ExpiresAt: unixtime.Unixtime{
+							Time: time.Unix(
+								5, 0,
+							),
+						},
+					},
+				},
 			},
-			expiresExpected: Unixtime{time.Unix(5, 0)},
+			expiresExpected: unixtime.Unixtime{Time: time.Unix(5, 0)},
 		},
 		{
 			name: "first min",
 			chain: TrustChain{
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: Unixtime{time.Unix(5, 0)}}},
 				&EntityStatement{
 					EntityStatementPayload: EntityStatementPayload{
-						ExpiresAt: Unixtime{time.Unix(10, 0)},
+						ExpiresAt: unixtime.Unixtime{
+							Time: time.Unix(
+								5, 0,
+							),
+						},
 					},
 				},
 				&EntityStatement{
 					EntityStatementPayload: EntityStatementPayload{
-						ExpiresAt: Unixtime{time.Unix(100, 0)},
+						ExpiresAt: unixtime.Unixtime{Time: time.Unix(10, 0)},
+					},
+				},
+				&EntityStatement{
+					EntityStatementPayload: EntityStatementPayload{
+						ExpiresAt: unixtime.Unixtime{Time: time.Unix(100, 0)},
 					},
 				},
 			},
-			expiresExpected: Unixtime{time.Unix(5, 0)},
+			expiresExpected: unixtime.Unixtime{Time: time.Unix(5, 0)},
 		},
 		{
 			name: "other min",
 			chain: TrustChain{
 				&EntityStatement{
 					EntityStatementPayload: EntityStatementPayload{
-						ExpiresAt: Unixtime{time.Unix(10, 0)},
+						ExpiresAt: unixtime.Unixtime{Time: time.Unix(10, 0)},
 					},
 				},
-				&EntityStatement{EntityStatementPayload: EntityStatementPayload{ExpiresAt: Unixtime{time.Unix(5, 0)}}},
 				&EntityStatement{
 					EntityStatementPayload: EntityStatementPayload{
-						ExpiresAt: Unixtime{time.Unix(100, 0)},
+						ExpiresAt: unixtime.Unixtime{
+							Time: time.Unix(
+								5, 0,
+							),
+						},
+					},
+				},
+				&EntityStatement{
+					EntityStatementPayload: EntityStatementPayload{
+						ExpiresAt: unixtime.Unixtime{Time: time.Unix(100, 0)},
 					},
 				},
 			},
-			expiresExpected: Unixtime{time.Unix(5, 0)},
+			expiresExpected: unixtime.Unixtime{Time: time.Unix(5, 0)},
 		},
 	}
 	for _, test := range tests {

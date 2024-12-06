@@ -3,9 +3,11 @@ package pkg
 import (
 	"encoding/json"
 
+	"github.com/google/go-querystring/query"
 	"github.com/pkg/errors"
 
 	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/http"
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/constants"
@@ -96,12 +98,19 @@ type SimpleRemoteMetadataResolver struct {
 func (r SimpleRemoteMetadataResolver) ResolveResponse(req apimodel.ResolveRequest) (
 	*ResolveResponse, error,
 ) {
-	body, err := internal.DefaultHttpResolveObtainer.Resolve(r.ResolveEndpoint, req)
+	params, err := query.Values(req)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	res, errRes, err := http.Get(r.ResolveEndpoint, params, nil)
 	if err != nil {
 		return nil, err
 	}
-	// TODO parse for errors
-	return ParseResolveResponse(body)
+	if errRes != nil {
+		// TODO handle errors
+		return nil, nil
+	}
+	return ParseResolveResponse(res.Body())
 }
 
 // Resolve implements the MetadataResolver interface

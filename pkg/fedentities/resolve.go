@@ -8,6 +8,7 @@ import (
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/constants"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 // AddResolveEndpoint adds a resolve endpoint
@@ -47,14 +48,14 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 			leaf := selectedChain[0]
 			ta := selectedChain[len(selectedChain)-1]
 			res := pkg.ResolveResponse{
-				Issuer:    fed.FederationEntity.EntityID,
-				Subject:   req.Subject,
-				IssuedAt:  pkg.Unixtime{Time: time.Now()},
-				ExpiresAt: selectedChain.ExpiresAt(),
+				Issuer:     fed.FederationEntity.EntityID,
+				Subject:    req.Subject,
+				IssuedAt:   unixtime.Unixtime{Time: time.Now()},
+				ExpiresAt:  selectedChain.ExpiresAt(),
 				ResolveResponsePayload: pkg.ResolveResponsePayload{
-					Metadata:   metadata,
-					TrustMarks: leaf.TrustMarks.VerifiedFederation(&ta.EntityStatementPayload),
-					TrustChain: selectedChain.Messages(),
+				Metadata:   metadata,
+				TrustMarks: leaf.TrustMarks.VerifiedFederation(&ta.EntityStatementPayload),
+				TrustChain: selectedChain.Messages(),
 				},
 			}
 			jwt, err := fed.GeneralJWTSigner.ResolveResponseSigner().JWT(res)

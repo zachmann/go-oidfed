@@ -1,9 +1,12 @@
 package pkg
 
 import (
-	"encoding/json"
+	"net/url"
+
+	"github.com/pkg/errors"
 
 	"github.com/zachmann/go-oidfed/internal"
+	"github.com/zachmann/go-oidfed/internal/http"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/apimodel"
 )
@@ -185,15 +188,20 @@ var OPDiscoveryFilterExplicitRegistration opDiscoveryFilterExplicitRegistration
 var OPDiscoveryFilterAutomaticRegistration opDiscoveryFilterAutomaticRegistration
 
 func fetchList(listEndpoint, entityType string) ([]string, error) {
-	body, err := entityStatementObtainer.ListEntities(listEndpoint, entityType)
+	params := url.Values{}
+	params.Add("entity_type", entityType)
+	resp, errRes, err := http.Get(listEndpoint, params, &[]string{})
 	if err != nil {
 		return nil, err
 	}
-	var entities []string
-	if err = json.Unmarshal(body, &entities); err != nil {
-		return nil, err
+	if errRes != nil {
+		return nil, errRes.Err()
 	}
-	return entities, nil
+	entities, ok := resp.Result().(*[]string)
+	if !ok || entities == nil {
+		return nil, errors.New("unexpected response type")
+	}
+	return *entities, nil
 }
 
 // OPDiscoveryFilterSupportedGrantTypesIncludes returns an OPDiscoveryFilter that filters to OPs that support the

@@ -11,6 +11,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type mockRP struct {
@@ -21,18 +22,23 @@ type mockRP struct {
 	metadata *OpenIDRelyingPartyMetadata
 }
 
-func newMockRP(entityID string, metadata *OpenIDRelyingPartyMetadata) mockRP {
+func newMockRP(entityID string, metadata *OpenIDRelyingPartyMetadata) *mockRP {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
-	r := mockRP{
+	r := &mockRP{
 		EntityID:              entityID,
 		metadata:              metadata,
 		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
 		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512),
 	}
+	mockEntityConfiguration(r.EntityID, r)
 	return r
+}
+
+func (rp mockRP) EntityConfigurationJWT() ([]byte, error) {
+	return rp.EntityStatementSigner.JWT(rp.EntityStatementPayload())
 }
 
 func (rp mockRP) EntityStatementPayload() EntityStatementPayload {
@@ -41,8 +47,8 @@ func (rp mockRP) EntityStatementPayload() EntityStatementPayload {
 	payload := EntityStatementPayload{
 		Issuer:         rp.EntityID,
 		Subject:        rp.EntityID,
-		IssuedAt:       Unixtime{now},
-		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
+		IssuedAt:       unixtime.Unixtime{Time: now},
+		ExpiresAt:      unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:           rp.jwks,
 		Audience:       "",
 		AuthorityHints: rp.authorities,

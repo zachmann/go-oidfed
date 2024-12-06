@@ -8,31 +8,32 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 var tmi1 = newMockTrustMarkIssuer(
 	"https://tmi.example.org", []TrustMarkSpec{
 		{
 			ID:       "https://trustmarks.org/tm1",
-			Lifetime: DurationInSeconds{time.Hour},
+			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 		{
 			ID:       "https://trustmarks.org/tm2",
-			Lifetime: DurationInSeconds{time.Hour},
+			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
 			Ref:      "https://trustmarks.org/tm2/info",
 			LogoURI:  "https://trustmarks.org/tm2/logo",
 		},
 		{
 			ID:       "https://trustmarks.org/tm3",
-			Lifetime: DurationInSeconds{time.Hour},
+			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 		{
 			ID:       "https://trustmarks.org/tm4",
-			Lifetime: DurationInSeconds{time.Hour},
+			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 		{
 			ID:       "https://trustmarks.org/tm-delegated",
-			Lifetime: DurationInSeconds{time.Hour},
+			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 	},
 )
@@ -58,7 +59,7 @@ var tmi2 = newMockTrustMarkIssuer(
 		},
 		{
 			ID:       "https://trustmarks.org/tm-delegated",
-			Lifetime: DurationInSeconds{time.Hour},
+			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 	},
 )
@@ -126,16 +127,13 @@ func init() {
 	tmi1.AddTrustMark(
 		TrustMarkSpec{
 			ID:            "https://trustmarks.org/test",
-			Lifetime:      DurationInSeconds{time.Hour},
+			Lifetime:      unixtime.DurationInSeconds{Duration: time.Hour},
 			DelegationJWT: string(delegation),
 		},
 	)
 
-	taWithTmo.RegisterSubordinate(&tmi1)
-	taWithTmo.RegisterSubordinate(&tmi2)
-	mockupData.AddTMI(tmi1)
-	mockupData.AddTMI(tmi2)
-	mockupData.AddAuthority(taWithTmo)
+	taWithTmo.RegisterSubordinate(tmi1)
+	taWithTmo.RegisterSubordinate(tmi2)
 }
 
 func TestTrustMarkOwner_DelegationJWT(t *testing.T) {

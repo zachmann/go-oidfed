@@ -11,6 +11,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 
 	"github.com/fatih/structs"
 )
@@ -66,8 +67,8 @@ func (e *EntityStatement) UnmarshalMsgpack(data []byte) error {
 type EntityStatementPayload struct {
 	Issuer             string                   `json:"iss"`
 	Subject            string                   `json:"sub"`
-	IssuedAt           Unixtime                 `json:"iat"`
-	ExpiresAt          Unixtime                 `json:"exp"`
+	IssuedAt           unixtime.Unixtime        `json:"iat"`
+	ExpiresAt          unixtime.Unixtime        `json:"exp"`
 	JWKS               jwk.JWKS                 `json:"jwks"`
 	Audience           string                   `json:"aud,omitempty"`
 	AuthorityHints     []string                 `json:"authority_hints,omitempty"`
@@ -86,7 +87,7 @@ type EntityStatementPayload struct {
 
 // TimeValid checks if the EntityStatementPayload is already valid and not yet expired.
 func (e EntityStatementPayload) TimeValid() bool {
-	return verifyTime(&e.IssuedAt, &e.ExpiresAt) == nil
+	return unixtime.VerifyTime(&e.IssuedAt, &e.ExpiresAt) == nil
 }
 
 func extraMarshalHelper(explicitFields []byte, extra map[string]interface{}) ([]byte, error) {

@@ -7,9 +7,11 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/pkg/errors"
 
+	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/cache"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 // FederationEntity is a type for an entity participating in federations.
@@ -22,7 +24,7 @@ type FederationEntity struct {
 	ConfigurationLifetime int64
 	*EntityStatementSigner
 	jwks             jwk.JWKS
-	TrustMarks       TrustMarkInfos
+	TrustMarks       []*EntityConfigurationTrustMarkConfig
 	TrustMarkIssuers AllowedTrustMarkIssuers
 	TrustMarkOwners  TrustMarkOwners
 }
@@ -75,15 +77,29 @@ func NewFederationLeaf(
 // EntityConfigurationPayload returns an EntityStatementPayload for this FederationEntity
 func (f FederationEntity) EntityConfigurationPayload() *EntityStatementPayload {
 	now := time.Now()
+	var tms []TrustMarkInfo
+	for _, tmc := range f.TrustMarks {
+		tm, err := tmc.TrustMarkJWT()
+		if err != nil {
+			internal.Log(err.Error())
+			continue
+		}
+		tms = append(
+			tms, TrustMarkInfo{
+				ID:           tmc.TrustMarkID,
+				TrustMarkJWT: tm,
+			},
+		)
+	}
 	return &EntityStatementPayload{
 		Issuer:           f.EntityID,
 		Subject:          f.EntityID,
-		IssuedAt:         Unixtime{now},
-		ExpiresAt:        Unixtime{now.Add(time.Second * time.Duration(f.ConfigurationLifetime))},
+		IssuedAt:         unixtime.Unixtime{Time: now},
+		ExpiresAt:        unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(f.ConfigurationLifetime))},
 		JWKS:             f.jwks,
 		AuthorityHints:   f.AuthorityHints,
 		Metadata:         f.Metadata,
-		TrustMarks:       f.TrustMarks,
+		TrustMarks:       tms,
 		TrustMarkIssuers: f.TrustMarkIssuers,
 		TrustMarkOwners:  f.TrustMarkOwners,
 	}
