@@ -15,6 +15,7 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type marshalData struct {
@@ -32,8 +33,8 @@ var entitystatementMarshalData = map[string]marshalData{
 		Object: EntityStatementPayload{
 			Issuer:    "issuer",
 			Subject:   "subject",
-			IssuedAt:  Unixtime{time.Unix(100, 0)},
-			ExpiresAt: Unixtime{time.Unix(200, 0)},
+			IssuedAt:  unixtime.Unixtime{Time: time.Unix(100, 0)},
+			ExpiresAt: unixtime.Unixtime{Time: time.Unix(200, 0)},
 			Audience:  "aud",
 			AuthorityHints: []string{
 				"hint1",
@@ -80,8 +81,8 @@ var entitystatementMarshalData = map[string]marshalData{
 	"extra fields": {
 		Data: []byte(`{"exp":200,"extra-field":"value","foo":["bar"],"iat":100,"iss":"issuer","jwks":null,"sub":"subject"}`),
 		Object: EntityStatementPayload{
-			IssuedAt:  Unixtime{time.Unix(100, 0)},
-			ExpiresAt: Unixtime{time.Unix(200, 0)},
+			IssuedAt:  unixtime.Unixtime{Time: time.Unix(100, 0)},
+			ExpiresAt: unixtime.Unixtime{Time: time.Unix(200, 0)},
 			Issuer:    "issuer",
 			Subject:   "subject",
 			Extra: map[string]interface{}{

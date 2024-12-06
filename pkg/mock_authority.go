@@ -11,6 +11,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type mockAuthority struct {
@@ -20,6 +21,22 @@ type mockAuthority struct {
 	data          EntityStatementPayload
 	*EntityStatementSigner
 	subordinates []mockSubordinateInfo
+}
+
+func (a mockAuthority) EntityConfigurationJWT() ([]byte, error) {
+	return a.EntityStatementSigner.JWT(a.EntityStatementPayload())
+}
+
+func (a mockAuthority) FetchResponse(sub string) ([]byte, error) {
+	pay := a.SubordinateEntityStatementPayload(sub)
+	return a.EntityStatementSigner.JWT(pay)
+}
+
+func (a mockAuthority) Subordinates(_ string) (subordinates []string, err error) {
+	for _, sub := range a.subordinates {
+		subordinates = append(subordinates, sub.entityID)
+	}
+	return
 }
 
 type mockSubordinateInfo struct {
@@ -32,7 +49,7 @@ type mockSubordinate interface {
 	AddAuthority(authorityID string)
 }
 
-func newMockAuthority(entityID string, data EntityStatementPayload) mockAuthority {
+func newMockAuthority(entityID string, data EntityStatementPayload) *mockAuthority {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
 		panic(err)
@@ -40,7 +57,7 @@ func newMockAuthority(entityID string, data EntityStatementPayload) mockAuthorit
 	data.JWKS = jwk.KeyToJWKS(sk.Public(), jwa.ES512)
 	data.Issuer = entityID
 	data.Subject = entityID
-	a := mockAuthority{
+	a := &mockAuthority{
 		EntityID:              entityID,
 		FetchEndpoint:         fmt.Sprintf("%s/fetch", entityID),
 		ListEndpoint:          fmt.Sprintf("%s/list", entityID),
@@ -56,14 +73,19 @@ func newMockAuthority(entityID string, data EntityStatementPayload) mockAuthorit
 	a.data.Metadata.FederationEntity.OrganizationName = fmt.Sprintf("Organization %d", mathrand.Int()%100)
 	a.data.Metadata.FederationEntity.FederationFetchEndpoint = a.FetchEndpoint
 	a.data.Metadata.FederationEntity.FederationListEndpoint = a.ListEndpoint
+
+	mockEntityConfiguration(a.EntityID, a)
+	mockFetchEndpoint(a.FetchEndpoint, a)
+	mockListEndpoint(a.ListEndpoint, a)
+
 	return a
 }
 
 func (a mockAuthority) EntityStatementPayload() *EntityStatementPayload {
 	now := time.Now()
 	payload := a.data
-	payload.IssuedAt = Unixtime{now}
-	payload.ExpiresAt = Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))}
+	payload.IssuedAt = unixtime.Unixtime{Time: now}
+	payload.ExpiresAt = unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))}
 	return &payload
 }
 
@@ -78,8 +100,8 @@ func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntitySta
 	payload := EntityStatementPayload{
 		Issuer:             a.EntityID,
 		Subject:            subID,
-		IssuedAt:           Unixtime{now},
-		ExpiresAt:          Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
+		IssuedAt:           unixtime.Unixtime{Time: now},
+		ExpiresAt:          unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:               jwks,
 		MetadataPolicy:     a.data.MetadataPolicy,
 		MetadataPolicyCrit: a.data.MetadataPolicyCrit,

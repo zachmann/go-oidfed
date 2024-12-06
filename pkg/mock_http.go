@@ -1,169 +1,59 @@
 package pkg
 
 import (
-	"encoding/json"
-	"time"
+	"net/http"
+	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/jarcoal/httpmock"
+
+	"github.com/zachmann/go-oidfed/internal/constants"
 )
 
-var mockupData mockHttp
-
-type mockHttp struct {
-	entityConfigurations map[string]func() []byte
-	entityListings       map[string]mockList
-	entityStatements     map[string]func(iss, sub string) []byte
+type mockedEntityConfigurationSigner interface {
+	EntityConfigurationJWT() ([]byte, error)
 }
-type mockList []struct {
-	EntityID   string
-	EntityType string
+type mockedFetchResponder interface {
+	FetchResponse(sub string) ([]byte, error)
+}
+type mockedSubordinateLister interface {
+	Subordinates(entityType string) ([]string, error)
 }
 
-func (d *mockHttp) addEntityConfiguration(entityid string, fnc func() []byte) {
-	if d.entityConfigurations == nil {
-		d.entityConfigurations = make(map[string]func() []byte)
-	}
-	d.entityConfigurations[entityid] = fnc
-}
-func (d *mockHttp) addEntityStatement(fetchEndpoint string, fnc func(iss, sub string) []byte) {
-	if d.entityStatements == nil {
-		d.entityStatements = make(map[string]func(iss, sub string) []byte)
-	}
-	d.entityStatements[fetchEndpoint] = fnc
-}
-func (d *mockHttp) addToListEndpoint(listEndpoint, entityID, entityType string) {
-	if d.entityListings == nil {
-		d.entityListings = make(map[string]mockList)
-	}
-	listing := d.entityListings[listEndpoint]
-	for _, l := range listing {
-		if l.EntityID == entityID {
-			return
-		}
-	}
-	listing = append(
-		listing, struct {
-			EntityID   string
-			EntityType string
-		}{
-			EntityID:   entityID,
-			EntityType: entityType,
-		},
-	)
-	d.entityListings[listEndpoint] = listing
-}
-
-func (d mockHttp) GetEntityConfiguration(entityID string) ([]byte, error) {
-	fnc, ok := d.entityConfigurations[entityID]
-	if !ok {
-		return nil, errors.New("entity configuration not found")
-	}
-	return fnc(), nil
-}
-func (d mockHttp) FetchEntityStatement(fetchEndpoint, subID, issID string) ([]byte, error) {
-	fetch, ok := d.entityStatements[fetchEndpoint]
-	if !ok {
-		return nil, errors.New("entity statement not found")
-	}
-	return fetch(issID, subID), nil
-}
-
-func (d mockHttp) ListEntities(listEndpoint, entityType string) ([]byte, error) {
-	var entities []string
-	listing := d.entityListings[listEndpoint]
-	for _, l := range listing {
-		if entityType == "" || l.EntityType == "" || entityType == l.EntityType {
-			entities = append(entities, l.EntityID)
-		}
-	}
-	return json.Marshal(entities)
-}
-
-func (d *mockHttp) AddRP(r mockRP) {
-	d.addEntityConfiguration(
-		r.EntityID, func() []byte {
-			data, err := r.JWT(r.EntityStatementPayload())
+func mockEntityConfiguration(entityID string, signer mockedEntityConfigurationSigner) {
+	uri := strings.TrimSuffix(entityID, "/") + constants.FederationSuffix
+	httpmock.RegisterResponder(
+		"GET", uri, func(_ *http.Request) (*http.Response, error) {
+			res, err := signer.EntityConfigurationJWT()
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
-			return data
-		},
-	)
-}
-func (d *mockHttp) AddOP(o mockOP) {
-	d.addEntityConfiguration(
-		o.EntityID, func() []byte {
-			data, err := o.JWT(o.EntityStatementPayload())
-			if err != nil {
-				panic(err)
-			}
-			return data
-		},
-	)
-}
-func (d *mockHttp) AddProxy(p mockProxy) {
-	d.addEntityConfiguration(
-		p.EntityID, func() []byte {
-			data, err := p.JWT(p.EntityStatementPayload())
-			if err != nil {
-				panic(err)
-			}
-			return data
-		},
-	)
-}
-func (d *mockHttp) AddTMI(tmi mockTMI) {
-	d.addEntityConfiguration(
-		tmi.EntityID, func() []byte {
-			now := time.Now()
-			payload := EntityStatementPayload{
-				Issuer:         tmi.EntityID,
-				Subject:        tmi.EntityID,
-				AuthorityHints: tmi.authorities,
-				IssuedAt: Unixtime{
-					Time: now,
-				},
-				ExpiresAt: Unixtime{
-					Time: now.Add(defaultEntityConfigurationLifetime),
-				},
-				JWKS: tmi.jwks,
-				Metadata: &Metadata{
-					FederationEntity: &FederationEntityMetadata{
-						FederationTrustMarkStatusEndpoint: "TODO", //TODO
-						OrganizationName:                  "TMI Organization",
-					},
-				},
-			}
-			data, err := tmi.TrustMarkSigner.JWT(payload)
-			if err != nil {
-				panic(err)
-			}
-			return data
+			return httpmock.NewBytesResponse(200, res), nil
 		},
 	)
 }
 
-func (d *mockHttp) AddAuthority(a mockAuthority) {
-	d.addEntityConfiguration(
-		a.EntityID, func() []byte {
-			data, err := a.EntityStatementSigner.JWT(a.EntityStatementPayload())
+func mockFetchEndpoint(fetchEndpoint string, mocker mockedFetchResponder) {
+	httpmock.RegisterResponder(
+		"GET", fetchEndpoint, func(request *http.Request) (*http.Response, error) {
+			sub := request.URL.Query().Get("sub")
+			res, err := mocker.FetchResponse(sub)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
-			return data
+			return httpmock.NewBytesResponse(200, res), nil
 		},
 	)
-	d.addEntityStatement(
-		a.FetchEndpoint, func(iss, sub string) []byte {
-			pay := a.SubordinateEntityStatementPayload(sub)
-			data, err := a.EntityStatementSigner.JWT(pay)
+}
+
+func mockListEndpoint(listEndpoint string, mocker mockedSubordinateLister) {
+	httpmock.RegisterResponder(
+		"GET", listEndpoint, func(request *http.Request) (*http.Response, error) {
+			entityType := request.URL.Query().Get("entity_type")
+			entities, err := mocker.Subordinates(entityType)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
-			return data
+			return httpmock.NewJsonResponse(200, entities)
 		},
 	)
-	for _, sub := range a.subordinates {
-		d.addToListEndpoint(a.ListEndpoint, sub.entityID, "")
-	}
 }

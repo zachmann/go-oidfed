@@ -11,6 +11,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type mockOP struct {
@@ -21,18 +22,23 @@ type mockOP struct {
 	metadata *OpenIDProviderMetadata
 }
 
-func newMockOP(entityID string, metadata *OpenIDProviderMetadata) mockOP {
+func (op mockOP) EntityConfigurationJWT() ([]byte, error) {
+	return op.EntityStatementSigner.JWT(op.EntityStatementPayload())
+}
+
+func newMockOP(entityID string, metadata *OpenIDProviderMetadata) *mockOP {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
 	metadata.Issuer = entityID
-	o := mockOP{
+	o := &mockOP{
 		EntityID:              entityID,
 		metadata:              metadata,
 		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
 		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512),
 	}
+	mockEntityConfiguration(o.EntityID, o)
 	return o
 }
 
@@ -42,8 +48,8 @@ func (op mockOP) EntityStatementPayload() EntityStatementPayload {
 	payload := EntityStatementPayload{
 		Issuer:         op.EntityID,
 		Subject:        op.EntityID,
-		IssuedAt:       Unixtime{now},
-		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
+		IssuedAt:       unixtime.Unixtime{Time: now},
+		ExpiresAt:      unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:           op.jwks,
 		Audience:       "",
 		AuthorityHints: op.authorities,

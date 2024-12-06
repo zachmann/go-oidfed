@@ -11,6 +11,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
 type mockProxy struct {
@@ -25,20 +26,25 @@ type mockProxy struct {
 func newMockProxy(
 	entityID string,
 	rp *OpenIDRelyingPartyMetadata, op *OpenIDProviderMetadata,
-) mockProxy {
+) *mockProxy {
 	sk, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
 	op.Issuer = entityID
-	p := mockProxy{
+	p := &mockProxy{
 		EntityID:              entityID,
 		rpMetadata:            rp,
 		opMetadata:            op,
 		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
 		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512),
 	}
+	mockEntityConfiguration(p.EntityID, p)
 	return p
+}
+
+func (proxy mockProxy) EntityConfigurationJWT() ([]byte, error) {
+	return proxy.EntityStatementSigner.JWT(proxy.EntityStatementPayload())
 }
 
 func (proxy mockProxy) EntityStatementPayload() EntityStatementPayload {
@@ -50,8 +56,8 @@ func (proxy mockProxy) EntityStatementPayload() EntityStatementPayload {
 	payload := EntityStatementPayload{
 		Issuer:         proxy.EntityID,
 		Subject:        proxy.EntityID,
-		IssuedAt:       Unixtime{now},
-		ExpiresAt:      Unixtime{now.Add(time.Second * time.Duration(mockStmtLifetime))},
+		IssuedAt:       unixtime.Unixtime{Time: now},
+		ExpiresAt:      unixtime.Unixtime{Time: now.Add(time.Second * time.Duration(mockStmtLifetime))},
 		JWKS:           proxy.jwks,
 		Audience:       "",
 		AuthorityHints: proxy.authorities,
