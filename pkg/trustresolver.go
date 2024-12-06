@@ -22,11 +22,11 @@ const cacheGracePeriod = time.Hour
 
 // ResolveResponse is a type describing the response of a resolve request
 type ResolveResponse struct {
-	Issuer     string                 `json:"iss"`
-	Subject    string                 `json:"sub"`
-	IssuedAt   unixtime.Unixtime      `json:"iat"`
-	ExpiresAt  unixtime.Unixtime      `json:"exp"`
-	Audience   string                 `json:"aud,omitempty"`
+	Issuer                 string            `json:"iss"`
+	Subject                string            `json:"sub"`
+	IssuedAt               unixtime.Unixtime `json:"iat"`
+	ExpiresAt              unixtime.Unixtime `json:"exp"`
+	Audience               string            `json:"aud,omitempty"`
 	ResolveResponsePayload `json:",inline"`
 }
 
@@ -135,6 +135,25 @@ func (r *TrustResolver) ResolveToValidChains() TrustChains {
 	r.Resolve()
 	r.VerifySignatures()
 	return r.Chains().Filter(TrustChainsFilterValidMetadata)
+}
+
+// ResolveToValidChainsWithoutVerifyingMetadata starts the trust chain
+// resolution process, building an internal trust tree,
+// verifies the signatures, integrity, expirations,
+// but not metadata policies and returns all possible valid TrustChains
+func (r *TrustResolver) ResolveToValidChainsWithoutVerifyingMetadata() TrustChains {
+	chains, set, err := r.cacheGetTrustChains()
+	if err != nil {
+		set = false
+		internal.Log(err.Error())
+	}
+	if set {
+		internal.Log("Obtained trust chains from cache")
+		return chains
+	}
+	r.Resolve()
+	r.VerifySignatures()
+	return r.Chains()
 }
 
 // Resolve starts the trust chain resolution process, building an internal trust tree

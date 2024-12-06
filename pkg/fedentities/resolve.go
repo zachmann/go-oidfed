@@ -11,6 +11,8 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
+// TODO allow limiting the resolve endpoint to certain trust anchors
+
 // AddResolveEndpoint adds a resolve endpoint
 func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 	fed.Metadata.FederationEntity.FederationResolveEndpoint = endpoint.ValidateURL(fed.FederationEntity.EntityID)
@@ -37,10 +39,19 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 				StartingEntity: req.Subject,
 				Types:          req.EntityTypes,
 			}
-			chains := resolver.ResolveToValidChains()
+			chains := resolver.ResolveToValidChainsWithoutVerifyingMetadata()
 			if len(chains) == 0 {
 				ctx.Status(fiber.StatusNotFound)
-				return ctx.JSON(pkg.ErrorInvalidRequest("no valid trust path between sub and anchor found"))
+				return ctx.JSON(pkg.ErrorInvalidTrustChain("no valid trust path between sub and anchor found"))
+			}
+			chains = chains.Filter(pkg.TrustChainsFilterValidMetadata)
+			if len(chains) == 0 {
+				ctx.Status(fiber.StatusNotFound)
+				return ctx.JSON(
+					pkg.ErrorInvalidMetadata(
+						"no trust path with valid metadata found between sub and anchor",
+					),
+				)
 			}
 			selectedChain := chains.Filter(pkg.TrustChainsFilterMinPathLength)[0]
 			metadata, _ := selectedChain.Metadata()
@@ -48,14 +59,14 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 			leaf := selectedChain[0]
 			ta := selectedChain[len(selectedChain)-1]
 			res := pkg.ResolveResponse{
-				Issuer:     fed.FederationEntity.EntityID,
-				Subject:    req.Subject,
-				IssuedAt:   unixtime.Unixtime{Time: time.Now()},
-				ExpiresAt:  selectedChain.ExpiresAt(),
+				Issuer:    fed.FederationEntity.EntityID,
+				Subject:   req.Subject,
+				IssuedAt:  unixtime.Unixtime{Time: time.Now()},
+				ExpiresAt: selectedChain.ExpiresAt(),
 				ResolveResponsePayload: pkg.ResolveResponsePayload{
-				Metadata:   metadata,
-				TrustMarks: leaf.TrustMarks.VerifiedFederation(&ta.EntityStatementPayload),
-				TrustChain: selectedChain.Messages(),
+					Metadata:   metadata,
+					TrustMarks: leaf.TrustMarks.VerifiedFederation(&ta.EntityStatementPayload),
+					TrustChain: selectedChain.Messages(),
 				},
 			}
 			jwt, err := fed.GeneralJWTSigner.ResolveResponseSigner().JWT(res)
