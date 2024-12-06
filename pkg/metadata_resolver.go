@@ -33,7 +33,10 @@ type LocalMetadataResolver struct{}
 // Resolve implements the MetadataResolver interface
 func (r LocalMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Metadata, error) {
 	res, _, err := r.resolveResponsePayloadWithoutTrustMarks(req)
-	return res.Metadata, err
+	if err != nil {
+		return nil, err
+	}
+	return res.Metadata, nil
 }
 
 func (LocalMetadataResolver) resolveResponsePayloadWithoutTrustMarks(
@@ -202,7 +205,10 @@ type SmartRemoteMetadataResolver struct{}
 // Resolve implements the MetadataResolver interface
 func (r SmartRemoteMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Metadata, error) {
 	res, err := r.ResolveResponsePayload(req)
-	return res.Metadata, err
+	if err != nil {
+		return nil, err
+	}
+	return res.Metadata, nil
 }
 
 // ResolveResponsePayload implements the MetadataResolver interface
