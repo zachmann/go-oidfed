@@ -38,7 +38,7 @@ Here we try to sum up the current implementation state, (but it's very likely
 that the list is not complete)
 
 | Feature                                                                                        | Library            | Entity      |
-| ---                                                                                            | ---                | ---         |
+|------------------------------------------------------------------------------------------------|--------------------|-------------|
 | OpenID Configuration                                                                           | Yes                | Yes         |
 | Trust Chain Building                                                                           | Yes                | When needed |
 | Trust Chain Verification                                                                       | Yes                | Yes         |
@@ -58,7 +58,7 @@ that the list is not complete)
 | Trust Mark JWT Verification                                                                    | Yes                | Yes         |
 | Trust Mark JWT Verification including Delegation                                               | Yes                | Yes         |
 | Trust Mark Verification through Trust Mark Status Endpoint                                     | No                 | No          |
-| JWt Type Verification                                                                          | No                 | No          |
+| JWT Type Verification                                                                          | Partially          | Partially   |
 | Requests using GET                                                                             |                    | Yes         |
 | Requests using POST                                                                            |                    | No          |
 | Client Authentication                                                                          |                    | No          |
@@ -77,7 +77,7 @@ that the list is not complete)
 | Configurable Checks for Trust Mark Issuance                                                    |                    | Yes         |
 | Custom Checks for Trust Mark Issuance                                                          |                    | Yes         |
 | Request to become entitled for a Trust Mark                                                    |                    | No          |
-| Automatically refresh trust marks in Entity Configuration                                      |                    | No          |
+| Automatically refresh trust marks in Entity Configuration                                      |                    | Yes         |
 
 
 
