@@ -276,13 +276,13 @@ func (c TrustPathEntityChecker) Check(
 	entityTypes []string,
 ) (bool, int, *pkg.Error) {
 
-	ok := pkg.DefaultMetadataResolver.ResolvePossible(
+	confirmedValid, _ := pkg.DefaultMetadataResolver.ResolvePossible(
 		apimodel.ResolveRequest{
 			Subject:     entityConfiguration.Subject,
 			TrustAnchor: c.TrustAnchors.EntityIDs(),
 		},
 	)
-	if !ok {
+	if !confirmedValid {
 		return false, fiber.StatusForbidden, &pkg.Error{
 			Error:            "forbidden",
 			ErrorDescription: "no valid trust path to trust anchors found",
