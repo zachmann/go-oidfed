@@ -18,7 +18,7 @@ import (
 type MetadataResolver interface {
 	Resolve(request apimodel.ResolveRequest) (*Metadata, error)
 	ResolveResponsePayload(request apimodel.ResolveRequest) (ResolveResponsePayload, error)
-	ResolvePossible(request apimodel.ResolveRequest) bool
+	ResolvePossible(request apimodel.ResolveRequest) (validConfirmed, invalidConfirmed bool)
 }
 
 // DefaultMetadataResolver is the default MetadataResolver used within the
@@ -78,14 +78,15 @@ func (r LocalMetadataResolver) ResolveResponsePayload(req apimodel.ResolveReques
 }
 
 // ResolvePossible implements the MetadataResolver interface
-func (LocalMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) bool {
+func (LocalMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) (bool, bool) {
 	tr := TrustResolver{
 		TrustAnchors:   NewTrustAnchorsFromEntityIDs(req.Anchor...),
 		StartingEntity: req.Subject,
 		Types:          req.EntityTypes,
 	}
 	chains := tr.ResolveToValidChains()
-	return len(chains) > 0
+	valid := len(chains) > 0
+	return valid, !valid
 }
 
 // SimpleRemoteMetadataResolver is a MetadataResolver that utilizes a given
@@ -94,30 +95,53 @@ type SimpleRemoteMetadataResolver struct {
 	ResolveEndpoint string
 }
 
+const (
+	resolveStatusUnknown = iota
+	resolveStatusValid
+	resolveStatusOnlyValidTrustChain
+	resolveStatusInvalid
+	resolveStatusNotAcceptable
+)
+
 // ResolveResponse returns the ResolveResponse from a response endpoint
 func (r SimpleRemoteMetadataResolver) ResolveResponse(req apimodel.ResolveRequest) (
-	*ResolveResponse, error,
+	*ResolveResponse, int, error,
 ) {
+	var resolveStatus int
 	params, err := query.Values(req)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, resolveStatus, errors.WithStack(err)
 	}
 	res, errRes, err := http.Get(r.ResolveEndpoint, params, nil)
 	if err != nil {
-		return nil, err
+		return nil, resolveStatus, err
 	}
 	if errRes != nil {
-		// TODO handle errors
-		return nil, nil
+		switch errRes.Error {
+		case InvalidSubject, InvalidTrustAnchor:
+			resolveStatus = resolveStatusNotAcceptable
+		case InvalidTrustChain:
+			resolveStatus = resolveStatusInvalid
+		case InvalidMetadata:
+			resolveStatus = resolveStatusOnlyValidTrustChain
+		default:
+			resolveStatus = resolveStatusUnknown
+		}
+		return nil, resolveStatus, nil
 	}
-	return ParseResolveResponse(res.Body())
+	resolveStatus = resolveStatusValid
+	rres, err := ParseResolveResponse(res.Body())
+	return rres, resolveStatus, err
 }
 
 // Resolve implements the MetadataResolver interface
 func (r SimpleRemoteMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Metadata, error) {
-	res, err := r.ResolveResponse(req)
+	res, resStatus, err := r.ResolveResponse(req)
 	if err != nil {
 		return nil, err
+	}
+	if resStatus != resolveStatusValid {
+		return nil, errors.New("no positive resolve response from remote resolver")
 	}
 	return res.Metadata, nil
 }
@@ -126,21 +150,31 @@ func (r SimpleRemoteMetadataResolver) Resolve(req apimodel.ResolveRequest) (*Met
 func (r SimpleRemoteMetadataResolver) ResolveResponsePayload(req apimodel.ResolveRequest) (
 	ResolveResponsePayload, error,
 ) {
-	res, err := r.ResolveResponse(req)
+	res, resStatus, err := r.ResolveResponse(req)
 	if err != nil {
 		return ResolveResponsePayload{}, err
+	}
+	if resStatus != resolveStatusValid {
+		return ResolveResponsePayload{}, errors.New("no positive resolve response from remote resolver")
 	}
 	return res.ResolveResponsePayload, nil
 }
 
 // ResolvePossible implements the MetadataResolver interface
-func (r SimpleRemoteMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) bool {
-	res, err := r.ResolveResponse(req)
+func (r SimpleRemoteMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) (bool, bool) {
+	_, resStatus, err := r.ResolveResponse(req)
 	if err != nil {
 		internal.Log(err.Error())
-		return false
+		return false, true
 	}
-	return res != nil && res.Subject == req.Subject
+	switch resStatus {
+	case resolveStatusValid, resolveStatusOnlyValidTrustChain:
+		return true, false
+	case resolveStatusInvalid:
+		return false, true
+	default:
+		return false, false
+	}
 }
 
 // ParseResolveResponse parses a jwt into a ResolveResponse
@@ -202,7 +236,7 @@ func (SmartRemoteMetadataResolver) ResolveResponsePayload(req apimodel.ResolveRe
 }
 
 // ResolvePossible implements the MetadataResolver interface
-func (SmartRemoteMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) bool {
+func (SmartRemoteMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) (bool, bool) {
 	for _, tr := range req.Anchor {
 		entityConfig, err := GetEntityConfiguration(tr)
 		if err != nil {
@@ -219,11 +253,12 @@ func (SmartRemoteMetadataResolver) ResolvePossible(req apimodel.ResolveRequest) 
 		remoteResolver := SimpleRemoteMetadataResolver{
 			ResolveEndpoint: resolveEndpoint,
 		}
-		if remoteResolver.ResolvePossible(req) {
-			// TODO if we have a differentiation between "no trust chain possible"
-			//  and other error cases, we can rely on the "no trust chain possible"
-			//  also in the negativ case
-			return true
+		validConfirmed, invalidConfirmed := remoteResolver.ResolvePossible(req)
+		if validConfirmed {
+			return true, false
+		}
+		if invalidConfirmed {
+			return false, true
 		}
 	}
 	return LocalMetadataResolver{}.ResolvePossible(req)
