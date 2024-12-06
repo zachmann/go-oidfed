@@ -9,6 +9,7 @@ authority_hints:
 key_storage: /keys
 filter_to_automatic_ops: false
 enable_debug_log: false
+use_resolve_endpoint: true
 trust_marks:
   - trust_mark_id: https://tm.example.org/tm
     trust_mark_issuer: https://tm.example.org/

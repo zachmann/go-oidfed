@@ -27,7 +27,7 @@ type EntityStatement struct {
 
 // Verify verifies that the EntityStatement jwt is valid
 func (e EntityStatement) Verify(keys jwk.JWKS) bool {
-	_, err := jwx.VerifyWithSet(e.jwtMsg, keys)
+	_, err := e.jwtMsg.VerifyWithSet(keys)
 	if err != nil {
 		internal.Log(err)
 	}
@@ -77,7 +77,7 @@ type EntityStatementPayload struct {
 	Constraints        *ConstraintSpecification `json:"constraints,omitempty"`
 	CriticalExtensions []string                 `json:"crit,omitempty"`
 	MetadataPolicyCrit []PolicyOperatorName     `json:"metadata_policy_crit,omitempty"`
-	TrustMarks         []TrustMarkInfo          `json:"trust_marks,omitempty"`
+	TrustMarks         TrustMarkInfos           `json:"trust_marks,omitempty"`
 	TrustMarkIssuers   AllowedTrustMarkIssuers  `json:"trust_mark_issuers,omitempty"`
 	TrustMarkOwners    TrustMarkOwners          `json:"trust_mark_owners,omitempty"`
 	SourceEndpoint     string                   `json:"source_endpoint,omitempty"`

@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
@@ -206,42 +207,37 @@ func (c TrustMarkEntityChecker) Check(
 	if len(tms) == 0 {
 		return false, fiber.StatusForbidden, noTrustMarkError
 	}
-	var tmFound bool
-	for _, tm := range tms {
-		if tm.ID == c.TrustMarkID {
-			tmFound = true
-			if c.TrustMarkIssuerJWKS.Set != nil && c.TrustMarkIssuerJWKS.Len() != 0 {
-				if err := tm.VerifyExternal(
-					c.TrustMarkIssuerJWKS,
-					c.TrustMarkOwnerSpec,
-				); err == nil {
-					return true, 0, nil
-				}
-			} else {
-				for _, ta := range c.TrustAnchors {
-					taConfig, err := pkg.GetEntityConfiguration(ta.EntityID)
-					if err != nil {
-						continue
-					}
-					if err = tm.VerifyFederation(
-						&taConfig.
-							EntityStatementPayload,
-					); err != nil {
-						return true, 0, nil
-					}
-				}
+	tm := tms.FindByID(c.TrustMarkID)
+	if tm == nil {
+		return false, fiber.StatusForbidden, noTrustMarkError
+	}
+	if c.TrustMarkIssuerJWKS.Set != nil && c.TrustMarkIssuerJWKS.Len() != 0 {
+		if err := tm.VerifyExternal(
+			c.TrustMarkIssuerJWKS,
+			c.TrustMarkOwnerSpec,
+		); err == nil {
+			return true, 0, nil
+		}
+	} else {
+		for _, ta := range c.TrustAnchors {
+			taConfig, err := pkg.GetEntityConfiguration(ta.EntityID)
+			if err != nil {
+				continue
+			}
+			if err = tm.VerifyFederation(
+				&taConfig.
+					EntityStatementPayload,
+			); err != nil {
+				return true, 0, nil
 			}
 		}
 	}
-	if tmFound {
-		return false, fiber.StatusForbidden, &pkg.Error{
-			Error: "forbidden",
-			ErrorDescription: fmt.Sprintf(
-				"could not verify required trust mark '%s'", c.TrustMarkID,
-			),
-		}
+	return false, fiber.StatusForbidden, &pkg.Error{
+		Error: "forbidden",
+		ErrorDescription: fmt.Sprintf(
+			"could not verify required trust mark '%s'", c.TrustMarkID,
+		),
 	}
-	return false, fiber.StatusForbidden, noTrustMarkError
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler and EntityChecker interface
@@ -280,12 +276,13 @@ func (c TrustPathEntityChecker) Check(
 	entityTypes []string,
 ) (bool, int, *pkg.Error) {
 
-	resolver := pkg.TrustResolver{
-		TrustAnchors:   c.TrustAnchors,
-		StartingEntity: entityConfiguration.Subject,
-	}
-	chains := resolver.ResolveToValidChains()
-	if len(chains) == 0 {
+	confirmedValid, _ := pkg.DefaultMetadataResolver.ResolvePossible(
+		apimodel.ResolveRequest{
+			Subject:     entityConfiguration.Subject,
+			TrustAnchor: c.TrustAnchors.EntityIDs(),
+		},
+	)
+	if !confirmedValid {
 		return false, fiber.StatusForbidden, &pkg.Error{
 			Error:            "forbidden",
 			ErrorDescription: "no valid trust path to trust anchors found",

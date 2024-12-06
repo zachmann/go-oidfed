@@ -55,7 +55,7 @@ func TestRequestObjectProducer_RequestObject(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				payload, err := jwx.VerifyWithSet(m, rp1.jwks)
+				payload, err := m.VerifyWithSet(rp1.jwks)
 				if err != nil {
 					t.Error(err)
 					return
@@ -113,7 +113,7 @@ func TestRequestObjectProducer_ClientAssertion(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				payload, err := jwx.VerifyWithSet(m, rp1.jwks)
+				payload, err := m.VerifyWithSet(rp1.jwks)
 				if err != nil {
 					t.Error(err)
 					return

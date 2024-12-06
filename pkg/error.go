@@ -11,6 +11,10 @@ const (
 	InvalidRequest         = "invalid_request"
 	InvalidClient          = "invalid_client"
 	InvalidIssuer          = "invalid_issuer"
+	InvalidSubject         = "invalid_subject"
+	InvalidTrustAnchor     = "invalid_trust_anchor"
+	InvalidTrustChain      = "invalid_trust_chain"
+	InvalidMetadata        = "invalid_metadata"
 	NotFound               = "not_found"
 	ServerError            = "server_error"
 	TemporarilyUnavailable = "temporarily_unavailable"
@@ -37,6 +41,38 @@ func ErrorInvalidClient(description string) Error {
 func ErrorInvalidIssuer(description string) Error {
 	return Error{
 		Error:            InvalidIssuer,
+		ErrorDescription: description,
+	}
+}
+
+// ErrorInvalidSubject returns an Error for using InvalidSubject
+func ErrorInvalidSubject(description string) Error {
+	return Error{
+		Error:            InvalidSubject,
+		ErrorDescription: description,
+	}
+}
+
+// ErrorInvalidTrustAnchor returns an Error for using InvalidTrustAnchor
+func ErrorInvalidTrustAnchor(description string) Error {
+	return Error{
+		Error:            InvalidTrustAnchor,
+		ErrorDescription: description,
+	}
+}
+
+// ErrorInvalidTrustChain returns an Error for using InvalidTrustChain
+func ErrorInvalidTrustChain(description string) Error {
+	return Error{
+		Error:            InvalidTrustChain,
+		ErrorDescription: description,
+	}
+}
+
+// ErrorInvalidMetadata returns an Error for using InvalidMetadata
+func ErrorInvalidMetadata(description string) Error {
+	return Error{
+		Error:            InvalidMetadata,
 		ErrorDescription: description,
 	}
 }

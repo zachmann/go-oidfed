@@ -22,22 +22,27 @@ const cacheGracePeriod = time.Hour
 
 // ResolveResponse is a type describing the response of a resolve request
 type ResolveResponse struct {
-	Issuer     string                 `json:"iss"`
-	Subject    string                 `json:"sub"`
-	IssuedAt   unixtime.Unixtime      `json:"iat"`
-	ExpiresAt  unixtime.Unixtime      `json:"exp"`
-	Audience   string                 `json:"aud,omitempty"`
+	Issuer                 string            `json:"iss"`
+	Subject                string            `json:"sub"`
+	IssuedAt               unixtime.Unixtime `json:"iat"`
+	ExpiresAt              unixtime.Unixtime `json:"exp"`
+	Audience               string            `json:"aud,omitempty"`
+	ResolveResponsePayload `json:",inline"`
+}
+
+// ResolveResponsePayload holds the actual payload of a resolve response
+type ResolveResponsePayload struct {
 	Metadata   *Metadata              `json:"metadata,omitempty"`
-	TrustMarks []TrustMarkInfo        `json:"trust_marks,omitempty"`
+	TrustMarks TrustMarkInfos         `json:"trust_marks,omitempty"`
 	TrustChain jwsMessages            `json:"trust_chain,omitempty"`
 	Extra      map[string]interface{} `json:"-"`
 }
 
 // MarshalJSON implements the json.Marshaler interface.
 // It also marshals extra fields.
-func (r ResolveResponse) MarshalJSON() ([]byte, error) {
-	type resolveResponse ResolveResponse
-	explicitFields, err := json.Marshal(resolveResponse(r))
+func (r ResolveResponsePayload) MarshalJSON() ([]byte, error) {
+	type Alias ResolveResponsePayload
+	explicitFields, err := json.Marshal(Alias(r))
 	if err != nil {
 		return nil, err
 	}
@@ -46,15 +51,15 @@ func (r ResolveResponse) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 // It also unmarshalls additional fields into the Extra claim.
-func (r *ResolveResponse) UnmarshalJSON(data []byte) error {
-	type resolveResponse ResolveResponse
-	var rr resolveResponse
+func (r *ResolveResponsePayload) UnmarshalJSON(data []byte) error {
+	type Alias ResolveResponsePayload
+	var rr Alias
 	extra, err := unmarshalWithExtra(data, &rr)
 	if err != nil {
 		return err
 	}
 	rr.Extra = extra
-	*r = ResolveResponse(rr)
+	*r = ResolveResponsePayload(rr)
 	return nil
 }
 
@@ -67,6 +72,22 @@ func (m jwsMessages) MarshalJSON() ([]byte, error) {
 		jwts[i] = string(mm.RawJWT)
 	}
 	return json.Marshal(jwts)
+}
+
+// UnmarshalJSON implements the json.Marshaler interface.
+func (m *jwsMessages) UnmarshalJSON(data []byte) error {
+	var datas [][]byte
+	if err := json.Unmarshal(data, &datas); err != nil {
+		return err
+	}
+	for _, d := range datas {
+		jwt, err := jwx.Parse(d)
+		if err != nil {
+			return err
+		}
+		*m = append(*m, jwt)
+	}
+	return nil
 }
 
 // TrustResolver is type for resolving trust chains from a StartingEntity to one or multiple TrustAnchors
@@ -114,6 +135,25 @@ func (r *TrustResolver) ResolveToValidChains() TrustChains {
 	r.Resolve()
 	r.VerifySignatures()
 	return r.Chains().Filter(TrustChainsFilterValidMetadata)
+}
+
+// ResolveToValidChainsWithoutVerifyingMetadata starts the trust chain
+// resolution process, building an internal trust tree,
+// verifies the signatures, integrity, expirations,
+// but not metadata policies and returns all possible valid TrustChains
+func (r *TrustResolver) ResolveToValidChainsWithoutVerifyingMetadata() TrustChains {
+	chains, set, err := r.cacheGetTrustChains()
+	if err != nil {
+		set = false
+		internal.Log(err.Error())
+	}
+	if set {
+		internal.Log("Obtained trust chains from cache")
+		return chains
+	}
+	r.Resolve()
+	r.VerifySignatures()
+	return r.Chains()
 }
 
 // Resolve starts the trust chain resolution process, building an internal trust tree

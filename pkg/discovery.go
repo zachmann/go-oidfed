@@ -8,6 +8,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/http"
 	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/zachmann/go-oidfed/pkg/apimodel"
 )
 
 // OPDiscoverer is an interface that discovers OPs
@@ -158,11 +159,13 @@ type OPDiscoveryFilterVerifiedChains struct {
 
 // Filter implements the OPDiscoveryFilter interface
 func (f OPDiscoveryFilterVerifiedChains) Filter(op *OpenIDProviderMetadata) bool {
-	resolver := TrustResolver{
-		TrustAnchors:   f.TrustAnchors,
-		StartingEntity: op.Issuer,
-	}
-	return len(resolver.ResolveToValidChains()) > 0
+	confirmedValid, _ := DefaultMetadataResolver.ResolvePossible(
+		apimodel.ResolveRequest{
+			Subject:     op.Issuer,
+			TrustAnchor: f.TrustAnchors.EntityIDs(),
+		},
+	)
+	return confirmedValid
 }
 
 type opDiscoveryFilterAutomaticRegistration struct{}

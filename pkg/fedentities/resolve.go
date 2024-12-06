@@ -6,15 +6,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/constants"
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
-type resolveRequest struct {
-	Subject     string   `json:"sub" form:"sub" query:"sub"`
-	Anchor      []string `json:"anchor" form:"anchor" query:"anchor"`
-	EntityTypes []string `json:"type" form:"type" query:"type"`
-}
+// TODO allow limiting the resolve endpoint to certain trust anchors
 
 // AddResolveEndpoint adds a resolve endpoint
 func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
@@ -24,12 +21,12 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 	}
 	fed.server.Get(
 		endpoint.Path, func(ctx *fiber.Ctx) error {
-			var req resolveRequest
+			var req apimodel.ResolveRequest
 			if err := ctx.QueryParser(&req); err != nil {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("could not parse request parameters: " + err.Error()))
 			}
-			if len(req.Anchor) == 0 {
+			if len(req.TrustAnchor) == 0 {
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'anchor' not given"))
 			}
@@ -38,34 +35,39 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'sub' not given"))
 			}
 			resolver := pkg.TrustResolver{
-				TrustAnchors:   pkg.NewTrustAnchorsFromEntityIDs(req.Anchor...),
+				TrustAnchors:   pkg.NewTrustAnchorsFromEntityIDs(req.TrustAnchor...),
 				StartingEntity: req.Subject,
 				Types:          req.EntityTypes,
 			}
-			chains := resolver.ResolveToValidChains()
+			chains := resolver.ResolveToValidChainsWithoutVerifyingMetadata()
 			if len(chains) == 0 {
 				ctx.Status(fiber.StatusNotFound)
-				return ctx.JSON(pkg.ErrorInvalidRequest("no valid trust path between sub and anchor found"))
+				return ctx.JSON(pkg.ErrorInvalidTrustChain("no valid trust path between sub and anchor found"))
 			}
-			selectedChain := chains[0]
+			chains = chains.Filter(pkg.TrustChainsFilterValidMetadata)
+			if len(chains) == 0 {
+				ctx.Status(fiber.StatusNotFound)
+				return ctx.JSON(
+					pkg.ErrorInvalidMetadata(
+						"no trust path with valid metadata found between sub and anchor",
+					),
+				)
+			}
+			selectedChain := chains.Filter(pkg.TrustChainsFilterMinPathLength)[0]
 			metadata, _ := selectedChain.Metadata()
 			// err cannot be != nil, since ResolveToValidChains only gives chains with valid metadata
 			leaf := selectedChain[0]
 			ta := selectedChain[len(selectedChain)-1]
-			var verifiedTMs []pkg.TrustMarkInfo
-			for _, tm := range leaf.TrustMarks {
-				if err := tm.VerifyFederation(&ta.EntityStatementPayload); err == nil {
-					verifiedTMs = append(verifiedTMs, tm)
-				}
-			}
 			res := pkg.ResolveResponse{
-				Issuer:     fed.FederationEntity.EntityID,
-				Subject:    req.Subject,
-				IssuedAt:   unixtime.Unixtime{Time: time.Now()},
-				ExpiresAt:  selectedChain.ExpiresAt(),
-				Metadata:   metadata,
-				TrustMarks: verifiedTMs,
-				TrustChain: selectedChain.Messages(),
+				Issuer:    fed.FederationEntity.EntityID,
+				Subject:   req.Subject,
+				IssuedAt:  unixtime.Unixtime{Time: time.Now()},
+				ExpiresAt: selectedChain.ExpiresAt(),
+				ResolveResponsePayload: pkg.ResolveResponsePayload{
+					Metadata:   metadata,
+					TrustMarks: leaf.TrustMarks.VerifiedFederation(&ta.EntityStatementPayload),
+					TrustChain: selectedChain.Messages(),
+				},
 			}
 			jwt, err := fed.GeneralJWTSigner.ResolveResponseSigner().JWT(res)
 			if err != nil {
