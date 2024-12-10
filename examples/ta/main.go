@@ -11,7 +11,6 @@ import (
 	"github.com/zachmann/go-oidfed/examples/ta/config"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/fedentities"
-	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
 func main() {
@@ -25,21 +24,10 @@ func main() {
 	initKey()
 	log.Println("Loaded signing key")
 
-	var subordinateStorage storage.SubordinateStorageBackend
-	var trustMarkedEntitiesStorage storage.TrustMarkedEntitiesStorageBackend
-	if c.ReadableStorage {
-		warehouse := storage.NewFileStorage(c.DataLocation)
-		subordinateStorage = warehouse.SubordinateStorage()
-		trustMarkedEntitiesStorage = warehouse.TrustMarkedEntitiesStorage()
-	} else {
-		warehouse, err := storage.NewBadgerStorage(c.DataLocation)
-		if err != nil {
-			log.Fatal(err)
-		}
-		subordinateStorage = warehouse.SubordinateStorage()
-		trustMarkedEntitiesStorage = warehouse.TrustMarkedEntitiesStorage()
+	subordinateStorage, trustMarkedEntitiesStorage, err := config.LoadStorageBackends(c)
+	if err != nil {
+		log.Fatal(err)
 	}
-	log.Println("Loaded storage backend")
 
 	entity, err := fedentities.NewFedEntity(
 		c.EntityID, c.AuthorityHints,

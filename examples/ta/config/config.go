@@ -12,6 +12,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/fedentities"
+	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
 // Config holds configuration for the entity
@@ -137,4 +138,25 @@ func Load(filename string) {
 			log.Fatal(err)
 		}
 	}
+}
+
+// LoadStorageBackends loads and returns the storage backends for the passed Config
+func LoadStorageBackends(c Config) (
+	subordinateStorage storage.SubordinateStorageBackend,
+	trustMarkedEntitiesStorage storage.TrustMarkedEntitiesStorageBackend, err error,
+) {
+	if c.ReadableStorage {
+		warehouse := storage.NewFileStorage(c.DataLocation)
+		subordinateStorage = warehouse.SubordinateStorage()
+		trustMarkedEntitiesStorage = warehouse.TrustMarkedEntitiesStorage()
+	} else {
+		warehouse, err := storage.NewBadgerStorage(c.DataLocation)
+		if err != nil {
+			return nil, nil, err
+		}
+		subordinateStorage = warehouse.SubordinateStorage()
+		trustMarkedEntitiesStorage = warehouse.TrustMarkedEntitiesStorage()
+	}
+	log.Println("Loaded storage backend")
+	return
 }
