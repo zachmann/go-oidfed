@@ -106,7 +106,7 @@ func extraMarshalHelper(explicitFields []byte, extra map[string]interface{}) ([]
 	return data, errors.WithStack(err)
 }
 
-func yamlExtraMarshalHelper(explicitFields []byte, extra map[string]interface{}) ([]byte, error) {
+func yamlExtraMarshalHelper(explicitFields []byte, extra map[string]interface{}) (any, error) {
 	var m map[string]*yaml.Node
 	if err := yaml.Unmarshal(explicitFields, &m); err != nil {
 		return nil, err
@@ -118,8 +118,7 @@ func yamlExtraMarshalHelper(explicitFields []byte, extra map[string]interface{})
 		}
 		m[k] = node
 	}
-	data, err := yaml.Marshal(m)
-	return data, errors.WithStack(err)
+	return m, nil
 }
 
 // MarshalJSON implements the json.Marshaler interface.

@@ -87,5 +87,5 @@ func (d DurationInSeconds) MarshalJSON() ([]byte, error) {
 
 // MarshalYAML implements the yaml.Marshaler interface.
 func (d DurationInSeconds) MarshalYAML() (any, error) {
-	return yaml.Marshal(float64(d.Nanoseconds()) / float64(time.Second))
+	return float64(d.Nanoseconds()) / float64(time.Second), nil
 }
