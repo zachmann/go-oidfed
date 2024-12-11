@@ -8,6 +8,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
+	"gopkg.in/yaml.v3"
 )
 
 // JWKS is a wrapper type for jwk.Set to implement custom marshaling
@@ -55,6 +56,19 @@ func (jwks JWKS) MarshalYAML() (any, error) {
 		return nil, errors.WithStack(err)
 	}
 	return generic, nil
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface
+func (jwks *JWKS) UnmarshalYAML(node *yaml.Node) error {
+	var generic map[string]interface{}
+	if err := node.Decode(&generic); err != nil {
+		return errors.WithStack(err)
+	}
+	genericJSON, err := json.Marshal(generic)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return jwks.UnmarshalJSON(genericJSON)
 }
 
 // MarshalMsgpack implements the msgpack.Marshaler interface

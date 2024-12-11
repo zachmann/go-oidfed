@@ -1,0 +1,49 @@
+{
+  email youremail@example.com
+  local_certs
+}
+
+edugain.fedservice.lh {
+  reverse_proxy edugain:8765
+  tls internal
+}
+
+erasmus-plus.fedservice.lh {
+  reverse_proxy erasmus-plus:8765
+  tls internal
+}
+
+garr.fedservice.lh {
+  reverse_proxy garr:8765
+  tls internal
+}
+
+haka.fedservice.lh {
+  reverse_proxy haka:8765
+  tls internal
+}
+
+helsinki.fedservice.lh {
+  reverse_proxy helsinki:8765
+  tls internal
+}
+
+incommon.fedservice.lh {
+  reverse_proxy incommon:8765
+  tls internal
+}
+
+puhuri.fedservice.lh {
+  reverse_proxy puhuri:8765
+  tls internal
+}
+
+sunet.fedservice.lh {
+  reverse_proxy sunet:8765
+  tls internal
+}
+
+surfconext.fedservice.lh {
+  reverse_proxy surf:8765
+  tls internal
+}

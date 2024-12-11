@@ -2,3 +2,4 @@
 /examples/rp/keys/
 /examples/rp/config.yaml
 /examples/ta/config.yaml
+/examples/edugain-pilot/*/*.key

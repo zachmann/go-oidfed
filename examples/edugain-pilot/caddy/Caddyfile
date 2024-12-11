@@ -1,0 +1,39 @@
+{
+  email youremail@example.com
+}
+
+edugain.fedservice.lh {
+  reverse_proxy edugain:8765
+}
+
+erasmus-plus.fedservice.lh {
+  reverse_proxy erasmus-plus:8765
+}
+
+garr.fedservice.lh {
+  reverse_proxy garr:8765
+}
+
+haka.fedservice.lh {
+  reverse_proxy haka:8765
+}
+
+helsinki.fedservice.lh {
+  reverse_proxy helsinki:8765
+}
+
+incommon.fedservice.lh {
+  reverse_proxy incommon:8765
+}
+
+puhuri.fedservice.lh {
+  reverse_proxy puhuri:8765
+}
+
+sunet.fedservice.lh {
+  reverse_proxy sunet:8765
+}
+
+surfconext.fedservice.lh {
+  reverse_proxy surf:8765
+}

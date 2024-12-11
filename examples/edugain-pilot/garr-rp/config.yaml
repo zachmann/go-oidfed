@@ -1,0 +1,17 @@
+server_addr: ":8765"
+entity_id: "http://garr-rp.fedservice.lh"
+organisation_name: "IDEM RP"
+trust_anchors:
+  - entity_id: "http://garr.fedservice.lh"
+  - entity_id: "http://edugain.fedservice.lh"
+authority_hints:
+  - "http://garr.fedservice.lh"
+key_storage: /data
+filter_to_automatic_ops: false
+enable_debug_log: false
+
+trust_marks:
+  - trust_mark_id: "https://edugain.org/member"
+    trust_mark_issuer: "https://edugain.fedservice.lh"
+  - trust_mark_id: "https://refeds.org/sirtfi"
+    trust_mark_issuer: "https://garr.fedservice.lh"

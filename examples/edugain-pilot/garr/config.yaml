@@ -1,0 +1,34 @@
+server_port: 8765
+entity_id: "https://garr.fedservice.lh"
+signing_key_file: "/data/signing.key"
+organization_name: "GARR"
+data_location: "/data/data"
+human_readable_storage: true
+metadata_policy_file: "/data/metadata-policy.json"
+endpoints:
+  fetch:
+    path: "/fetch"
+  list:
+    path: "/list"
+  trust_mark:
+    path: "/trustmark"
+  trust_mark_status:
+    path: "/trustmark/status"
+  trust_mark_list:
+    path: "/trustmark/list"
+trust_mark_specs:
+  - trust_mark_id: "https://refeds.org/sirtfi"
+    lifetime: 86400
+    ref: "https://refeds.org/wp-content/uploads/2022/08/Sirtfi-v2.pdf"
+    delegation_jwt: eyJhbGciOiJFUzUxMiIsImtpZCI6InhCTTdrR0xwRl82bHJPOVBBZEUyNFR0N0NUV1Y1TV8waVl6Z0c4eUxpWGsiLCJ0eXAiOiJ0cnVzdC1tYXJrLWRlbGVnYXRpb24rand0In0.eyJleHAiOjIxMzM5MzA0MTIuNDQwMjc5NSwiaWF0IjoxNzMzOTMwNDEyLjQ0MDI3OTUsImlkIjoiaHR0cHM6Ly9yZWZlZHMub3JnL3NpcnRmaSIsImlzcyI6Imh0dHBzOi8vcmVmZWRzLmZlZHNlcnZpY2UubGgiLCJzdWIiOiJodHRwczovL2dhcnIuZmVkc2VydmljZS5saCJ9.AKkfeXZ3p7frDNxQ9QMUkQCXUSoIaKcuwvQp6J3-xs7NP-AdEjE9g4c8TOCO_l1SeY6GRFUxHmpIUIx5VozDnbT1AepwbQnreAQB35_XAJU-5ZMhfXtcks7rFDM7PcsQYWi0PEAaLGO5LKTu74MMcm0YQTq0UolmQrwAvOolcZi5QB7q
+    checker:
+      type: none
+trust_mark_owners:
+  "https://refeds.org/sirtfi":
+    jwks: %REFEDS_JWKS%
+    entity_id: "https://refeds.fedservice.lh"
+trust_marks:
+  - trust_mark_id: "https://edugain.org/member"
+    trust_mark_issuer: "https://edugain.fedservice.lh"
+  - trust_mark_id: "https://refeds.org/sirtfi"
+    trust_mark_issuer: "https://garr.fedservice.lh"
