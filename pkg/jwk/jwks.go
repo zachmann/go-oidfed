@@ -44,6 +44,19 @@ func (jwks *JWKS) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalYAML implements the yaml.Marshaler interface.
+func (jwks JWKS) MarshalYAML() (any, error) {
+	data, err := json.Marshal(jwks.Set)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	var generic any
+	if err = json.Unmarshal(data, &generic); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return generic, nil
+}
+
 // MarshalMsgpack implements the msgpack.Marshaler interface
 func (jwks JWKS) MarshalMsgpack() ([]byte, error) {
 	data, err := json.Marshal(jwks)
