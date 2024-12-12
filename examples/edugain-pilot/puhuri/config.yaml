@@ -21,8 +21,6 @@ endpoints:
 trust_mark_specs:
   - trust_mark_id: "https://puhuri.io"
     lifetime: 86400
-    checker:
-      type: none
 trust_mark_issuers:
   "https://puhuri.io":
     - "https://puhuri.fedservice.lh"
