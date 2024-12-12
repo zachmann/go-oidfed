@@ -44,8 +44,8 @@ trust_mark_issuers:
     - "https://incommon.fedservice.lh"
 trust_mark_owners:
   "https://refeds.org/sirtfi":
-    jwks: %REFEDS_JWKS%
     entity_id: "https://refeds.fedservice.lh"
+    jwks: {"keys":[{"alg":"ES512","crv":"P-521","kid":"xBM7kGLpF_6lrO9PAdE24Tt7CTWV5M_0iYzgG8yLiXk","kty":"EC","use":"sig","x":"AbKKmsYuxrmQBXT2_EauJJD8xa_EGn4gb7ji5BjX0zfEixnelyMJvdf-vYSNFNlI_ziFXbCK8x_j-MXsGFjoCcR8","y":"AEWu_02reNv3XlaJk-f1XogU7LEmlSEJs3MKrHv--3-uBtpRoe30s5AOj_PqBBWIGZrtF2w1V0VPYRZ29h8Rk7Sq"}]}
 trust_marks:
   - trust_mark_id: "https://edugain.org/member"
     trust_mark_issuer: "https://edugain.fedservice.lh"

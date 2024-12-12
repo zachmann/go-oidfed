@@ -6,7 +6,7 @@ import (
 
 func main() {
 	mustLoadConfig()
-	initKeys("fed", "oidc")
+	initKeys("fed.signing.key", "oidc.signing.key")
 	if conf.UseResolveEndpoint {
 		pkg.DefaultMetadataResolver = pkg.SmartRemoteMetadataResolver{}
 	}

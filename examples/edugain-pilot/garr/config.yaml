@@ -25,8 +25,16 @@ trust_mark_specs:
       type: none
 trust_mark_owners:
   "https://refeds.org/sirtfi":
-    jwks: %REFEDS_JWKS%
     entity_id: "https://refeds.fedservice.lh"
+    jwks:
+      keys:
+        - alg: ES512
+          crv: P-521
+          kid: iGgQCgbSMZh1ISgB9MiB1_7Xlc8wMgnv6K02lRy06AQ
+          kty: EC
+          use: sig
+          x: ALWoxPDiFHtXd6mJLzkD-cXikIYKyaqvMa5A2UpBxeGCfqKsKGL88vojIQYKu0LkCNoVImhkd5XsYDR9XKD6XYxx
+          "y": APG6SSLS7PKik2I648qiuArkJbzfurMHHh_E6S0v_cjwhpJCTEEFc1jgbcMqQKQpbJ9RAHas3RsQv8KMWOF-QyMt
 trust_marks:
   - trust_mark_id: "https://edugain.org/member"
     trust_mark_issuer: "https://edugain.fedservice.lh"
