@@ -28,7 +28,7 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 			}
 			if len(req.TrustAnchor) == 0 {
 				ctx.Status(fiber.StatusBadRequest)
-				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'anchor' not given"))
+				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'trust_anchor' not given"))
 			}
 			if req.Subject == "" {
 				ctx.Status(fiber.StatusBadRequest)
