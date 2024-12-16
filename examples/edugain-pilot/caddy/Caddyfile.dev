@@ -47,3 +47,23 @@ surfconext.fedservice.lh {
   reverse_proxy surf:8765
   tls internal
 }
+
+surf-rp.fedservice.lh {
+  reverse_proxy surf-rp:8765
+  tls internal
+}
+
+puhuri-rp.fedservice.lh {
+  reverse_proxy puhuri-rp:8765
+  tls internal
+}
+
+helsinki-rp.fedservice.lh {
+  reverse_proxy helsinki-rp:8765
+  tls internal
+}
+
+garr-rp.fedservice.lh {
+  reverse_proxy garr-rp:8765
+  tls internal
+}
