@@ -1,11 +1,11 @@
 server_addr: ":8765"
-entity_id: "http://helsinki-rp.fedservice.lh"
+entity_id: "https://helsinki-rp.fedservice.lh"
 organisation_name: "Helsinki University RP"
 trust_anchors:
-  - entity_id: "http://helsinki.fedservice.lh"
-  - entity_id: "http://haka.fedservice.lh"
+  - entity_id: "https://helsinki.fedservice.lh"
+  - entity_id: "https://haka.fedservice.lh"
 authority_hints:
-  - "http://helsinki.fedservice.lh"
+  - "https://helsinki.fedservice.lh"
 key_storage: /data
 filter_to_automatic_ops: false
 enable_debug_log: false

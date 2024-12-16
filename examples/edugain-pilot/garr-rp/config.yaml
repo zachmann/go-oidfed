@@ -1,11 +1,11 @@
 server_addr: ":8765"
-entity_id: "http://garr-rp.fedservice.lh"
+entity_id: "https://garr-rp.fedservice.lh"
 organisation_name: "IDEM RP"
 trust_anchors:
-  - entity_id: "http://garr.fedservice.lh"
-  - entity_id: "http://edugain.fedservice.lh"
+  - entity_id: "https://garr.fedservice.lh"
+  - entity_id: "https://edugain.fedservice.lh"
 authority_hints:
-  - "http://garr.fedservice.lh"
+  - "https://garr.fedservice.lh"
 key_storage: /data
 filter_to_automatic_ops: false
 enable_debug_log: false

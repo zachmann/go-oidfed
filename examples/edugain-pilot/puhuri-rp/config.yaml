@@ -1,11 +1,11 @@
 server_addr: ":8765"
-entity_id: "http://puhuri-rp.fedservice.lh"
+entity_id: "https://puhuri-rp.fedservice.lh"
 organisation_name: "Puhuri RP"
 trust_anchors:
-  - entity_id: "http://puhuri.fedservice.lh"
-  - entity_id: "http://edugain.fedservice.lh"
+  - entity_id: "https://puhuri.fedservice.lh"
+  - entity_id: "https://edugain.fedservice.lh"
 authority_hints:
-  - "http://puhuri.fedservice.lh"
+  - "https://puhuri.fedservice.lh"
 key_storage: /data
 filter_to_automatic_ops: false
 enable_debug_log: false
