@@ -63,7 +63,7 @@ var stateDB map[string]stateData
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	if authBuilder == nil {
-		authBuilder = pkg.NewRequestObjectProducer(conf.EntityID, getKey("oidc"), jwa.ES512, 60)
+		authBuilder = pkg.NewRequestObjectProducer(conf.EntityID, getKey(oidcSigningKeyName), jwa.ES512, 60)
 	}
 	op := r.URL.Query().Get("op")
 	state := randASCIIString(32)
@@ -160,7 +160,7 @@ func fedLeaf() *pkg.FederationLeaf {
 				GrantTypes:              []string{"authorization_code"},
 				ApplicationType:         "web",
 				ClientName:              "example go oidfed rp",
-				JWKS:                    getJWKS("oidc"),
+				JWKS:                    getJWKS(oidcSigningKeyName),
 				OrganizationName:        conf.OrganisationName,
 				ClientRegistrationTypes: []string{"automatic"},
 			},
@@ -172,9 +172,9 @@ func fedLeaf() *pkg.FederationLeaf {
 		_fedLeaf, err = pkg.NewFederationLeaf(
 			conf.EntityID, conf.AuthorityHints, conf.TrustAnchors, metadata,
 			pkg.NewEntityStatementSigner(
-				getKey("fed"),
+				getKey(fedSigningKeyName),
 				jwa.ES512,
-			), 86400, getKey("oidc"), jwa.ES512,
+			), 86400, getKey(oidcSigningKeyName), jwa.ES512,
 		)
 		if err != nil {
 			log.Fatal(err)

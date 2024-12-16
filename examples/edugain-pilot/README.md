@@ -13,7 +13,7 @@ To getting the testbed up and running do the following from this directory
 # Generate a refeds trust mark owner jwks and issue delegation jwt and update the config files
 ./insert-delegation.sh
 # Start up the containers
-docker-compose up -d
+docker compose up -d
 # Add suboridnates to authorities
 ./connect-federation.sh
 # Entitle entities to be able to obtain trust marks.
