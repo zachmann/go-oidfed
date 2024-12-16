@@ -84,7 +84,7 @@ func (c *EntityConfigurationTrustMarkConfig) TrustMarkJWT() (string, error) {
 func (c *EntityConfigurationTrustMarkConfig) refresh() error {
 	if time.Since(c.lastTried.Time) < time.Minute {
 		// Only try once a minute to obtain a new trust mark
-		return nil
+		return errors.New("only trying to refresh trust mark once a minute")
 	}
 	tmi, err := GetEntityConfiguration(c.TrustMarkIssuer)
 	if err != nil {
