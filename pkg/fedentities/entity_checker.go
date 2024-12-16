@@ -111,8 +111,7 @@ func NewMultipleEntityCheckerOr(checkers ...EntityChecker) *MultipleEntityChecke
 
 // Check implements the EntityChecker interface
 func (c MultipleEntityCheckerOr) Check(
-	entityStatement *pkg.
-		EntityStatement, entityTypes []string,
+	entityStatement *pkg.EntityStatement, entityTypes []string,
 ) (bool, int, *pkg.Error) {
 	for _, checker := range c.Checkers {
 		if ok, _, _ := checker.Check(entityStatement, entityTypes); ok {
@@ -255,7 +254,8 @@ func (c *TrustMarkEntityChecker) UnmarshalYAML(node *yaml.Node) error {
 // TrustPathEntityChecker checks that the entity has a
 // valid trust path to a trust anchor
 type TrustPathEntityChecker struct {
-	TrustAnchors pkg.TrustAnchors `yaml:"trust_anchors"`
+	TrustAnchors                pkg.TrustAnchors `yaml:"trust_anchors"`
+	isAlreadyTrustAnchorChecker EntityIDEntityChecker
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler and EntityChecker interface
@@ -267,6 +267,7 @@ func (c *TrustPathEntityChecker) UnmarshalYAML(node *yaml.Node) error {
 		return err
 	}
 	*c = TrustPathEntityChecker(alias)
+	c.isAlreadyTrustAnchorChecker = EntityIDEntityChecker{AllowedIDs: c.TrustAnchors.EntityIDs()}
 	return nil
 }
 
@@ -275,6 +276,9 @@ func (c TrustPathEntityChecker) Check(
 	entityConfiguration *pkg.EntityStatement,
 	entityTypes []string,
 ) (bool, int, *pkg.Error) {
+	if ok, _, _ := c.isAlreadyTrustAnchorChecker.Check(entityConfiguration, entityTypes); ok {
+		return true, 0, nil
+	}
 
 	confirmedValid, _ := pkg.DefaultMetadataResolver.ResolvePossible(
 		apimodel.ResolveRequest{

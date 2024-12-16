@@ -134,7 +134,7 @@ func Load(filename string) {
 		}
 	}
 	for _, tmc := range c.TrustMarks {
-		if err = tmc.Verify(c.EntityID); err != nil {
+		if err = tmc.Verify(c.EntityID, c.Endpoints.TrustMarkEndpoint.ValidateURL(c.EntityID)); err != nil {
 			log.Fatal(err)
 		}
 	}

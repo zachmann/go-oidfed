@@ -47,7 +47,7 @@ func mustLoadConfig() {
 		pkg.EnableDebugLogging()
 	}
 	for _, c := range conf.TrustMarks {
-		if err = c.Verify(conf.EntityID); err != nil {
+		if err = c.Verify(conf.EntityID, ""); err != nil {
 			log.Fatal(err)
 		}
 	}
