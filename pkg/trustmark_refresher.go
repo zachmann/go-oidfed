@@ -22,6 +22,7 @@ type EntityConfigurationTrustMarkConfig struct {
 	MinLifetime        unixtime.DurationInSeconds `yaml:"min_lifetime"`
 	RefreshGracePeriod unixtime.DurationInSeconds `yaml:"refresh_grace_period"`
 	expiration         unixtime.Unixtime
+	lastTried          unixtime.Unixtime
 	sub                string
 }
 
@@ -81,6 +82,10 @@ func (c *EntityConfigurationTrustMarkConfig) TrustMarkJWT() (string, error) {
 
 // refresh refreshes the trust mark at the trust mark issuer's trust mark endpoint
 func (c *EntityConfigurationTrustMarkConfig) refresh() error {
+	if unixtime.Until(c.lastTried) < time.Minute {
+		// Only try once a minute to obtain a new trust mark
+		return nil
+	}
 	tmi, err := GetEntityConfiguration(c.TrustMarkIssuer)
 	if err != nil {
 		return err
@@ -95,9 +100,11 @@ func (c *EntityConfigurationTrustMarkConfig) refresh() error {
 	params.Add("sub", c.sub)
 	res, errRes, err := http.Get(endpoint, params, nil)
 	if err != nil {
+		c.lastTried = unixtime.Now()
 		return err
 	}
 	if errRes != nil {
+		c.lastTried = unixtime.Now()
 		return errRes.Err()
 	}
 	tm, err := ParseTrustMark(res.Body())

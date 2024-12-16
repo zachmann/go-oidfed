@@ -89,3 +89,7 @@ func (d DurationInSeconds) MarshalJSON() ([]byte, error) {
 func (d DurationInSeconds) MarshalYAML() (any, error) {
 	return float64(d.Nanoseconds()) / float64(time.Second), nil
 }
+
+func Now() Unixtime {
+	return Unixtime{time.Now()}
+}
