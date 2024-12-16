@@ -1,5 +1,7 @@
 server_port: 8765
 entity_id: "https://garr.fedservice.lh"
+authority_hints:
+  - "https://edugain.fedservice.lh"
 signing_key_file: "/data/signing.key"
 organization_name: "GARR"
 data_location: "/data/data"
@@ -20,21 +22,13 @@ trust_mark_specs:
   - trust_mark_id: "https://refeds.org/sirtfi"
     lifetime: 86400
     ref: "https://refeds.org/wp-content/uploads/2022/08/Sirtfi-v2.pdf"
-    delegation_jwt: eyJhbGciOiJFUzUxMiIsImtpZCI6InhCTTdrR0xwRl82bHJPOVBBZEUyNFR0N0NUV1Y1TV8waVl6Z0c4eUxpWGsiLCJ0eXAiOiJ0cnVzdC1tYXJrLWRlbGVnYXRpb24rand0In0.eyJleHAiOjIxMzM5MzA0MTIuNDQwMjc5NSwiaWF0IjoxNzMzOTMwNDEyLjQ0MDI3OTUsImlkIjoiaHR0cHM6Ly9yZWZlZHMub3JnL3NpcnRmaSIsImlzcyI6Imh0dHBzOi8vcmVmZWRzLmZlZHNlcnZpY2UubGgiLCJzdWIiOiJodHRwczovL2dhcnIuZmVkc2VydmljZS5saCJ9.AKkfeXZ3p7frDNxQ9QMUkQCXUSoIaKcuwvQp6J3-xs7NP-AdEjE9g4c8TOCO_l1SeY6GRFUxHmpIUIx5VozDnbT1AepwbQnreAQB35_XAJU-5ZMhfXtcks7rFDM7PcsQYWi0PEAaLGO5LKTu74MMcm0YQTq0UolmQrwAvOolcZi5QB7q
+    delegation_jwt: %REFEDS_DELEGATION_JWT_GARR%
     checker:
       type: none
 trust_mark_owners:
   "https://refeds.org/sirtfi":
     entity_id: "https://refeds.fedservice.lh"
-    jwks:
-      keys:
-        - alg: ES512
-          crv: P-521
-          kid: iGgQCgbSMZh1ISgB9MiB1_7Xlc8wMgnv6K02lRy06AQ
-          kty: EC
-          use: sig
-          x: ALWoxPDiFHtXd6mJLzkD-cXikIYKyaqvMa5A2UpBxeGCfqKsKGL88vojIQYKu0LkCNoVImhkd5XsYDR9XKD6XYxx
-          "y": APG6SSLS7PKik2I648qiuArkJbzfurMHHh_E6S0v_cjwhpJCTEEFc1jgbcMqQKQpbJ9RAHas3RsQv8KMWOF-QyMt
+    jwks: %REFEDS_JWKS%
 trust_marks:
   - trust_mark_id: "https://edugain.org/member"
     trust_mark_issuer: "https://edugain.fedservice.lh"

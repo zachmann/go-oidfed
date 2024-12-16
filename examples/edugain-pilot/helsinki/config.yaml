@@ -1,5 +1,7 @@
 server_port: 8765
 entity_id: "https://helsinki.fedservice.lh"
+authority_hints:
+  - "https://haka.fedservice.lh"
 signing_key_file: "/data/signing.key"
 organization_name: "Helsinki University"
 data_location: "/data/data"
