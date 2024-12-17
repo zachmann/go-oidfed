@@ -5,6 +5,7 @@ docker exec edugain-pilot-edugain-1 /tacli -c /data/config.yaml subordinates add
 docker exec edugain-pilot-edugain-1 /tacli -c /data/config.yaml subordinates add https://incommon.fedservice.lh
 docker exec edugain-pilot-edugain-1 /tacli -c /data/config.yaml subordinates add https://haka.fedservice.lh
 docker exec edugain-pilot-edugain-1 /tacli -c /data/config.yaml subordinates add https://sunet.fedservice.lh
+docker exec edugain-pilot-edugain-1 /tacli -c /data/config.yaml subordinates add https://erasmus-plus.fedservice.lh
 
 docker exec edugain-pilot-surf-1 /tacli -c /data/config.yaml subordinates add https://surf-rp.fedservice.lh
 
