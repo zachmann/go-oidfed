@@ -50,12 +50,21 @@ func (fed *FedEntity) AddTrustMarkEndpoint(
 				)
 			}
 
-			hasTM, err := store.HasTrustMark(trustMarkID, sub)
+			status, err := store.TrustMarkedStatus(trustMarkID, sub)
 			if err != nil {
 				ctx.Status(fiber.StatusInternalServerError)
 				return ctx.JSON(pkg.ErrorServerError(err.Error()))
 			}
-			if !hasTM {
+			switch status {
+			case storage.StatusActive:
+				return issueAndSendTrustMark(ctx, fed, trustMarkID, sub)
+			case storage.StatusBlocked:
+				ctx.Status(fiber.StatusForbidden)
+				return ctx.JSON(pkg.ErrorInvalidRequest("subject cannot obtain this trust mark"))
+			case storage.StatusPending:
+				ctx.Status(fiber.StatusAccepted)
+				return ctx.JSON(pkg.ErrorInvalidRequest("approval pending"))
+			case storage.StatusInactive:
 				// subject does not have the trust mark,
 				// check if it is entitled to do so
 				var checker EntityChecker
@@ -91,15 +100,21 @@ func (fed *FedEntity) AddTrustMarkEndpoint(
 					return ctx.JSON(pkg.ErrorServerError(err.Error()))
 				}
 			}
-			tm, err := fed.IssueTrustMark(trustMarkID, sub)
-			if err != nil {
-				if err != nil {
-					ctx.Status(fiber.StatusInternalServerError)
-					return ctx.JSON(pkg.ErrorServerError(err.Error()))
-				}
-			}
-			ctx.Set(fiber.HeaderContentType, constants.ContentTypeTrustMark)
-			return ctx.SendString(tm.TrustMarkJWT)
+			return issueAndSendTrustMark(ctx, fed, trustMarkID, sub)
 		},
 	)
+}
+
+func issueAndSendTrustMark(
+	ctx *fiber.Ctx, fedEntity *FedEntity, trustMarkID, sub string,
+) error {
+	tm, err := fedEntity.IssueTrustMark(trustMarkID, sub)
+	if err != nil {
+		if err != nil {
+			ctx.Status(fiber.StatusInternalServerError)
+			return ctx.JSON(pkg.ErrorServerError(err.Error()))
+		}
+	}
+	ctx.Set(fiber.HeaderContentType, constants.ContentTypeTrustMark)
+	return ctx.SendString(tm.TrustMarkJWT)
 }

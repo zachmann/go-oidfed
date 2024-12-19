@@ -4,25 +4,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/constants"
 	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
 )
 
-type enrollRequest struct {
-	Subject     string   `json:"sub" form:"sub" query:"sub"`
-	EntityTypes []string `json:"entity_type" form:"entity_type" query:"entity_type"`
-}
-
-// AddEnrollEndpoint adds an endpoint to enroll to this IA/TA
-func (fed *FedEntity) AddEnrollEndpoint(
+// AddEnrollRequestEndpoint adds an endpoint to request enrollment to this IA
+// /TA (this does only add a request to the storage, no automatic enrollment)
+func (fed *FedEntity) AddEnrollRequestEndpoint(
 	endpoint EndpointConf,
 	store storage.SubordinateStorageBackend,
-	checker EntityChecker,
 ) {
 	if fed.Metadata.FederationEntity.Extra == nil {
 		fed.Metadata.FederationEntity.Extra = make(map[string]interface{})
 	}
-	fed.Metadata.FederationEntity.Extra["federation_enroll_endpoint"] = endpoint.ValidateURL(fed.FederationEntity.EntityID)
+	fed.Metadata.FederationEntity.Extra["federation_enroll_request_endpoint"] = endpoint.ValidateURL(fed.FederationEntity.EntityID)
 	if endpoint.Path == "" {
 		return
 	}
@@ -44,27 +38,22 @@ func (fed *FedEntity) AddEnrollEndpoint(
 			}
 			if storedInfo != nil { // Already a subordinate
 				switch storedInfo.Status {
+
 				case storage.StatusActive:
-					// This is not necessarily needed, but we return a fetch response
-					payload := fed.CreateSubordinateStatement(storedInfo)
-					jwt, err := fed.SignEntityStatement(payload)
-					if err != nil {
-						ctx.Status(fiber.StatusInternalServerError)
-						return ctx.JSON(pkg.ErrorServerError(err.Error()))
-					}
-					ctx.Set(fiber.HeaderContentType, constants.ContentTypeEntityStatement)
-					ctx.Status(fiber.StatusCreated)
-					return ctx.Send(jwt)
-				case storage.StatusPending:
-					ctx.Status(fiber.StatusAccepted)
-					return ctx.JSON(
-						pkg.ErrorInvalidRequest(
-							"the enrollment needs to be approved by an administrator",
-						),
-					)
+					ctx.Status(fiber.StatusNoContent)
+					return nil
 				case storage.StatusBlocked:
 					ctx.Status(fiber.StatusForbidden)
-					return ctx.JSON(pkg.ErrorInvalidRequest("the entity cannot enroll"))
+					return ctx.JSON(
+						pkg.ErrorInvalidRequest(
+							"the entity cannot enroll",
+						),
+					)
+				case storage.StatusPending:
+					ctx.Status(fiber.StatusAccepted)
+					return nil
+				case storage.StatusInactive:
+					break
 				default:
 					break
 				}
@@ -78,19 +67,11 @@ func (fed *FedEntity) AddEnrollEndpoint(
 			if len(req.EntityTypes) == 0 {
 				req.EntityTypes = entityConfig.Metadata.GuessEntityTypes()
 			}
-			if checker != nil {
-				ok, errStatus, errResponse := checker.Check(entityConfig, req.EntityTypes)
-				if !ok {
-					ctx.Status(errStatus)
-					return ctx.JSON(errResponse)
-				}
-			}
-
 			info := storage.SubordinateInfo{
 				JWKS:        entityConfig.JWKS,
 				EntityTypes: req.EntityTypes,
 				EntityID:    entityConfig.Subject,
-				Status:      storage.StatusActive,
+				Status:      storage.StatusPending,
 			}
 			if err = store.Write(
 				entityConfig.Subject, info,
@@ -98,16 +79,8 @@ func (fed *FedEntity) AddEnrollEndpoint(
 				ctx.Status(fiber.StatusInternalServerError)
 				return ctx.JSON(pkg.ErrorServerError(err.Error()))
 			}
-			// This is not necessarily needed, but we return a fetch response
-			payload := fed.CreateSubordinateStatement(&info)
-			jwt, err := fed.SignEntityStatement(payload)
-			if err != nil {
-				ctx.Status(fiber.StatusInternalServerError)
-				return ctx.JSON(pkg.ErrorServerError(err.Error()))
-			}
-			ctx.Set(fiber.HeaderContentType, constants.ContentTypeEntityStatement)
-			ctx.Status(fiber.StatusCreated)
-			return ctx.Send(jwt)
+			ctx.Status(fiber.StatusAccepted)
+			return nil
 		},
 	)
 }

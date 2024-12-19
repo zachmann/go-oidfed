@@ -90,6 +90,9 @@ func main() {
 	if endpoint := c.Endpoints.TrustMarkEndpoint; endpoint.IsSet() {
 		entity.AddTrustMarkEndpoint(endpoint, trustMarkedEntitiesStorage, trustMarkCheckerMap)
 	}
+	if endpoint := c.Endpoints.TrustMarkRequestEndpoint; endpoint.IsSet() {
+		entity.AddTrustMarkRequestEndpoint(endpoint, trustMarkedEntitiesStorage)
+	}
 	if endpoint := c.Endpoints.EnrollmentEndpoint; endpoint.IsSet() {
 		var checker fedentities.EntityChecker
 		if checkerConfig := endpoint.CheckerConfig; checkerConfig.Type != "" {
@@ -99,6 +102,9 @@ func main() {
 			}
 		}
 		entity.AddEnrollEndpoint(endpoint.EndpointConf, subordinateStorage, checker)
+	}
+	if endpoint := c.Endpoints.EnrollmentRequestEndpoint; endpoint.IsSet() {
+		entity.AddEnrollRequestEndpoint(endpoint, subordinateStorage)
 	}
 	log.Println("Added Endpoints")
 

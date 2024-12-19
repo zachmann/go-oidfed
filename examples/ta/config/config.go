@@ -86,7 +86,9 @@ type Endpoints struct {
 	TrustMarkEndpoint                  fedentities.EndpointConf `yaml:"trust_mark"`
 	HistoricalKeysEndpoint             fedentities.EndpointConf `yaml:"historical_keys"`
 
-	EnrollmentEndpoint extendedEndpointConfig `yaml:"enroll"`
+	EnrollmentEndpoint        extendedEndpointConfig   `yaml:"enroll"`
+	EnrollmentRequestEndpoint fedentities.EndpointConf `yaml:"enroll_request"`
+	TrustMarkRequestEndpoint  fedentities.EndpointConf `yaml:"trust_mark_request"`
 }
 
 type extendedEndpointConfig struct {

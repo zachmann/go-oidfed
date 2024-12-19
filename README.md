@@ -73,10 +73,10 @@ that the list is not complete)
 | Enrollment of Entities                                                                         |                    | Yes         |
 | Configurable Checks for Enrollment                                                             |                    | Yes         |
 | Custom Checks for Enrollment                                                                   |                    | Yes         |
-| Request Enrollment                                                                             |                    | No          |
+| Request Enrollment                                                                             |                    | Yes         |
 | Configurable Checks for Trust Mark Issuance                                                    |                    | Yes         |
 | Custom Checks for Trust Mark Issuance                                                          |                    | Yes         |
-| Request to become entitled for a Trust Mark                                                    |                    | No          |
+| Request to become entitled for a Trust Mark                                                    |                    | Yes         |
 | Automatically refresh trust marks in Entity Configuration                                      |                    | Yes         |
 
 
