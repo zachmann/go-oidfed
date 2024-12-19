@@ -37,22 +37,35 @@ func (fed *FedEntity) AddEnrollEndpoint(
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'sub' not given"))
 			}
-			storedInfo, err := store.Q().Subordinate(req.Subject)
+			storedInfo, err := store.Subordinate(req.Subject)
 			if err != nil {
 				ctx.Status(fiber.StatusInternalServerError)
 				return ctx.JSON(pkg.ErrorServerError(err.Error()))
 			}
 			if storedInfo != nil { // Already a subordinate
-				// This is not necessarily needed, but we return a fetch response
-				payload := fed.CreateSubordinateStatement(storedInfo)
-				jwt, err := fed.SignEntityStatement(payload)
-				if err != nil {
-					ctx.Status(fiber.StatusInternalServerError)
-					return ctx.JSON(pkg.ErrorServerError(err.Error()))
+				switch storedInfo.Status {
+				case storage.StatusActive:
+					// This is not necessarily needed, but we return a fetch response
+					payload := fed.CreateSubordinateStatement(storedInfo)
+					jwt, err := fed.SignEntityStatement(payload)
+					if err != nil {
+						ctx.Status(fiber.StatusInternalServerError)
+						return ctx.JSON(pkg.ErrorServerError(err.Error()))
+					}
+					ctx.Set(fiber.HeaderContentType, constants.ContentTypeEntityStatement)
+					ctx.Status(fiber.StatusCreated)
+					return ctx.Send(jwt)
+				case storage.StatusPending:
+					ctx.Status(fiber.StatusAccepted)
+					return ctx.JSON(
+						pkg.ErrorInvalidRequest(
+							"the enrollment needs to be approved by an administrator",
+						),
+					)
+				case storage.StatusBlocked:
+					ctx.Status(fiber.StatusForbidden)
+					return ctx.JSON(pkg.ErrorInvalidRequest("the entity can not enroll"))
 				}
-				ctx.Set(fiber.HeaderContentType, constants.ContentTypeEntityStatement)
-				ctx.Status(fiber.StatusCreated)
-				return ctx.Send(jwt)
 			}
 
 			entityConfig, err := pkg.GetEntityConfiguration(req.Subject)

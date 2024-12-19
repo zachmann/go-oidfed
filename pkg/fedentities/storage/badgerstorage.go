@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
@@ -203,8 +204,59 @@ func (store *SubordinateBadgerStorage) Read(entityID string) (*SubordinateInfo, 
 	return &info, nil
 }
 
-// Q returns a SubordinateStorageQuery
-func (store *SubordinateBadgerStorage) Q() SubordinateStorageQuery {
+// Block implements the SubordinateStorageBackend interface
+func (store *SubordinateBadgerStorage) Block(entityID string) error {
+	return changeSubordinateStatus(entityID, StatusBlocked, store)
+}
+
+// Approve implements the SubordinateStorageBackend interface
+func (store *SubordinateBadgerStorage) Approve(entityID string) error {
+	return changeSubordinateStatus(entityID, StatusActive, store)
+}
+
+// Subordinate implements the SubordinateStorageBackend interface
+func (store *SubordinateBadgerStorage) Subordinate(entityID string) (*SubordinateInfo, error) {
+	return store.Read(entityID)
+}
+
+// Active implements the SubordinateStorageBackend interface
+func (store *SubordinateBadgerStorage) Active() SubordinateStorageQuery {
+	return &BadgerSubordinateStorageQuery{
+		db: store,
+		filters: []func(info SubordinateInfo) bool{
+			func(info SubordinateInfo) bool {
+				return info.Status == StatusActive
+			},
+		},
+	}
+}
+
+// Blocked implements the SubordinateStorageBackend interface
+func (store *SubordinateBadgerStorage) Blocked() SubordinateStorageQuery {
+	return &BadgerSubordinateStorageQuery{
+		db: store,
+		filters: []func(info SubordinateInfo) bool{
+			func(info SubordinateInfo) bool {
+				return info.Status == StatusBlocked
+			},
+		},
+	}
+}
+
+// Pending implements the SubordinateStorageBackend interface
+func (store *SubordinateBadgerStorage) Pending() SubordinateStorageQuery {
+	return &BadgerSubordinateStorageQuery{
+		db: store,
+		filters: []func(info SubordinateInfo) bool{
+			func(info SubordinateInfo) bool {
+				return info.Status == StatusPending
+			},
+		},
+	}
+}
+
+// All returns a SubordinateStorageQuery for all stored SubordinateInfos
+func (store *SubordinateBadgerStorage) All() SubordinateStorageQuery {
 	return &BadgerSubordinateStorageQuery{db: store}
 }
 
@@ -266,6 +318,55 @@ type TrustMarkedEntitiesBadgerStorage struct {
 	store *BadgerSubStorage
 }
 
+// Block implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) Block(trustMarkID, entityID string) error {
+	return store.write(trustMarkID, entityID, StatusBlocked)
+}
+
+// Approve implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) Approve(trustMarkID, entityID string) error {
+	return store.write(trustMarkID, entityID, StatusActive)
+}
+
+// Request implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) Request(trustMarkID, entityID string) error {
+	return store.write(trustMarkID, entityID, StatusPending)
+}
+
+// TrustMarkedStatus implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) TrustMarkedStatus(trustMarkID, entityID string) (Status, error) {
+	var status Status
+	var id string
+	k := store.key(trustMarkID, entityID)
+	found, err := store.store.Read(k, &status)
+	if err != nil {
+		found, e := store.store.Read(k, &id)
+		if e == nil && found {
+			return StatusActive, nil
+		}
+		return -1, err
+	}
+	if !found {
+		return StatusInactive, nil
+	}
+	return status, nil
+}
+
+// Active implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) Active(trustMarkID string) ([]string, error) {
+	return store.trustMarkedEntities(trustMarkID, StatusActive)
+}
+
+// Blocked implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) Blocked(trustMarkID string) ([]string, error) {
+	return store.trustMarkedEntities(trustMarkID, StatusBlocked)
+}
+
+// Pending implements the TrustMarkedEntitiesStorageBackend interface
+func (store *TrustMarkedEntitiesBadgerStorage) Pending(trustMarkID string) ([]string, error) {
+	return store.trustMarkedEntities(trustMarkID, StatusPending)
+}
+
 func (store *TrustMarkedEntitiesBadgerStorage) key(trustMarkID, entityID string) string {
 	return fmt.Sprintf("%s|%s", trustMarkID, entityID)
 }
@@ -276,8 +377,8 @@ func (store *TrustMarkedEntitiesBadgerStorage) Load() error {
 }
 
 // Write implements the TrustMarkedEntitiesStorageBackend interface
-func (store *TrustMarkedEntitiesBadgerStorage) Write(trustMarkID, entityID string) error {
-	return store.store.Write(store.key(trustMarkID, entityID), entityID)
+func (store *TrustMarkedEntitiesBadgerStorage) write(trustMarkID, entityID string, status Status) error {
+	return store.store.Write(store.key(trustMarkID, entityID), status)
 }
 
 // Delete implements the TrustMarkedEntitiesStorageBackend interface
@@ -285,15 +386,25 @@ func (store *TrustMarkedEntitiesBadgerStorage) Delete(trustMarkID, entityID stri
 	return store.store.Delete(store.key(trustMarkID, entityID))
 }
 
-// TrustMarkedEntities implements the TrustMarkedEntitiesStorageBackend interface
-func (store *TrustMarkedEntitiesBadgerStorage) TrustMarkedEntities(trustMarkID string) (entityIDs []string, err error) {
+func (store *TrustMarkedEntitiesBadgerStorage) trustMarkedEntities(
+	trustMarkID string, status Status,
+) (entityIDs []string, err error) {
 	err = store.store.ReadIterator(
-		func(_, v []byte) error {
+		func(k, v []byte) error {
 			var id string
-			if err = json.Unmarshal(v, &id); err != nil {
-				return err
+			var s Status
+			if err = json.Unmarshal(v, &s); err != nil {
+				// try legacy storage format
+				if e := json.Unmarshal(v, &id); e != nil {
+					return err
+				}
+				s = StatusActive
+			} else {
+				id = strings.TrimPrefix(string(k), fmt.Sprintf("%s|", trustMarkID))
 			}
-			entityIDs = append(entityIDs, id)
+			if s == status {
+				entityIDs = append(entityIDs, id)
+			}
 			return nil
 		},
 		trustMarkID,
@@ -303,6 +414,6 @@ func (store *TrustMarkedEntitiesBadgerStorage) TrustMarkedEntities(trustMarkID s
 
 // HasTrustMark implements the TrustMarkedEntitiesStorageBackend interface
 func (store *TrustMarkedEntitiesBadgerStorage) HasTrustMark(trustMarkID, entityID string) (bool, error) {
-	var id string
-	return store.store.Read(store.key(trustMarkID, entityID), &id)
+	status, err := store.TrustMarkedStatus(trustMarkID, entityID)
+	return status == StatusActive, err
 }

@@ -9,6 +9,19 @@ import (
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
 
+// Status is a type for holding a status for something that is stored in the
+// database; this type describes the status or state of the entity,
+// e.g. "blocked" or "active"
+type Status int
+
+// Constants for Status
+const (
+	StatusActive Status = iota
+	StatusBlocked
+	StatusPending
+	StatusInactive
+)
+
 // SubordinateInfo holds information about a subordinate for storage
 type SubordinateInfo struct {
 	JWKS               jwk.JWKS                     `json:"jwks"`
@@ -21,6 +34,7 @@ type SubordinateInfo struct {
 	MetadataPolicyCrit []pkg.PolicyOperatorName     `json:"metadata_policy_crit,omitempty"`
 	TrustMarks         pkg.TrustMarkInfos           `json:"trust_marks,omitempty"`
 	Extra              map[string]interface{}       `json:"-"`
+	Status             Status                       `json:"status"`
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface
@@ -48,17 +62,33 @@ func (info *SubordinateInfo) UnmarshalMsgpack(src []byte) error {
 // SubordinateStorageBackend is an interface to store SubordinateInfo
 type SubordinateStorageBackend interface {
 	Write(entityID string, info SubordinateInfo) error
-	Q() SubordinateStorageQuery
 	Delete(entityID string) error
+	Block(entityID string) error
+	Approve(entityID string) error
+	Subordinate(entityID string) (*SubordinateInfo, error)
+	Active() SubordinateStorageQuery
+	Blocked() SubordinateStorageQuery
+	Pending() SubordinateStorageQuery
 	Load() error
 }
 
 // SubordinateStorageQuery is an interface to query SubordinateInfo from storage
 type SubordinateStorageQuery interface {
-	Subordinate(entityID string) (*SubordinateInfo, error)
 	Subordinates() ([]SubordinateInfo, error)
 	EntityIDs() ([]string, error)
 	AddFilter(filter SubordinateStorageQueryFilter, value any) error
+}
+
+func changeSubordinateStatus(entityID string, status Status, storage SubordinateStorageBackend) error {
+	info, err := storage.Subordinate(entityID)
+	if err != nil {
+		return err
+	}
+	if info == nil {
+		info = &SubordinateInfo{EntityID: entityID}
+	}
+	info.Status = status
+	return storage.Write(entityID, *info)
 }
 
 // SubordinateStorageQueryFilter is function to filter SubordinateInfo

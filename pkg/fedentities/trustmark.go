@@ -86,7 +86,7 @@ func (fed *FedEntity) AddTrustMarkEndpoint(
 					)
 				}
 				// ok, so we add sub to the list and issue the trust mark
-				if err = store.Write(trustMarkID, sub); err != nil {
+				if err = store.Approve(trustMarkID, sub); err != nil {
 					ctx.Status(fiber.StatusInternalServerError)
 					return ctx.JSON(pkg.ErrorServerError(err.Error()))
 				}

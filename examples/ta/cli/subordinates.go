@@ -30,6 +30,13 @@ var subordinatesRemoveCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE:  removeSubordinate,
 }
+var subordinatesBlockCmd = &cobra.Command{
+	Use:   "block",
+	Short: "Block a subordinate",
+	Long:  `Block a subordinate`,
+	Args:  cobra.ExactArgs(1),
+	RunE:  blockSubordinate,
+}
 
 var entityTypes []string
 
@@ -37,9 +44,11 @@ func init() {
 	subordinatesAddCmd.Flags().StringArrayVarP(&entityTypes, "entity_type", "t", []string{}, "entity type")
 	subordinatesAddCmd.Flags().StringVarP(&configFile, "config", "c", "config.yaml", "the config file to use")
 	subordinatesRemoveCmd.Flags().StringVarP(&configFile, "config", "c", "config.yaml", "the config file to use")
+	subordinatesBlockCmd.Flags().StringVarP(&configFile, "config", "c", "config.yaml", "the config file to use")
 	subordinatesCmd.Flags().StringVarP(&configFile, "config", "c", "config.yaml", "the config file to use")
 	subordinatesCmd.AddCommand(subordinatesAddCmd)
 	subordinatesCmd.AddCommand(subordinatesRemoveCmd)
+	subordinatesCmd.AddCommand(subordinatesBlockCmd)
 	rootCmd.AddCommand(subordinatesCmd)
 }
 
@@ -88,5 +97,22 @@ func removeSubordinate(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "failed to remove subordinate from storage")
 	}
 	fmt.Println("subordinate removed successfully")
+	return nil
+}
+
+func blockSubordinate(cmd *cobra.Command, args []string) error {
+	if err := loadConfig(); err != nil {
+		return err
+	}
+	if err := subordinateStorage.Load(); err != nil {
+		return errors.Wrap(err, "failed to load subordinates from storage")
+	}
+
+	entityID := args[0]
+
+	if err := subordinateStorage.Block(entityID); err != nil {
+		return errors.Wrap(err, "failed to block subordinate in storage")
+	}
+	fmt.Println("subordinate blocked successfully")
 	return nil
 }

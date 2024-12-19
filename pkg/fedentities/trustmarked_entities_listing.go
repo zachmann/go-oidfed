@@ -51,7 +51,7 @@ func (fed *FedEntity) AddTrustMarkedEntitiesListingEndpoint(
 					entities = []string{sub}
 				}
 			} else {
-				entities, err = store.TrustMarkedEntities(trustMarkID)
+				entities, err = store.Active(trustMarkID)
 				if err != nil {
 					ctx.Status(fiber.StatusInternalServerError)
 					return ctx.JSON(pkg.ErrorServerError(err.Error()))

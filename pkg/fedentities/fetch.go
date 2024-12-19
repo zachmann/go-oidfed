@@ -21,7 +21,7 @@ func (fed *FedEntity) AddFetchEndpoint(endpoint EndpointConf, store storage.Subo
 				ctx.Status(fiber.StatusBadRequest)
 				return ctx.JSON(pkg.ErrorInvalidRequest("required parameter 'sub' not given"))
 			}
-			info, err := store.Q().Subordinate(sub)
+			info, err := store.Subordinate(sub)
 			if err != nil {
 				ctx.Status(fiber.StatusInternalServerError)
 				return ctx.JSON(pkg.ErrorServerError(err.Error()))

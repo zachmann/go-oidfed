@@ -25,7 +25,7 @@ func (fed *FedEntity) AddSubordinateListingEndpoint(
 				ctx, ctx.Query("entity_type"), ctx.QueryBool("trust_marked"),
 				ctx.Query("trust_mark_id"),
 				ctx.QueryBool("intermediate"),
-				store.Q(),
+				store.Active(),
 				trustMarkStore,
 			)
 		},
@@ -74,7 +74,7 @@ func handleSubordinateListing(
 	}
 
 	if trustMarkID != "" || trustMarked {
-		trustMarkedEntities, err := trustMarkedEntitiesStorage.TrustMarkedEntities(trustMarkID)
+		trustMarkedEntities, err := trustMarkedEntitiesStorage.Active(trustMarkID)
 		if err != nil {
 			ctx.Status(fiber.StatusInternalServerError)
 			return ctx.JSON(pkg.ErrorServerError(err.Error()))

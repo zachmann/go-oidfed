@@ -102,21 +102,6 @@ func main() {
 	}
 	log.Println("Added Endpoints")
 
-	// subordinateStorage.Write(
-	// 	"https://op.example.org", storage.SubordinateInfo{
-	// 		JWKS:       genJWKS(),
-	// 		EntityType: constants.EntityTypeOpenIDProvider,
-	// 		EntityID:   "https://op.example.org",
-	// 	},
-	// )
-	// subordinateStorage.Write(
-	// 	"https://rp.example.org", storage.SubordinateInfo{
-	// 		JWKS:       genJWKS(),
-	// 		EntityType: constants.EntityTypeOpenIDRelyingParty,
-	// 		EntityID:   "https://rp.example.org",
-	// 	},
-	// )
-
 	log.Printf("Start serving on port %d\n", c.ServerPort)
 	if err = http.ListenAndServe(fmt.Sprintf(":%d", c.ServerPort), entity.HttpHandlerFunc()); err != nil {
 		panic(err)
