@@ -38,7 +38,6 @@ func (fed *FedEntity) AddEnrollRequestEndpoint(
 			}
 			if storedInfo != nil { // Already a subordinate
 				switch storedInfo.Status {
-
 				case storage.StatusActive:
 					ctx.Status(fiber.StatusNoContent)
 					return nil

@@ -56,7 +56,10 @@ func (s subordinateFileStorage) Subordinate(entityID string) (*SubordinateInfo, 
 	if err != nil {
 		return nil, err
 	}
-	info, _ := infosMap[entityID]
+	info, ok := infosMap[entityID]
+	if !ok {
+		return nil, nil
+	}
 	return &info, nil
 }
 
@@ -210,6 +213,7 @@ func (s trustMarkedEntitiesFileStorage) readUnlocked() (infos map[string]map[Sta
 		if e := json.Unmarshal(data, &legacyInfos); e != nil {
 			return nil, err
 		}
+		err = nil
 		for k, v := range legacyInfos {
 			mappedV := map[Status][]string{
 				StatusActive: v,
