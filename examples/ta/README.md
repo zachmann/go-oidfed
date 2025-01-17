@@ -1,7 +1,7 @@
 # Example TA/IA using go-oidfed library
 This is an example Trust Anchor / Intermediate Authority / Trust Mark Issuer that uses the go-oidfed library from this repository.
 
-It showcases how to easily set up an configurable federation entity.
+It showcases how to easily set up a configurable federation entity.
 
 The following is an example `config.yaml` file:
 
@@ -63,6 +63,24 @@ An example docker compose file to run multiple intermediate /
 trust anchors and relying parties in a small example federation can be found 
 at [examples/edugain-pilot](../edugain-pilot):
 
+## Endpoints
+
+The following endpoints are available:
+
+| Endpoint                      | Config Parameter     | Description                                                                                                                                                                                |
+|-------------------------------|----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Federation Config             | n/a                  | Always enabled. The federation endpoint where the entity configuration is published.                                                                                                       |
+| Fetch                         | `fetch`              | Federation Subordinate Fetch Endpoint per Spec Section 8.1                                                                                                                                 |
+| Subordinate Listing           | `list`               | Federation Subordinate Listing Endpoint per Spec Section 8.2                                                                                                                               |
+| Resolve                       | `resolve`            | Resolve Endpoint per Spec Section 8.3                                                                                                                                                      |
+| Trust Mark Status             | `trust_mark_status`  | Trust Mark Status Endpoint per Spec Section 8.4 but without the `iat` parameter                                                                                                            |
+| Trust Marked Entities Listing | `trust_mark_listing` | Trust Marked Entities Listing Endpoint per Spec Section 8.5                                                                                                                                |
+| Trust Mark                    | `trust_mark`         | Trust Mark Endpoint per Spec Section 8.6                                                                                                                                                   |
+| Federation Historical Keys    | `historical_keys`    | Not Yet Implemented! Historical Keys Endpoint per Spec Section 8.7                                                                                                                         |
+| Enrollment                    | `enroll`             | An endpoint where entities can automatically enroll into the federation. For details see #enrolling-entities                                                                               |
+| Request Enrollment            | `enroll_request`     | An endpoint where entities can request enrollment into the federation. An federation administrator then can check and approve the request. The request is analog to the enroll request     |
+| Trust Mark Request            | `trust_mark_request` | An endpoint where entities can request to be entitled for a trust mark. A federation administrator then can check and approve the request. The request is analog to the trust mark request |
+
 ## Enrolling Entities
 
 The TA/IA has a custom enrollment / onboarding endpoint that can be configured as all endpoints in the config file.
@@ -97,6 +115,169 @@ library:
 - `entity_id`: Checks if the entity's `entity_id` is one of the defined ones
 - `multiple_and`: Used to combine multiple `EntityChecker` using AND
 - `multiple_or`: Used to combine multiple `EntityChecker` using OR
+
+In the following we describe in more details how to configure the different
+entity checkers:
+
+### None
+No additional configuration applicable.
+
+#### Example
+```yaml
+checker:
+  type: none
+```
+
+### Trust Mark
+For a trust mark entity checker you must configure the trust mark id of the
+trust mark that should be checked. Additional one must provide either trust
+anchors or the trust mark issuer's jwks and in the case of delegation
+information about the trust mark owner.
+
+#### Config Attributes
+
+| Claim                  | Necessity                                                       | Description                                                  |
+|------------------------|-----------------------------------------------------------------|--------------------------------------------------------------|
+| `trust_mark_id`         | REQUIRED                                                        | The trust mark id of the trust mark to check                 |
+| `trust_anchors`          | REQUIRED unless `trust_mark_issuer_jwks` is given               | A list of trust anchors used to verify the trust mark issuer |
+| `trust_mark_issuer_jwks` | REQUIRED if `trust_anchors` is not given                        | The jwks of the trust mark issuer                            |
+| `trust_mark_owner`      | REQUIRED if `trust_anchors` is not given and delegation is used | Information about the trust mark owner                       |
+
+The `trust_anchors` claim is a list where each element can have the following
+attributes:
+
+| Claim       | Necessity | Description                                                                     |
+|-------------|-----------|---------------------------------------------------------------------------------|
+| `entity_id` | REQUIRED  | The entity id of the trust anchor                                               |
+| `jwks`      | OPTIONAL  | The trust anchors jwks; if omitted it is obtained from its Entity Configuration |
+
+The `trust_mark_owner` claim has the following attributes:
+
+| Claim       | Necessity | Description                           |
+|-------------|-----------|---------------------------------------|
+| `entity_id` | REQUIRED  | The entity id of the trust mark owner |
+| `jwks`      | REQUIRED  | The trust mark owner's jwks           |
+
+
+#### Examples
+```yaml
+checker:
+  type: trust_mark
+  config:
+    trust_mark_id: https://tm.example.org
+    trust_anchors:
+      - entity_id: https://ta.example.org
+```
+
+```yaml
+checker:
+  type: trust_mark
+  config:
+    trust_mark_id: https://tm.example.org
+    mark_issuer_jwks: {"keys":[{"alg":"ES512","crv":"P-521","kid":"E6XirVKtuO2_76Ly8Lw1cS_W4FUfw_lx5M_z33aMO-I","kty":"EC","use":"sig","x":"AbZpRmHJVpqqJ2q4bFMPto5jVhReNe0toBHWm0y-AhdpqYIqLA-J3ICr_I42BgmC4pG9lQE4qU8mJjkX1I__PDK8","y":"AFl9aVDzsUJPbyxDe96FuLWJNYNOo68WcljWEXJ0QzsFaTDUtykNe1lf3UoOXQWnvNQ1eD2iyWTef1gRR9A6HOSI"}]}
+    trust_mark_owner:
+      entity_id: https://ta.example.org
+      jwks: {"keys":[{"alg":"ES512","crv":"P-521","kid":"gChx94HqIDTscqMzxDps6degt2j_Z7OrDsx0Fc24rKA","kty":"EC","use":"sig","x":"AAyVRMA84JsAtJ9z3qKVzgBN1DL8lDIrHRRYtnYiSkfe-i0V7W21QJ_VBBRF3kWFEYadRL9z4yJC7gYvsojF6p8C","y":"AYx1JCtCfrvNR8x8KibI2mQJKAsszjslfd8WlTha8lxtvncpg5c-UxjJgpCYRo3jwdvxUCa6LKHu0TzbUhKfFK8f"}]}
+```
+
+### Trust Path
+
+For a trust path entity checker you must configure the trust anchors that should
+be used to verify that there is an existing trust path to one of these trust
+anchors.
+
+#### Config Attributes
+
+| Claim           | Necessity | Description                                           |
+|-----------------|-----------|-------------------------------------------------------|
+| `trust_anchors` | REQUIRED  | A list of trust anchors used to verify the trust path |
+
+The `trust_anchors` claim is a list where each element can have the following
+attributes:
+
+| Claim       | Necessity | Description                                                                     |
+|-------------|-----------|---------------------------------------------------------------------------------|
+| `entity_id` | REQUIRED  | The entity id of the trust anchor                                               |
+| `jwks`      | OPTIONAL  | The trust anchors jwks; if omitted it is obtained from its Entity Configuration |
+
+
+#### Example
+```yaml
+checker:
+  type: trust_path
+  config:
+    trust_anchors:
+      - entity_id: https://ta.example.org
+```
+
+### Authority Hints
+
+For an authority hints entity checker you must configure the entity id that
+should be present in the authority hints.
+
+#### Config Attributes
+
+| Claim       | Necessity | Description                                                          |
+|-------------|-----------|----------------------------------------------------------------------|
+| `entity_id` | REQUIRED  | The entity id that should be present in the entity's authority hints |
+
+#### Example
+```yaml
+checker:
+  type: authority_hints
+  config:
+    entity_id: https://ia.example.org
+```
+
+### Entity IDs
+
+For an entity id entity checker you must configure the entity id(s) that
+are allowed.
+
+#### Config Attributes
+
+| Claim        | Necessity | Description                  |
+|--------------|-----------|------------------------------|
+| `entity_ids` | REQUIRED  | A list of allowed entity ids |
+
+#### Example
+```yaml
+checker:
+  type: entity_id
+  config:
+    entity_ids: 
+      - https://op1.example.org
+      - https://op2.example.org
+```
+
+### Multiple
+To combine multiple entity checkers (either with and or or) one must provide all
+entity checkers:
+
+#### Examples:
+```yaml
+checker:
+  type: multiple_and
+  config:
+    - type: trust_path
+      config:
+        trust_anchors:
+          - entity_id: https://ta.example.org
+    - type: multiple_or
+      config:
+        - type: trust_mark
+          config: 
+            trust_mark_id: https://tm.example.com
+            trust_anchors:
+              - entity_id: https://ta.example.com
+        - type: trust_mark
+          config: 
+          trust_mark_id: https://tm.example.org
+            trust_anchors:
+              - entity_id: https://ta.example.org
+```
+
+
 
 ## Trust Mark Issuance
 The issuance of trust marks boils down to "if you are on the list of entities
