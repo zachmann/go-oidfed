@@ -202,9 +202,11 @@ func (tm *TrustMark) Delegation() (*DelegationJWT, error) {
 
 // VerifyFederation verifies the TrustMark by using the passed trust anchor
 func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
-	if tmis, found := ta.TrustMarkIssuers[tm.ID]; found {
-		if !slices.Contains(tmis, tm.Issuer) {
-			return errors.New("verify trustmark: trust mark issuer is not allowed by trust anchor")
+	if ta.TrustMarkIssuers != nil {
+		if tmis, found := ta.TrustMarkIssuers[tm.ID]; found {
+			if !slices.Contains(tmis, tm.Issuer) {
+				return errors.New("verify trustmark: trust mark issuer is not allowed by trust anchor")
+			}
 		}
 	}
 	res, err := DefaultMetadataResolver.ResolveResponsePayload(
