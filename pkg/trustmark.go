@@ -200,6 +200,48 @@ func (tm *TrustMark) Delegation() (*DelegationJWT, error) {
 	return tm.delegation, err
 }
 
+func getTrustMarkIssuerJWKS(
+	trustMarkIssuer string,
+	ta *EntityStatementPayload,
+) (jwks jwk.JWKS, err error) {
+	if trustMarkIssuer == ta.Subject {
+		jwks = ta.JWKS
+		return
+	}
+
+	resolveRequest := apimodel.ResolveRequest{
+		Subject:     trustMarkIssuer,
+		TrustAnchor: []string{ta.Subject},
+	}
+	var res ResolveResponsePayload
+	switch resolver := DefaultMetadataResolver.(type) {
+	case LocalMetadataResolver:
+		res, _, err = resolver.resolveResponsePayloadWithoutTrustMarks(resolveRequest)
+	default:
+		res, err = DefaultMetadataResolver.ResolveResponsePayload(resolveRequest)
+	}
+	if err != nil {
+		err = errors.Wrap(err, "error while resolving trust mark issuer")
+		return
+	}
+	var tmi *EntityStatement
+	if len(res.TrustChain) > 0 {
+		tmi, err = ParseEntityStatement(res.TrustChain[0].RawJWT)
+	} else {
+		tmi, err = GetEntityConfiguration(trustMarkIssuer)
+	}
+	if err != nil {
+		err = errors.Wrap(err, "error while parsing trust mark issuer entity statement")
+		return
+	}
+	if tmi == nil || tmi.JWKS.Len() == 0 {
+		err = errors.New("no jwks found for trust mark issuer")
+		return
+	}
+	jwks = tmi.JWKS
+	return
+}
+
 // VerifyFederation verifies the TrustMark by using the passed trust anchor
 func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 	if ta.TrustMarkIssuers != nil {
@@ -209,28 +251,10 @@ func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 			}
 		}
 	}
-	res, err := DefaultMetadataResolver.ResolveResponsePayload(
-		apimodel.ResolveRequest{
-			Subject:     tm.Issuer,
-			TrustAnchor: []string{ta.Subject},
-		},
-	)
+	jwks, err := getTrustMarkIssuerJWKS(tm.Issuer, ta)
 	if err != nil {
-		return errors.Wrap(err, "error while resolving trust mark issuer")
+		return err
 	}
-	var tmi *EntityStatement
-	if len(res.TrustChain) > 0 {
-		tmi, err = ParseEntityStatement(res.TrustChain[0].RawJWT)
-	} else {
-		tmi, err = GetEntityConfiguration(tm.Issuer)
-	}
-	if err != nil {
-		return errors.Wrap(err, "error while parsing trust mark issuer entity statement")
-	}
-	if tmi == nil || tmi.JWKS.Len() == 0 {
-		return errors.New("no jwks found for trust mark issuer")
-	}
-	jwks := tmi.JWKS
 	tmo, tmoFound := ta.TrustMarkOwners[tm.ID]
 	if !tmoFound {
 		// no delegation

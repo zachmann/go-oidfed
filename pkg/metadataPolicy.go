@@ -151,7 +151,9 @@ func mergeMetadataPolicyEntries(a, b MetadataPolicyEntry, pathInfo string) (Meta
 		}
 		operator, ok := operators[op]
 		if !ok {
-			return nil, errors.Errorf("unknown policy operator '%s'; cannot combine these policies", op)
+			// return nil, errors.Errorf("unknown policy operator '%s'; cannot combine these policies", op)
+			// We already checked that this is not a crit operator, so it is just ignored
+			return nil, nil
 		}
 		combined, err := operator.Merge(av, bv, pathInfo)
 		if err != nil {

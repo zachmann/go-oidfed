@@ -142,12 +142,14 @@ var chainRPIA1TA1 = TrustChain{
 	{EntityStatementPayload: rp1.EntityStatementPayload()},
 	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(rp1.EntityID)},
 	{EntityStatementPayload: ta1.SubordinateEntityStatementPayload(ia1.EntityID)},
+	{EntityStatementPayload: *ta1.EntityStatementPayload()},
 }
 
 var chainRPIA2TA1 = TrustChain{
 	{EntityStatementPayload: rp1.EntityStatementPayload()},
 	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(rp1.EntityID)},
 	{EntityStatementPayload: ta1.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *ta1.EntityStatementPayload()},
 }
 
 var chainRPIA1IA2TA1 = TrustChain{
@@ -155,22 +157,26 @@ var chainRPIA1IA2TA1 = TrustChain{
 	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(rp1.EntityID)},
 	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(ia1.EntityID)},
 	{EntityStatementPayload: ta1.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *ta1.EntityStatementPayload()},
 }
 
 var chainRPIA2TA2 = TrustChain{
 	{EntityStatementPayload: rp1.EntityStatementPayload()},
 	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(rp1.EntityID)},
 	{EntityStatementPayload: ta2.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *ta2.EntityStatementPayload()},
 }
 var chainRPIA2TA2WithRemove = TrustChain{
 	{EntityStatementPayload: rp1.EntityStatementPayload()},
 	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(rp1.EntityID)},
 	{EntityStatementPayload: ta2WithRemove.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *ta2WithRemove.EntityStatementPayload()},
 }
 var chainRPIA2TA2WithRemoveCrit = TrustChain{
 	{EntityStatementPayload: rp1.EntityStatementPayload()},
 	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(rp1.EntityID)},
 	{EntityStatementPayload: ta2WithRemoveCrit.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *ta2WithRemoveCrit.EntityStatementPayload()},
 }
 
 var chainRPIA1IA2TA2 = TrustChain{
@@ -178,6 +184,7 @@ var chainRPIA1IA2TA2 = TrustChain{
 	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(rp1.EntityID)},
 	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(ia1.EntityID)},
 	{EntityStatementPayload: ta2.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *ta2.EntityStatementPayload()},
 }
 
 var chainProxyIA1IA2TA1 = TrustChain{
@@ -185,11 +192,13 @@ var chainProxyIA1IA2TA1 = TrustChain{
 	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(proxy.EntityID)},
 	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(ia1.EntityID)},
 	{EntityStatementPayload: ta1.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *ta1.EntityStatementPayload()},
 }
 var chainProxyIA1TA1 = TrustChain{
 	{EntityStatementPayload: proxy.EntityStatementPayload()},
 	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(proxy.EntityID)},
 	{EntityStatementPayload: ta1.SubordinateEntityStatementPayload(ia1.EntityID)},
+	{EntityStatementPayload: *ta1.EntityStatementPayload()},
 }
 
 var allProxyChains = TrustChains{
@@ -389,20 +398,20 @@ func TestTrustChainFiltersPathLength(t *testing.T) {
 		expected TrustChains
 	}{
 		{
-			name:     "all chains -> 5",
-			filter:   TrustChainsFilterMaxPathLength(5),
+			name:     "all chains -> max 3 intermediates",
+			filter:   TrustChainsFilterMaxPathLength(3),
 			in:       allChains,
 			expected: allChains,
 		},
 		{
-			name:     "all chains -> 4",
-			filter:   TrustChainsFilterMaxPathLength(4),
+			name:     "all chains -> max 2 intermediates",
+			filter:   TrustChainsFilterMaxPathLength(2),
 			in:       allChains,
 			expected: allChains,
 		},
 		{
-			name:   "all chains -> 3",
-			filter: TrustChainsFilterMaxPathLength(3),
+			name:   "all chains -> max 1 intermediate",
+			filter: TrustChainsFilterMaxPathLength(1),
 			in:     allChains,
 			expected: TrustChains{
 				chainRPIA2TA2,
@@ -411,8 +420,8 @@ func TestTrustChainFiltersPathLength(t *testing.T) {
 			},
 		},
 		{
-			name:     "all chains -> 2",
-			filter:   TrustChainsFilterMaxPathLength(2),
+			name:     "all chains -> no intermediates allowed",
+			filter:   TrustChainsFilterMaxPathLength(0),
 			in:       allChains,
 			expected: nil,
 		},

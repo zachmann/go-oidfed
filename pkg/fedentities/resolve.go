@@ -65,9 +65,11 @@ func (fed *FedEntity) AddResolveEndpoint(endpoint EndpointConf) {
 				ExpiresAt: selectedChain.ExpiresAt(),
 				ResolveResponsePayload: pkg.ResolveResponsePayload{
 					Metadata:   metadata,
-					TrustMarks: leaf.TrustMarks.VerifiedFederation(&ta.EntityStatementPayload),
 					TrustChain: selectedChain.Messages(),
 				},
+			}
+			if leaf.TrustMarks != nil {
+				res.ResolveResponsePayload.TrustMarks = leaf.TrustMarks.VerifiedFederation(&ta.EntityStatementPayload)
 			}
 			jwt, err := fed.GeneralJWTSigner.ResolveResponseSigner().JWT(res)
 			if err != nil {

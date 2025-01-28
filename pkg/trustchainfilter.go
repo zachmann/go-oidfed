@@ -91,16 +91,16 @@ func (f trustChainsFilterPathLength) Filter(chains TrustChains) (final TrustChai
 		return nil
 	}
 	if f.maxPathLen < 0 {
-		minimum := len(chains[0])
+		minimum := chains[0].PathLen()
 		for i := 1; i < len(chains); i++ {
-			if l := len(chains[i]); l < minimum {
+			if l := chains[i].PathLen(); l < minimum {
 				minimum = l
 			}
 		}
 		f.maxPathLen = minimum // skipcq RVV-B0006
 	}
 	for _, c := range chains {
-		if len(c) <= f.maxPathLen {
+		if c.PathLen() <= f.maxPathLen {
 			final = append(final, c)
 		}
 	}

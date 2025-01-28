@@ -24,6 +24,23 @@ func (c TrustChain) hash() ([]byte, error) {
 	return hash[:], nil
 }
 
+// PathLen returns the path len of a chain as defined by the spec,
+// i.e. the number of intermediates
+func (c TrustChain) PathLen() int {
+	// The chain consists of the following stmts:
+	// Subject's Entity Configuration
+	// Statement(s) about the the subordinate
+	// TA's Entity Configuration
+	//
+	// Therefore, there are at least 3 statements in the chain; in this case
+	// there are no intermediates.
+	// The number of intermediates is len()-3
+	if len(c) <= 3 {
+		return 0
+	}
+	return len(c) - 3
+}
+
 // ExpiresAt returns the expiration time of the TrustChain as a UNIX time stamp
 func (c TrustChain) ExpiresAt() unixtime.Unixtime {
 	if len(c) == 0 {

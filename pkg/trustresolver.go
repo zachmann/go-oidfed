@@ -123,18 +123,11 @@ func (r TrustResolver) hash() ([]byte, error) {
 // ResolveToValidChains starts the trust chain resolution process, building an internal trust tree,
 // verifies the signatures, integrity, expirations, and metadata policies and returns all possible valid TrustChains
 func (r *TrustResolver) ResolveToValidChains() TrustChains {
-	chains, set, err := r.cacheGetTrustChains()
-	if err != nil {
-		set = false
-		internal.Log(err.Error())
+	chains := r.ResolveToValidChainsWithoutVerifyingMetadata()
+	if chains == nil {
+		return nil
 	}
-	if set {
-		internal.Log("Obtained trust chains from cache")
-		return chains
-	}
-	r.Resolve()
-	r.VerifySignatures()
-	return r.Chains().Filter(TrustChainsFilterValidMetadata)
+	return chains.Filter(TrustChainsFilterValidMetadata)
 }
 
 // ResolveToValidChainsWithoutVerifyingMetadata starts the trust chain
@@ -195,12 +188,9 @@ func (r TrustResolver) Chains() (chains TrustChains) {
 	if set {
 		return chains
 	}
-	cs := r.trustTree.chains()
-	if cs == nil {
+	chains = r.trustTree.chains()
+	if chains == nil {
 		return nil
-	}
-	for _, c := range cs {
-		chains = append(chains, append(TrustChain{r.trustTree.Entity}, c...))
 	}
 	if err = r.cacheSetTrustChains(chains); err != nil {
 		internal.Log(err.Error())
@@ -353,15 +343,20 @@ func (t trustTree) chains() (chains []TrustChain) {
 		if t.Subordinate == nil {
 			return nil
 		}
-		return []TrustChain{{t.Subordinate}}
+		return []TrustChain{
+			{
+				t.Subordinate,
+				t.Entity,
+			},
+		}
 	}
 	for _, a := range t.Authorities {
-		if t.Subordinate == nil {
-			chains = append(chains, a.chains()...)
-			continue
+		toAppend := t.Subordinate
+		if toAppend == nil {
+			toAppend = t.Entity
 		}
 		for _, aChain := range a.chains() {
-			chains = append(chains, append(TrustChain{t.Subordinate}, aChain...))
+			chains = append(chains, append(TrustChain{toAppend}, aChain...))
 		}
 	}
 	return
