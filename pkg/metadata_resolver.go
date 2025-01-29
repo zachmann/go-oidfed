@@ -50,11 +50,11 @@ func (LocalMetadataResolver) resolveResponsePayloadWithoutTrustMarks(
 		Types:          req.EntityTypes,
 	}
 	chains := tr.ResolveToValidChains()
-	chains = chains.Filter(TrustChainsFilterMinPathLength)
 	if len(chains) == 0 {
 		err = errors.New("no trust chain found")
 		return
 	}
+	chains = chains.SortAsc(TrustChainScoringPathLen)
 	for _, chain = range chains {
 		m, err := chain.Metadata()
 		if err == nil {

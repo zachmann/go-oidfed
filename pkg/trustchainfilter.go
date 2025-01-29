@@ -1,5 +1,9 @@
 package pkg
 
+import (
+	"sort"
+)
+
 // TrustChains is a slice of multiple TrustChain
 type TrustChains []TrustChain
 
@@ -12,6 +16,45 @@ func (c TrustChains) Filter(filter ...TrustChainsFilter) TrustChains {
 		}
 	}
 	return c
+}
+
+// SortAsc sorts multiple TrustChains ascending by using the passed TrustChainScoringFnc
+func (c TrustChains) SortAsc(scorer TrustChainScoringFnc) TrustChains {
+	scores := make([]int, len(c))
+	for i, tc := range c {
+		scores[i] = scorer(tc)
+	}
+
+	sort.Slice(
+		c, func(i, j int) bool {
+			return scores[i] < scores[j]
+		},
+	)
+	return c
+}
+
+// SortDesc sorts multiple TrustChains descending by using the passed TrustChainScoringFnc
+func (c TrustChains) SortDesc(scorer TrustChainScoringFnc) TrustChains {
+	scores := make([]int, len(c))
+	for i, tc := range c {
+		scores[i] = scorer(tc)
+	}
+
+	sort.Slice(
+		c, func(i, j int) bool {
+			return scores[i] > scores[j]
+		},
+	)
+	return c
+}
+
+// TrustChainScoringFnc a function type that takes a TrustChain and calculates a score for the chain.
+// This score then can be used to sort TrustChains
+type TrustChainScoringFnc func(c TrustChain) int
+
+// TrustChainScoringPathLen is a TrustChainScoringFnc that uses the chain's path len
+func TrustChainScoringPathLen(c TrustChain) int {
+	return c.PathLen()
 }
 
 // TrustChainChecker can check a single TrustChain to determine if it should be included or not,
