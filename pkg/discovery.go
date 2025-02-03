@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/http"
@@ -18,7 +19,9 @@ type OPDiscoverer interface {
 
 // SimpleOPDiscoverer is an OPDiscoverer that checks authorities for subordinate OPs and verifies that those
 // publish openid_provider metadata in their EntityConfiguration
-type SimpleOPDiscoverer struct{}
+type SimpleOPDiscoverer struct {
+	visitedEntities *strset.Set
+}
 
 // VerifiedChainsOPDiscoverer is an OPDiscoverer that compared to VerifiedOPDiscoverer additionally verifies that there
 // is a valid TrustChain between the op and one of the specified trust anchors
@@ -55,9 +58,19 @@ type FilterableVerifiedChainsOPDiscoverer struct {
 
 // Discover implements the OPDiscoverer interface
 func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
+	d.visitedEntities = strset.New()
+	return d.discover(authorities...)
+}
+
+func (d SimpleOPDiscoverer) discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	internal.Logf("Discovering OPs for authorities: %+q", authorities)
 	infos := make(map[string]*OpenIDProviderMetadata)
 	for _, a := range authorities {
+		if d.visitedEntities.Has(a.EntityID) {
+			internal.Logf("Already visited: %s -> skipping", a.EntityID)
+			continue
+		}
+		d.visitedEntities.Add(a.EntityID)
 		internal.Logf("Discovering OPs and subordinates for: %+q", a.EntityID)
 		stmt, err := GetEntityConfiguration(a.EntityID)
 		if err != nil {
@@ -100,7 +113,7 @@ func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*Ope
 		if err != nil {
 			continue
 		}
-		sOPs := d.Discover(NewTrustAnchorsFromEntityIDs(subordinates...)...)
+		sOPs := d.discover(NewTrustAnchorsFromEntityIDs(subordinates...)...)
 		for _, sOP := range sOPs {
 			_, alreadyInList := infos[sOP.Issuer]
 			if alreadyInList {

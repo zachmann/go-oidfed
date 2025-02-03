@@ -169,7 +169,7 @@ func (r *TrustResolver) Resolve() {
 	r.trustTree = trustTree{
 		Entity:              starting,
 		includedEntityTypes: strset.New(starting.Metadata.GuessEntityTypes()...),
-		subordinateIDs:      []string{starting.Subject},
+		subordinateIDs:      strset.New(starting.Subject),
 	}
 	r.trustTree.resolve(r.TrustAnchors)
 	if err = r.cacheSetTrustTree(); err != nil {
@@ -260,7 +260,7 @@ type trustTree struct {
 	expiresAt           unixtime.Unixtime
 	depth               int
 	includedEntityTypes *strset.Set
-	subordinateIDs      []string
+	subordinateIDs      *strset.Set
 }
 
 func (t *trustTree) resolve(anchors TrustAnchors) {
@@ -277,6 +277,10 @@ func (t *trustTree) resolve(anchors TrustAnchors) {
 		t.Authorities = make([]trustTree, len(t.Entity.AuthorityHints))
 	}
 	for i, aID := range t.Entity.AuthorityHints {
+		if t.subordinateIDs.Has(aID) {
+			// loop prevention
+			continue
+		}
 		aStmt, err := GetEntityConfiguration(aID)
 		if err != nil {
 			continue
@@ -305,12 +309,14 @@ func (t *trustTree) resolve(anchors TrustAnchors) {
 		}
 		entityTypes := t.includedEntityTypes.Copy()
 		entityTypes.Add(aStmt.Metadata.GuessEntityTypes()...)
+		subordinates := t.subordinateIDs.Copy()
+		subordinates.Add(aID)
 		tt := trustTree{
 			Entity:              aStmt,
 			Subordinate:         subordinateStmt,
 			depth:               t.depth + 1,
 			includedEntityTypes: entityTypes,
-			subordinateIDs:      append(t.subordinateIDs, aID),
+			subordinateIDs:      subordinates,
 		}
 		tt.resolve(anchors)
 		t.Authorities[i] = tt
@@ -329,7 +335,7 @@ func (t *trustTree) checkConstraints(constraints *ConstraintSpecification) bool 
 	internal.Log("max path len constraint succeeded")
 	if naming := constraints.NamingConstraints; naming != nil {
 		internal.Logf("checking naming constraints %+v", naming)
-		for _, id := range t.subordinateIDs {
+		for _, id := range t.subordinateIDs.List() {
 			if slices.ContainsFunc(
 				naming.Excluded, func(e string) bool {
 					return matchNamingConstraint(e, id)
