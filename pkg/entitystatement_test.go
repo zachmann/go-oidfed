@@ -14,6 +14,7 @@ import (
 	"github.com/luci/go-render/render"
 	"github.com/vmihailenco/msgpack/v5"
 
+	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
@@ -67,11 +68,11 @@ var entitystatementMarshalData = map[string]marshalData{
 				},
 			},
 			Constraints: &ConstraintSpecification{
-				MaxPathLength: 2,
+				MaxPathLength: utils.NewInt(2),
 				NamingConstraints: &NamingConstraints{
 					Permitted: []string{"foo"},
 				},
-				AllowedLeafEntityTypes: []string{"openid_provider"},
+				AllowedEntityTypes: []string{"openid_provider"},
 			},
 			CriticalExtensions: []string{"jti"},
 			MetadataPolicyCrit: []PolicyOperatorName{"remove"},

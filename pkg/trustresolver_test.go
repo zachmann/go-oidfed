@@ -124,6 +124,134 @@ func TestTrustResolver_ResolveToValidChains(t *testing.T) {
 			},
 			expectedChains: allProxyChains,
 		},
+		{
+			name: "constraints: pathlen 1: op2",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: taConstraintsPathLen.EntityID,
+						JWKS:     taConstraintsPathLen.data.JWKS,
+					},
+				},
+				StartingEntity: op2.EntityID,
+			},
+			expectedChains: TrustChains{
+				chainOP2IA2TACPL,
+			},
+		},
+		{
+			name: "constraints: pathlen 1: op1",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: taConstraintsPathLen.EntityID,
+						JWKS:     taConstraintsPathLen.data.JWKS,
+					},
+				},
+				StartingEntity: op1.EntityID,
+			},
+			expectedChains: TrustChains{
+				chainOP1IA2TACPL,
+			},
+		},
+		{
+			name: "constraints: pathlen 1: op3",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: taConstraintsPathLen.EntityID,
+						JWKS:     taConstraintsPathLen.data.JWKS,
+					},
+				},
+				StartingEntity: op3.EntityID,
+			},
+			expectedChains: nil,
+		},
+		{
+			name: "constraints: entity_type op: op2",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: taConstraintsEntityTypes.EntityID,
+						JWKS:     taConstraintsEntityTypes.data.JWKS,
+					},
+				},
+				StartingEntity: op2.EntityID,
+			},
+			expectedChains: TrustChains{
+				chainOP2IA2TACET,
+			},
+		},
+		{
+			name: "constraints: entity_type op: rp1",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: taConstraintsEntityTypes.EntityID,
+						JWKS:     taConstraintsEntityTypes.data.JWKS,
+					},
+				},
+				StartingEntity: rp1.EntityID,
+			},
+			expectedChains: nil,
+		},
+		{
+			name: "constraints: naming: op2",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: taConstraintsNaming.EntityID,
+						JWKS:     taConstraintsNaming.data.JWKS,
+					},
+				},
+				StartingEntity: op2.EntityID,
+			},
+			expectedChains: nil,
+		},
+		{
+			name: "constraints: naming: op3",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: taConstraintsNaming.EntityID,
+						JWKS:     taConstraintsNaming.data.JWKS,
+					},
+				},
+				StartingEntity: op3.EntityID,
+			},
+			expectedChains: TrustChains{
+				chainOP3IA1IA2TACN,
+			},
+		},
+		{
+			name: "constraints: naming: op1",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: taConstraintsNaming.EntityID,
+						JWKS:     taConstraintsNaming.data.JWKS,
+					},
+				},
+				StartingEntity: op1.EntityID,
+			},
+			expectedChains: TrustChains{
+				chainOP1IA2TACN,
+				chainOP1IA1IA2TACN,
+			},
+		},
+		{
+			name: "constraints: naming: proxy",
+			resolver: TrustResolver{
+				TrustAnchors: TrustAnchors{
+					TrustAnchor{
+						EntityID: taConstraintsNaming.EntityID,
+						JWKS:     taConstraintsNaming.data.JWKS,
+					},
+				},
+				StartingEntity: proxy.EntityID,
+			},
+			expectedChains: nil,
+		},
 	}
 	for _, test := range tests {
 		t.Run(

@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	arrops "github.com/adam-hanna/arrayOperations"
+
+	"github.com/zachmann/go-oidfed/internal/utils"
 )
 
 var rp1 = newMockRP(
@@ -46,7 +48,7 @@ var op3 = newMockOP(
 )
 
 var proxy = newMockProxy(
-	"https://proxy.example.com",
+	"https://proxy.example.org",
 	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{ClientRegistrationTypeAutomatic}},
 	&OpenIDProviderMetadata{
 		ClientRegistrationTypesSupported: []string{ClientRegistrationTypeAutomatic},
@@ -58,9 +60,9 @@ var proxy = newMockProxy(
 	},
 )
 
-var ia1 = newMockAuthority("https://ia.example.com", EntityStatementPayload{})
+var ia1 = newMockAuthority("https://ia1.example.com", EntityStatementPayload{})
 var ia2 = newMockAuthority(
-	"https://ia.example.org",
+	"https://ia2.example.com",
 	EntityStatementPayload{
 		MetadataPolicy: &MetadataPolicies{
 			RelyingParty: MetadataPolicy{
@@ -120,6 +122,29 @@ var ta2WithRemoveCrit = newMockAuthority(
 		MetadataPolicyCrit: []PolicyOperatorName{"remove"},
 	},
 )
+var taConstraintsPathLen = newMockAuthority(
+	"https://ta.foundation.example.org/constraints/path-len",
+	EntityStatementPayload{
+		Constraints: &ConstraintSpecification{MaxPathLength: utils.NewInt(1)},
+	},
+)
+var taConstraintsNaming = newMockAuthority(
+	"https://ta.foundation.example.org/constraints/naming",
+	EntityStatementPayload{
+		Constraints: &ConstraintSpecification{
+			NamingConstraints: &NamingConstraints{
+				Permitted: []string{".example.com"},
+				Excluded:  []string{"op2.example.com"},
+			},
+		},
+	},
+)
+var taConstraintsEntityTypes = newMockAuthority(
+	"https://ta.foundation.example.org/constraints/entity-type",
+	EntityStatementPayload{
+		Constraints: &ConstraintSpecification{AllowedEntityTypes: []string{"openid_provider"}},
+	},
+)
 
 func init() {
 	ia1.RegisterSubordinate(rp1)
@@ -135,8 +160,27 @@ func init() {
 	ta2.RegisterSubordinate(ia2)
 	ta2WithRemove.RegisterSubordinate(ia2)
 	ta2WithRemoveCrit.RegisterSubordinate(ia2)
-
+	taConstraintsPathLen.RegisterSubordinate(ia2)
+	taConstraintsEntityTypes.RegisterSubordinate(ia2)
+	taConstraintsNaming.RegisterSubordinate(ia2)
 }
+
+// Current mock Federation
+//
+// 	┌───┐┌───┐┌─────┐┌──────┐┌─────┐┌──────┐┌─────┐
+// 	│ta1││ta2││ta2WR││ta2WRC││taCPL││taCPET││taCPN│
+// 	└┬─┬┘└┬──┘└┬────┘└┬─────┘└┬────┘└┬─────┘└┬────┘
+// 	│┌▽──▽────▽──────▽───────▽──────▽───────▽─┐
+// 	││ia2                                     │
+// 	│└┬─┬────────────────┬─┬──────────────────┘
+// 	└─│─│─┐              │ │
+// 	┌──▽┐│┌▽──────────────▽┐│
+// 	│op2│││ia1             ││
+// 	└───┘│└┬──┬────┬──────┬┘│
+// 	┌────▽─▽┐┌▽──┐┌▽────┐┌▽─▽┐
+// 	│op1    ││op3││proxy││rp1│
+// 	└───────┘└───┘└─────┘└───┘
+//
 
 var chainRPIA1TA1 = TrustChain{
 	{EntityStatementPayload: rp1.EntityStatementPayload()},
@@ -199,6 +243,44 @@ var chainProxyIA1TA1 = TrustChain{
 	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(proxy.EntityID)},
 	{EntityStatementPayload: ta1.SubordinateEntityStatementPayload(ia1.EntityID)},
 	{EntityStatementPayload: *ta1.EntityStatementPayload()},
+}
+var chainOP2IA2TACPL = TrustChain{
+	{EntityStatementPayload: op2.EntityStatementPayload()},
+	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(op2.EntityID)},
+	{EntityStatementPayload: taConstraintsPathLen.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *taConstraintsPathLen.EntityStatementPayload()},
+}
+var chainOP1IA2TACPL = TrustChain{
+	{EntityStatementPayload: op1.EntityStatementPayload()},
+	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(op1.EntityID)},
+	{EntityStatementPayload: taConstraintsPathLen.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *taConstraintsPathLen.EntityStatementPayload()},
+}
+var chainOP2IA2TACET = TrustChain{
+	{EntityStatementPayload: op2.EntityStatementPayload()},
+	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(op2.EntityID)},
+	{EntityStatementPayload: taConstraintsEntityTypes.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *taConstraintsEntityTypes.EntityStatementPayload()},
+}
+var chainOP1IA2TACN = TrustChain{
+	{EntityStatementPayload: op1.EntityStatementPayload()},
+	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(op1.EntityID)},
+	{EntityStatementPayload: taConstraintsNaming.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *taConstraintsNaming.EntityStatementPayload()},
+}
+var chainOP1IA1IA2TACN = TrustChain{
+	{EntityStatementPayload: op1.EntityStatementPayload()},
+	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(op1.EntityID)},
+	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(ia1.EntityID)},
+	{EntityStatementPayload: taConstraintsNaming.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *taConstraintsNaming.EntityStatementPayload()},
+}
+var chainOP3IA1IA2TACN = TrustChain{
+	{EntityStatementPayload: op3.EntityStatementPayload()},
+	{EntityStatementPayload: ia1.SubordinateEntityStatementPayload(op3.EntityID)},
+	{EntityStatementPayload: ia2.SubordinateEntityStatementPayload(ia1.EntityID)},
+	{EntityStatementPayload: taConstraintsNaming.SubordinateEntityStatementPayload(ia2.EntityID)},
+	{EntityStatementPayload: *taConstraintsNaming.EntityStatementPayload()},
 }
 
 var allProxyChains = TrustChains{

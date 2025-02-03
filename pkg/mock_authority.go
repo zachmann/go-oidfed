@@ -105,6 +105,7 @@ func (a mockAuthority) SubordinateEntityStatementPayload(subID string) EntitySta
 		JWKS:               jwks,
 		MetadataPolicy:     a.data.MetadataPolicy,
 		MetadataPolicyCrit: a.data.MetadataPolicyCrit,
+		Constraints:        a.data.Constraints,
 	}
 	return payload
 }

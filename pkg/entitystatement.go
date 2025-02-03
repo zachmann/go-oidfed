@@ -195,9 +195,9 @@ func (e *EntityStatementPayload) UnmarshalMsgpack(data []byte) error {
 
 // ConstraintSpecification is type for holding constraints according to the oidc fed spec
 type ConstraintSpecification struct {
-	MaxPathLength          int                `json:"max_path_length,omitempty"`
-	NamingConstraints      *NamingConstraints `json:"naming_constraints,omitempty"`
-	AllowedLeafEntityTypes []string           `json:"allowed_entity_types,omitempty"`
+	MaxPathLength      *int               `json:"max_path_length,omitempty"`
+	NamingConstraints  *NamingConstraints `json:"naming_constraints,omitempty"`
+	AllowedEntityTypes []string           `json:"allowed_entity_types,omitempty"`
 }
 
 // NamingConstraints is a type for holding constraints about naming

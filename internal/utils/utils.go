@@ -74,3 +74,8 @@ func MergeMaps(overwrite bool, mm ...map[string]any) map[string]any {
 	}
 	return all
 }
+
+// NewInt returns a *int
+func NewInt(i int) *int {
+	return &i
+}

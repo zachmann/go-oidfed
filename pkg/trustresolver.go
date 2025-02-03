@@ -3,9 +3,11 @@ package pkg
 import (
 	"encoding/json"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/scylladb/go-set/strset"
 	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/crypto/sha3"
 
@@ -164,7 +166,11 @@ func (r *TrustResolver) Resolve() {
 	if len(r.Types) > 0 {
 		utils.NilAllExceptByTag(starting.Metadata, r.Types)
 	}
-	r.trustTree.Entity = starting
+	r.trustTree = trustTree{
+		Entity:              starting,
+		includedEntityTypes: strset.New(starting.Metadata.GuessEntityTypes()...),
+		subordinateIDs:      []string{starting.Subject},
+	}
 	r.trustTree.resolve(r.TrustAnchors)
 	if err = r.cacheSetTrustTree(); err != nil {
 		internal.Log(err.Error())
@@ -247,11 +253,14 @@ func (r TrustResolver) cacheSetTrustTree() error {
 
 // trustTree is a type for holding EntityStatements in a tree
 type trustTree struct {
-	Entity             *EntityStatement
-	Subordinate        *EntityStatement
-	Authorities        []trustTree
-	signaturesVerified bool
-	expiresAt          unixtime.Unixtime
+	Entity              *EntityStatement
+	Subordinate         *EntityStatement
+	Authorities         []trustTree
+	signaturesVerified  bool
+	expiresAt           unixtime.Unixtime
+	depth               int
+	includedEntityTypes *strset.Set
+	subordinateIDs      []string
 }
 
 func (t *trustTree) resolve(anchors TrustAnchors) {
@@ -288,16 +297,84 @@ func (t *trustTree) resolve(anchors TrustAnchors) {
 		if subordinateStmt.Issuer != aID || subordinateStmt.Subject != t.Entity.Issuer || !subordinateStmt.TimeValid() {
 			continue
 		}
+		if !t.checkConstraints(subordinateStmt.Constraints) {
+			continue
+		}
 		if subordinateStmt.ExpiresAt.Before(t.expiresAt.Time) {
 			t.expiresAt = subordinateStmt.ExpiresAt
 		}
+		entityTypes := t.includedEntityTypes.Copy()
+		entityTypes.Add(aStmt.Metadata.GuessEntityTypes()...)
 		tt := trustTree{
-			Entity:      aStmt,
-			Subordinate: subordinateStmt,
+			Entity:              aStmt,
+			Subordinate:         subordinateStmt,
+			depth:               t.depth + 1,
+			includedEntityTypes: entityTypes,
+			subordinateIDs:      append(t.subordinateIDs, aID),
 		}
 		tt.resolve(anchors)
 		t.Authorities[i] = tt
 	}
+}
+
+func (t *trustTree) checkConstraints(constraints *ConstraintSpecification) bool {
+	if constraints == nil {
+		return true
+	}
+	internal.Logf("checking constraints %+v...", constraints)
+	if constraints.MaxPathLength != nil && *constraints.MaxPathLength < t.depth {
+		internal.Log("max path len constraint failed")
+		return false
+	}
+	internal.Log("max path len constraint succeeded")
+	if naming := constraints.NamingConstraints; naming != nil {
+		internal.Logf("checking naming constraints %+v", naming)
+		for _, id := range t.subordinateIDs {
+			if slices.ContainsFunc(
+				naming.Excluded, func(e string) bool {
+					return matchNamingConstraint(e, id)
+				},
+			) {
+				internal.Log("naming constraint failed")
+				return false
+			}
+			if naming.Permitted == nil {
+				continue
+			}
+			if slices.ContainsFunc(
+				naming.Permitted, func(e string) bool {
+					return matchNamingConstraint(e, id)
+				},
+			) {
+				continue
+			}
+			internal.Log("naming constraint failed")
+			return false
+		}
+	}
+	internal.Log("naming constraint succeeded")
+	if constraints.AllowedEntityTypes != nil {
+		allowed := strset.New(append(constraints.AllowedEntityTypes, "federation_entity")...)
+		forbidden := strset.Difference(t.includedEntityTypes, allowed)
+		if !forbidden.IsEmpty() {
+			internal.Log("entity type constraint failed")
+			return false
+		}
+	}
+	internal.Log("entity types constraint succeeded")
+	return true
+}
+
+func matchNamingConstraint(constraint, id string) bool {
+	u, err := url.Parse(id)
+	if err != nil {
+		return false
+	}
+	host := u.Hostname()
+	if strings.HasPrefix(constraint, ".") {
+		return strings.HasSuffix(host, constraint)
+	}
+	return constraint == host
 }
 
 func (t *trustTree) verifySignatures(anchors TrustAnchors) bool {
