@@ -19,9 +19,6 @@ type FederationEntityMetadata struct {
 	FederationTrustMarkEndpoint       string         `json:"federation_trust_mark_endpoint,omitempty"`
 	FederationHistoricalLKeysEndpoint string         `json:"federation_historical_keys_endpoint,omitempty"`
 	Extra                             map[string]any `json:"-"`
-	SignedJWKSURI                     string         `json:"signed_jwks_uri,omitempty"`
-	JWKSURI                           string         `json:"jwks_uri,omitempty"`
-	JWKS                              *jwk.JWKS      `json:"jwks,omitempty"`
 	OrganizationName                  string         `json:"organization_name,omitempty"`
 	Contacts                          []string       `json:"contacts,omitempty"`
 	LogoURI                           string         `json:"logo_uri,omitempty"`

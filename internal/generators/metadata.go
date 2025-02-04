@@ -117,6 +117,9 @@ func generateCombinedStruct(
 	// Add fields from struct B
 	for _, field := range structB.Fields.List {
 		for _, fieldName := range field.Names {
+			if newStructName == "FederationEntityMetadata" && strings.Contains(fieldName.Name, "JWKS") {
+				continue
+			}
 			if !seenFields[fieldName.Name] {
 				seenFields[fieldName.Name] = true
 				sb.WriteString(fmt.Sprintf("    %s %s", fieldName.Name, fieldTypeAsString(field.Type)))
