@@ -37,47 +37,47 @@ always be the case.
 Here we try to sum up the current implementation state, (but it's very likely
 that the list is not complete)
 
-| Feature                                                                                        | Library            | Entity      |
-|------------------------------------------------------------------------------------------------|--------------------|-------------|
-| OpenID Configuration                                                                           | Yes                | Yes         |
-| Trust Chain Building                                                                           | Yes                | When needed |
-| Trust Chain Verification                                                                       | Yes                | Yes         |
-| Applying Metadata Policies                                                                     | Yes                | Yes         |
-| Applying Metadata from Superiors                                                               | No                 | No          |
-| Support for Custom Metadata Policy Operators                                                   | Yes                | Yes         |
-| Filter Trust Chains                                                                            | Yes                | Yes         |
-| Configure Trust Anchors                                                                        | Yes                | Yes         |
-| Set Authority Hints                                                                            | N/A                | Yes         |
-| Resolve Endpoint                                                                               |                    | Yes         |
-| IA Fetch Endpoint                                                                              |                    | Yes         |
-| IA Listing Endpoint                                                                            |                    | Yes         |
-| Trust Mark Endpoint                                                                            |                    | Yes         |
-| Trust Marked Entities Endpoint                                                                 |                    | Yes         |
-| Trust Mark Status Endpoint                                                                     |                    | Yes         |
-| Trust Mark Owner Delegation                                                                    | Yes                | Yes         |
-| Trust Mark JWT Verification                                                                    | Yes                | Yes         |
-| Trust Mark JWT Verification including Delegation                                               | Yes                | Yes         |
-| Trust Mark Verification through Trust Mark Status Endpoint                                     | No                 | No          |
-| JWT Type Verification                                                                          | Partially          | Partially   |
-| Requests using GET                                                                             |                    | Yes         |
-| Requests using POST                                                                            |                    | No          |
-| Client Authentication                                                                          |                    | No          |
-| Automatic Client Registration                                                                  | Yes                | Yes         |
-| Authorization Code Flow with Automatic Client Registration using oidc key from jwks            |                    | Yes         |
-| Authorization Code Flow with Automatic Client Registration using oidc key from jwks_uri        |                    | No          |
-| Authorization Code Flow with Automatic Client Registration using oidc key from signed_jwks_uri |                    | No          |
-| Explicit Client Registration                                                                   | No                 | No          |
-| Constraints                                                                                    | Parsed but ignored |             |
-| Federation Historical Keys Endpoint                                                            | No                 | No          |
-| Automatic Key Rollover                                                                         |                    | No          |
-| Enrollment of Entities                                                                         |                    | Yes         |
-| Configurable Checks for Enrollment                                                             |                    | Yes         |
-| Custom Checks for Enrollment                                                                   |                    | Yes         |
-| Request Enrollment                                                                             |                    | Yes         |
-| Configurable Checks for Trust Mark Issuance                                                    |                    | Yes         |
-| Custom Checks for Trust Mark Issuance                                                          |                    | Yes         |
-| Request to become entitled for a Trust Mark                                                    |                    | Yes         |
-| Automatically refresh trust marks in Entity Configuration                                      |                    | Yes         |
+| Feature                                                                                        | Library   | Entity      |
+|------------------------------------------------------------------------------------------------|-----------|-------------|
+| OpenID Configuration                                                                           | Yes       | Yes         |
+| Trust Chain Building                                                                           | Yes       | When needed |
+| Trust Chain Verification                                                                       | Yes       | Yes         |
+| Applying Metadata Policies                                                                     | Yes       | Yes         |
+| Applying Metadata from Superiors                                                               | No        | No          |
+| Support for Custom Metadata Policy Operators                                                   | Yes       | Yes         |
+| Filter Trust Chains                                                                            | Yes       | Yes         |
+| Configure Trust Anchors                                                                        | Yes       | Yes         |
+| Set Authority Hints                                                                            | N/A       | Yes         |
+| Resolve Endpoint                                                                               |           | Yes         |
+| IA Fetch Endpoint                                                                              |           | Yes         |
+| IA Listing Endpoint                                                                            |           | Yes         |
+| Trust Mark Endpoint                                                                            |           | Yes         |
+| Trust Marked Entities Endpoint                                                                 |           | Yes         |
+| Trust Mark Status Endpoint                                                                     |           | Yes         |
+| Trust Mark Owner Delegation                                                                    | Yes       | Yes         |
+| Trust Mark JWT Verification                                                                    | Yes       | Yes         |
+| Trust Mark JWT Verification including Delegation                                               | Yes       | Yes         |
+| Trust Mark Verification through Trust Mark Status Endpoint                                     | No        | No          |
+| JWT Type Verification                                                                          | Partially | Partially   |
+| Requests using GET                                                                             |           | Yes         |
+| Requests using POST                                                                            |           | No          |
+| Client Authentication                                                                          |           | No          |
+| Automatic Client Registration                                                                  | Yes       | Yes         |
+| Authorization Code Flow with Automatic Client Registration using oidc key from jwks            |           | Yes         |
+| Authorization Code Flow with Automatic Client Registration using oidc key from jwks_uri        |           | No          |
+| Authorization Code Flow with Automatic Client Registration using oidc key from signed_jwks_uri |           | No          |
+| Explicit Client Registration                                                                   | No        | No          |
+| Constraints                                                                                    | Yes       | Yes         |
+| Federation Historical Keys Endpoint                                                            | No        | No          |
+| Automatic Key Rollover                                                                         |           | No          |
+| Enrollment of Entities                                                                         |           | Yes         |
+| Configurable Checks for Enrollment                                                             |           | Yes         |
+| Custom Checks for Enrollment                                                                   |           | Yes         |
+| Request Enrollment                                                                             |           | Yes         |
+| Configurable Checks for Trust Mark Issuance                                                    |           | Yes         |
+| Custom Checks for Trust Mark Issuance                                                          |           | Yes         |
+| Request to become entitled for a Trust Mark                                                    |           | Yes         |
+| Automatically refresh trust marks in Entity Configuration                                      |           | Yes         |
 
 
 
