@@ -10,6 +10,7 @@ import (
 
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/pkg/apimodel"
+	"github.com/zachmann/go-oidfed/pkg/constants"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
@@ -77,6 +78,9 @@ func ParseTrustMark(data []byte) (*TrustMark, error) {
 	m, err := jwx.Parse(data)
 	if err != nil {
 		return nil, err
+	}
+	if !m.VerifyType(constants.JWTTypeTrustMark) {
+		return nil, errors.Errorf("trustmark jwt does not have '%s' JWT type", constants.JWTTypeTrustMark)
 	}
 	t := &TrustMark{jwtMsg: m}
 	if err = json.Unmarshal(m.Payload(), t); err != nil {
@@ -180,6 +184,11 @@ func parseDelegationJWT(delegationJWT []byte) (*DelegationJWT, error) {
 	m, err := jwx.Parse(delegationJWT)
 	if err != nil {
 		return nil, err
+	}
+	if !m.VerifyType(constants.JWTTypeTrustMarkDelegation) {
+		return nil, errors.Errorf(
+			"trustmark delegation jwt does not have '%s' JWT type", constants.JWTTypeTrustMarkDelegation,
+		)
 	}
 	d := &DelegationJWT{jwtMsg: m}
 	if err = json.Unmarshal(m.Payload(), d); err != nil {

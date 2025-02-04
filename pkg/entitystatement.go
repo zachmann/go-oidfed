@@ -10,6 +10,7 @@ import (
 	"github.com/zachmann/go-oidfed/internal"
 	"github.com/zachmann/go-oidfed/internal/jwx"
 	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/zachmann/go-oidfed/pkg/constants"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
 
@@ -245,6 +246,9 @@ func ParseEntityStatement(statementJWT []byte) (*EntityStatement, error) {
 	m, err := jwx.Parse(statementJWT)
 	if err != nil {
 		return nil, err
+	}
+	if !m.VerifyType(constants.JWTTypeEntityStatement) {
+		return nil, errors.Errorf("entity statement does not have '%s' JWT type", constants.JWTTypeEntityStatement)
 	}
 	statement := &EntityStatement{
 		jwtMsg:                 m,
