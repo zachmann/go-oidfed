@@ -367,7 +367,7 @@ func (store *TrustMarkedEntitiesBadgerStorage) Pending(trustMarkID string) ([]st
 	return store.trustMarkedEntities(trustMarkID, StatusPending)
 }
 
-func (store *TrustMarkedEntitiesBadgerStorage) key(trustMarkID, entityID string) string {
+func (*TrustMarkedEntitiesBadgerStorage) key(trustMarkID, entityID string) string {
 	return fmt.Sprintf("%s|%s", trustMarkID, entityID)
 }
 

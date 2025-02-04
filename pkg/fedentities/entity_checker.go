@@ -196,7 +196,7 @@ type TrustMarkEntityChecker struct {
 // Check implements the EntityChecker interface
 func (c TrustMarkEntityChecker) Check(
 	entityConfiguration *pkg.EntityStatement,
-	entityTypes []string,
+	entityTypes []string, // skipcq: RVV-B0012
 ) (bool, int, *pkg.Error) {
 	tms := entityConfiguration.TrustMarks
 	noTrustMarkError := &pkg.Error{
@@ -319,9 +319,7 @@ func (c EntityIDEntityChecker) Check(
 	_ []string,
 ) (bool, int, *pkg.Error) {
 	if !slices.Contains(c.AllowedIDs, entityConfiguration.Subject) {
-		errRes := pkg.ErrorInvalidRequest(
-			fmt.Sprintf("this entity is not allowed"),
-		)
+		errRes := pkg.ErrorInvalidRequest("this entity is not allowed")
 		return false, fiber.StatusBadRequest, &errRes
 	}
 	return true, 0, nil

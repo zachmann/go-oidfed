@@ -104,7 +104,7 @@ func (c TrustChain) Metadata() (*Metadata, error) {
 }
 
 // Messages returns the jwts of the TrustChain
-func (c TrustChain) Messages() (msgs jwsMessages) {
+func (c TrustChain) Messages() (msgs JWSMessages) {
 	for _, cc := range c {
 		msgs = append(msgs, cc.jwtMsg)
 	}

@@ -57,12 +57,12 @@ type FilterableVerifiedChainsOPDiscoverer struct {
 }
 
 // Discover implements the OPDiscoverer interface
-func (d SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
+func (d *SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	d.visitedEntities = strset.New()
 	return d.discover(authorities...)
 }
 
-func (d SimpleOPDiscoverer) discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
+func (d *SimpleOPDiscoverer) discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
 	internal.Logf("Discovering OPs for authorities: %+q", authorities)
 	infos := make(map[string]*OpenIDProviderMetadata)
 	for _, a := range authorities {
@@ -135,7 +135,7 @@ func (VerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (ops []*O
 
 // Discover implements the OPDiscoverer interface
 func (d filterableVerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
-	in := SimpleOPDiscoverer{}.Discover(authorities...)
+	in := (&SimpleOPDiscoverer{}).Discover(authorities...)
 	for _, op := range in {
 		var approved bool
 		for _, f := range d.Filters {

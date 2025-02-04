@@ -52,9 +52,7 @@ func (fed *FedEntity) AddEnrollRequestEndpoint(
 					ctx.Status(fiber.StatusAccepted)
 					return nil
 				case storage.StatusInactive:
-					break
 				default:
-					break
 				}
 			}
 

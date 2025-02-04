@@ -36,7 +36,7 @@ type ResolveResponse struct {
 type ResolveResponsePayload struct {
 	Metadata   *Metadata              `json:"metadata,omitempty"`
 	TrustMarks TrustMarkInfos         `json:"trust_marks,omitempty"`
-	TrustChain jwsMessages            `json:"trust_chain,omitempty"`
+	TrustChain JWSMessages            `json:"trust_chain,omitempty"`
 	Extra      map[string]interface{} `json:"-"`
 }
 
@@ -65,10 +65,11 @@ func (r *ResolveResponsePayload) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type jwsMessages []*jwx.ParsedJWT
+// JWSMessages is a slices of jwx.ParseJWT
+type JWSMessages []*jwx.ParsedJWT
 
 // MarshalJSON implements the json.Marshaler interface.
-func (m jwsMessages) MarshalJSON() ([]byte, error) {
+func (m JWSMessages) MarshalJSON() ([]byte, error) {
 	jwts := make([]string, len(m))
 	for i, mm := range m {
 		jwts[i] = string(mm.RawJWT)
@@ -77,7 +78,7 @@ func (m jwsMessages) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON implements the json.Marshaler interface.
-func (m *jwsMessages) UnmarshalJSON(data []byte) error {
+func (m *JWSMessages) UnmarshalJSON(data []byte) error {
 	var datas [][]byte
 	if err := json.Unmarshal(data, &datas); err != nil {
 		return err

@@ -66,7 +66,6 @@ func (fed *FedEntity) AddEnrollEndpoint(
 					ctx.Status(fiber.StatusForbidden)
 					return ctx.JSON(pkg.ErrorInvalidRequest("the entity cannot enroll"))
 				default:
-					break
 				}
 			}
 

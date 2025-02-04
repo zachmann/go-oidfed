@@ -360,7 +360,7 @@ func (s trustMarkedEntitiesFileStorage) Delete(trustMarkID, entityID string) err
 }
 
 // Load implements the TrustMarkedEntitiesStorageBackend
-func (s trustMarkedEntitiesFileStorage) Load() error {
+func (trustMarkedEntitiesFileStorage) Load() error {
 	return nil
 }
 

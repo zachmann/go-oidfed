@@ -27,7 +27,7 @@ type cacheWrapper struct {
 func newCacheWrapper(defaultExpiration time.Duration) cacheWrapper {
 	c := gocache.NewCache().WithDefaultTTL(defaultExpiration)
 	if err := c.StartJanitor(); err != nil {
-		log.Fatal(err)
+		log.Fatal(err) // skipcq: RVV-A0003
 	}
 	return cacheWrapper{
 		c,

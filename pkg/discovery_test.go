@@ -76,7 +76,7 @@ func TestSimpleOPDiscoverer_Discover(t *testing.T) {
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
-				opMetadata := SimpleOPDiscoverer{}.Discover(test.trustAnchors...)
+				opMetadata := (&SimpleOPDiscoverer{}).Discover(test.trustAnchors...)
 				if opMetadata == nil {
 					t.Fatalf("opMetadata is nil")
 				}
