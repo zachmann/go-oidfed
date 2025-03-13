@@ -56,7 +56,7 @@ func (tms TrustMarkInfos) FindByID(id string) *TrustMarkInfo {
 
 // TrustMarkInfo is a type for holding a trust mark as represented in an EntityConfiguration
 type TrustMarkInfo struct {
-	ID           string                 `json:"id" yaml:"id"`
+	ID           string                 `json:"trust_mark_id" yaml:"id"`
 	TrustMarkJWT string                 `json:"trust_mark" yaml:"trust_mark"`
 	Extra        map[string]interface{} `json:"-" yaml:"-"`
 	trustmark    *TrustMark
@@ -144,7 +144,7 @@ func (tm *TrustMarkInfo) VerifyExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec
 type TrustMark struct {
 	Issuer        string                 `json:"iss"`
 	Subject       string                 `json:"sub"`
-	ID            string                 `json:"id"`
+	ID            string                 `json:"trust_mark_id"`
 	IssuedAt      unixtime.Unixtime      `json:"iat"`
 	LogoURI       string                 `json:"logo_uri,omitempty"`
 	ExpiresAt     *unixtime.Unixtime     `json:"exp,omitempty"`
@@ -309,7 +309,7 @@ func (tm *TrustMark) VerifyExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec) er
 type DelegationJWT struct {
 	Issuer    string                 `json:"iss"`
 	Subject   string                 `json:"sub"`
-	ID        string                 `json:"id"`
+	ID        string                 `json:"trust_mark_id"`
 	IssuedAt  unixtime.Unixtime      `json:"iat"`
 	ExpiresAt *unixtime.Unixtime     `json:"exp,omitempty"`
 	Ref       string                 `json:"ref,omitempty"`
