@@ -15,7 +15,7 @@ require (
 	github.com/lestrrat-go/jwx v1.2.30
 	github.com/luci/go-render v0.0.0-20160219211803-9a04cc21af0f
 	github.com/pkg/errors v0.9.1
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/scylladb/go-set v1.0.3-0.20200225121959-cc7b2070d91e
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	golang.org/x/crypto v0.32.0
