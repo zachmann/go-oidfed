@@ -32,6 +32,37 @@ type ResolveResponse struct {
 	ResolveResponsePayload `json:",inline"`
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It also marshals extra fields.
+func (r ResolveResponse) MarshalJSON() ([]byte, error) {
+	payload, err := r.ResolveResponsePayload.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	type additionalData struct {
+		Issuer    string            `json:"iss"`
+		Subject   string            `json:"sub"`
+		IssuedAt  unixtime.Unixtime `json:"iat"`
+		ExpiresAt unixtime.Unixtime `json:"exp"`
+		Audience  string            `json:"aud,omitempty"`
+	}
+	additional, err := json.Marshal(
+		additionalData{
+			// Step 3
+			Issuer:    r.Issuer,
+			Subject:   r.Subject,
+			IssuedAt:  r.IssuedAt,
+			ExpiresAt: r.ExpiresAt,
+			Audience:  r.Audience,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	additional[0] = ','
+	return extraMarshalHelper(append(payload[:len(payload)-1], additional...), r.Extra)
+}
+
 // ResolveResponsePayload holds the actual payload of a resolve response
 type ResolveResponsePayload struct {
 	Metadata   *Metadata              `json:"metadata,omitempty"`
