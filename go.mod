@@ -1,6 +1,6 @@
 module github.com/zachmann/go-oidfed
 
-go 1.22
+go 1.23
 toolchain go1.24.1
 
 require (

@@ -1,6 +1,6 @@
 module github.com/zachmann/go-oidfed/examples/ta
 
-go 1.22.5
+go 1.23
 
 require (
 	github.com/fatih/structs v1.1.0
