@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"github.com/pkg/errors"
 
 	"github.com/zachmann/go-oidfed/internal"
@@ -44,18 +44,14 @@ func (c *EntityConfigurationTrustMarkConfig) Verify(sub, ownTrustMarkEndpoint st
 		if err != nil {
 			return err
 		}
-		c.expiration = unixtime.Unixtime{Time: parsed.Expiration()}
-		c.TrustMarkIssuer = parsed.Issuer()
+		exp, _ := parsed.Expiration()
+		c.expiration = unixtime.Unixtime{Time: exp}
+		c.TrustMarkIssuer, _ = parsed.Issuer()
 		internal.Logf("Extracted trust mark issuer: %s", c.TrustMarkIssuer)
 		tmi, set := parsed.Get("id")
 		if !set {
 			return errors.New("trustmark id not found in JWT")
 		}
-		tmiS, ok := tmi.(string)
-		if !ok {
-			return errors.New("trustmark id in JWT not a string")
-		}
-		c.TrustMarkID = tmiS
 		internal.Logf("Extracted trust mark id: %s\n", c.TrustMarkID)
 		return nil
 	}

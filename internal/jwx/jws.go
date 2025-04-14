@@ -3,14 +3,13 @@ package jwx
 import (
 	"crypto"
 
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jws"
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwk"
+	"github.com/lestrrat-go/jwx/v3/jws"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
 
-	"github.com/zachmann/go-oidfed/internal/utils"
 	myjwk "github.com/zachmann/go-oidfed/pkg/jwk"
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
@@ -56,33 +55,7 @@ func (p *ParsedJWT) VerifyWithSet(keys myjwk.JWKS) ([]byte, error) {
 	if keys.Set == nil || keys.Len() == 0 {
 		return nil, errors.New("jwt verify: no keys passed")
 	}
-	var alg jwa.SignatureAlgorithm
-	var kid string
-	if p.Signatures() != nil {
-		head := p.Signatures()[0].ProtectedHeaders()
-		alg = head.Algorithm()
-		kid = head.KeyID()
-	}
-	if alg == "" && kid == "" {
-		return jws.VerifySet(p.RawJWT, keys.Set)
-	}
-	for i := 0; i < keys.Len(); i++ {
-		k, ok := keys.Get(i)
-		if !ok {
-			continue
-		}
-		if !utils.StringsEqualIfSet(alg.String(), k.Algorithm()) {
-			continue
-		}
-		if !utils.StringsEqualIfSet(kid, k.KeyID()) {
-			continue
-		}
-		pay, err := jws.Verify(p.RawJWT, alg, k)
-		if err == nil {
-			return pay, nil
-		}
-	}
-	return nil, errors.New(`failed to verify message with any of the keys in the jwk.Set object`)
+	return jws.Verify(p.RawJWT, jws.WithKeySet(keys.Set))
 }
 
 // VerifyType verifies that the header typ has a certain value
@@ -91,7 +64,8 @@ func (p *ParsedJWT) VerifyType(typ string) bool {
 		return false
 	}
 	head := p.Signatures()[0].ProtectedHeaders()
-	return head.Type() == typ
+	headerTyp, typSet := head.Type()
+	return typSet && headerTyp == typ
 }
 
 // SignWithType creates a signed JWT of the passed type for the passed payload using the
@@ -109,7 +83,7 @@ func SignPayload(payload []byte, signingAlg jwa.SignatureAlgorithm, key crypto.S
 	[]byte,
 	error,
 ) {
-	k, err := jwk.New(key)
+	k, err := jwk.Import(key)
 	if err != nil {
 		return nil, err
 	}
@@ -119,10 +93,11 @@ func SignPayload(payload []byte, signingAlg jwa.SignatureAlgorithm, key crypto.S
 	if headers == nil {
 		headers = jws.NewHeaders()
 	}
-	if err = headers.Set(jws.KeyIDKey, k.KeyID()); err != nil {
+	keyID, _ := k.KeyID()
+	if err = headers.Set(jws.KeyIDKey, keyID); err != nil {
 		return nil, err
 	}
-	return jws.Sign(payload, signingAlg, key, jws.WithHeaders(headers))
+	return jws.Sign(payload, jws.WithKey(signingAlg, key, jws.WithProtectedHeaders(headers)))
 }
 
 // GetExp returns the expiration of a jwt
@@ -132,5 +107,6 @@ func GetExp(bytes []byte) (exp unixtime.Unixtime, err error) {
 		err = errors.WithStack(err)
 		return
 	}
-	return unixtime.Unixtime{Time: parsed.Expiration()}, nil
+	expT, _ := parsed.Expiration()
+	return unixtime.Unixtime{Time: expT}, nil
 }

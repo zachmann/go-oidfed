@@ -11,8 +11,8 @@ import (
 	"os"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwk"
 
 	"github.com/zachmann/go-oidfed/examples/ta/config"
 	myjwk "github.com/zachmann/go-oidfed/pkg/jwk"
@@ -20,7 +20,7 @@ import (
 
 func genJWKS() myjwk.JWKS {
 	sk := mustNewKey()
-	jwks := myjwk.KeyToJWKS(sk.Public(), jwa.ES512)
+	jwks := myjwk.KeyToJWKS(sk.Public(), jwa.ES512())
 	return jwks
 }
 
@@ -54,7 +54,7 @@ var signingJWKS jwk.Set
 func initKey() {
 	signingKey = mustLoadKey()
 
-	key, err := jwk.New(signingKey.Public())
+	key, err := jwk.PublicKeyOf(signingKey.Public())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -64,11 +64,11 @@ func initKey() {
 	if err = key.Set(jwk.KeyUsageKey, jwk.ForSignature); err != nil {
 		log.Fatal(err)
 	}
-	if err = key.Set(jwk.AlgorithmKey, jwa.ES512); err != nil {
+	if err = key.Set(jwk.AlgorithmKey, jwa.ES512()); err != nil {
 		log.Fatal(err)
 	}
 	signingJWKS = jwk.NewSet()
-	signingJWKS.Add(key)
+	signingJWKS.AddKey(key)
 }
 
 func exportECPrivateKeyAsPem(privkey *ecdsa.PrivateKey) []byte {

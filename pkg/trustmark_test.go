@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
@@ -241,7 +241,7 @@ func TestDelegationJWT_VerifyExternal(t *testing.T) {
 	); err != nil {
 		t.Error(err)
 	}
-	wrongKey := jwk.KeyToJWKS(tmo.key.Public(), jwa.ES512)
+	wrongKey := jwk.KeyToJWKS(tmo.key.Public(), jwa.ES512())
 	tests := []struct {
 		name        string
 		jwks        jwk.JWKS

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/pkg/errors"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -86,7 +86,7 @@ func runDelegation(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if conf.JWKS.Set == nil {
-		conf.JWKS = jwk.KeyToJWKS(sk.PublicKey, jwa.ES512)
+		conf.JWKS = jwk.KeyToJWKS(sk.PublicKey, jwa.ES512())
 	}
 
 	ownedTrustMarks := make([]pkg.OwnedTrustMark, len(conf.TrustMarks))
@@ -100,7 +100,7 @@ func runDelegation(cmd *cobra.Command, args []string) error {
 
 	tmo := pkg.NewTrustMarkOwner(
 		conf.TrustMarkOwner,
-		pkg.NewGeneralJWTSigner(sk, jwa.ES512).TrustMarkDelegationSigner(),
+		pkg.NewGeneralJWTSigner(sk, jwa.ES512()).TrustMarkDelegationSigner(),
 		ownedTrustMarks,
 	)
 	for i, c := range conf.TrustMarks {

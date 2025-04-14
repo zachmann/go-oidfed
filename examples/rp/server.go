@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jws"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jws"
 
 	"github.com/zachmann/go-oidfed/examples/rp/pkce"
 	"github.com/zachmann/go-oidfed/internal/utils"
@@ -63,7 +63,7 @@ var stateDB map[string]stateData
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	if authBuilder == nil {
-		authBuilder = pkg.NewRequestObjectProducer(conf.EntityID, getKey(oidcSigningKeyName), jwa.ES512, 60)
+		authBuilder = pkg.NewRequestObjectProducer(conf.EntityID, getKey(oidcSigningKeyName), jwa.ES512(), 60)
 	}
 	op := r.URL.Query().Get("op")
 	state := randASCIIString(32)
@@ -173,8 +173,8 @@ func fedLeaf() *pkg.FederationLeaf {
 			conf.EntityID, conf.AuthorityHints, conf.TrustAnchors, metadata,
 			pkg.NewEntityStatementSigner(
 				getKey(fedSigningKeyName),
-				jwa.ES512,
-			), 86400, getKey(oidcSigningKeyName), jwa.ES512,
+				jwa.ES512(),
+			), 86400, getKey(oidcSigningKeyName), jwa.ES512(),
 		)
 		if err != nil {
 			log.Fatal(err)

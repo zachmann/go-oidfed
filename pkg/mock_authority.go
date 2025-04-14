@@ -8,7 +8,7 @@ import (
 	mathrand "math/rand"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
@@ -54,7 +54,7 @@ func newMockAuthority(entityID string, data EntityStatementPayload) *mockAuthori
 	if err != nil {
 		panic(err)
 	}
-	data.JWKS = jwk.KeyToJWKS(sk.Public(), jwa.ES512)
+	data.JWKS = jwk.KeyToJWKS(sk.Public(), jwa.ES512())
 	data.Issuer = entityID
 	data.Subject = entityID
 	a := &mockAuthority{
@@ -62,7 +62,7 @@ func newMockAuthority(entityID string, data EntityStatementPayload) *mockAuthori
 		FetchEndpoint:         fmt.Sprintf("%s/fetch", entityID),
 		ListEndpoint:          fmt.Sprintf("%s/list", entityID),
 		data:                  data,
-		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
+		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512()),
 	}
 	if a.data.Metadata == nil {
 		a.data.Metadata = &Metadata{}

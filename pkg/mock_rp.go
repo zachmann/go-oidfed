@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
@@ -30,8 +30,8 @@ func newMockRP(entityID string, metadata *OpenIDRelyingPartyMetadata) *mockRP {
 	r := &mockRP{
 		EntityID:              entityID,
 		metadata:              metadata,
-		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
-		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512),
+		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512()),
+		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512()),
 	}
 	mockEntityConfiguration(r.EntityID, r)
 	return r

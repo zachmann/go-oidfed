@@ -4,8 +4,8 @@ import (
 	"crypto"
 	"encoding/json"
 
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/pkg/errors"
 
 	"github.com/zachmann/go-oidfed/internal/jwx"

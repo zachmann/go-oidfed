@@ -12,7 +12,7 @@ import (
 	"path"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 )
@@ -49,7 +49,7 @@ func initKeys(names ...string) {
 	jwks = make(map[string]jwk.JWKS)
 	for _, name := range names {
 		keys[name] = mustLoadKey(name)
-		set := jwk.KeyToJWKS(keys[name].Public(), jwa.ES512)
+		set := jwk.KeyToJWKS(keys[name].Public(), jwa.ES512())
 		jwks[name] = set
 	}
 }

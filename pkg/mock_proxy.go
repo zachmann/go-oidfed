@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 	"github.com/zachmann/go-oidfed/pkg/unixtime"
@@ -36,8 +36,8 @@ func newMockProxy(
 		EntityID:              entityID,
 		rpMetadata:            rp,
 		opMetadata:            op,
-		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512),
-		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512),
+		EntityStatementSigner: NewEntityStatementSigner(sk, jwa.ES512()),
+		jwks:                  jwk.KeyToJWKS(sk.Public(), jwa.ES512()),
 	}
 	mockEntityConfiguration(p.EntityID, p)
 	return p

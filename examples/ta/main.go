@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 
 	"github.com/zachmann/go-oidfed/examples/ta/config"
 	"github.com/zachmann/go-oidfed/pkg"
@@ -36,7 +36,7 @@ func main() {
 				OrganizationName: c.OrganizationName,
 			},
 		},
-		signingKey, jwa.ES512, c.ConfigurationLifetime, fedentities.SubordinateStatementsConfig{
+		signingKey, jwa.ES512(), c.ConfigurationLifetime, fedentities.SubordinateStatementsConfig{
 			MetadataPolicies:             nil,
 			SubordinateStatementLifetime: 3600,
 			// TODO read all of this from config or a storage backend

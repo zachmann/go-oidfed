@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/luci/go-render/render"
 	"github.com/vmihailenco/msgpack/v5"
 
@@ -247,7 +247,7 @@ func TestEntityStatementMarshalAndUnmarshalMsgpack(t *testing.T) {
 		{
 			name: "jwks",
 			data: EntityStatementPayload{
-				JWKS: jwk.KeyToJWKS(sk.Public(), jwa.ES512),
+				JWKS: jwk.KeyToJWKS(sk.Public(), jwa.ES512()),
 			},
 		}, // this is hard to compare
 	}

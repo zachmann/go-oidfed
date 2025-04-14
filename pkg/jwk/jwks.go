@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
 	"gopkg.in/yaml.v3"
@@ -92,7 +92,7 @@ func (jwks *JWKS) UnmarshalMsgpack(data []byte) error {
 
 // KeyToJWKS creates a jwk.Set from the passed publicKey and sets the algorithm key in the jwk.Key to the passed jwa.SignatureAlgorithm
 func KeyToJWKS(publicKey interface{}, alg jwa.SignatureAlgorithm) JWKS {
-	key, err := jwk.New(publicKey)
+	key, err := jwk.PublicKeyOf(publicKey)
 	if err != nil {
 		panic(err)
 	}
@@ -106,6 +106,6 @@ func KeyToJWKS(publicKey interface{}, alg jwa.SignatureAlgorithm) JWKS {
 		panic(err)
 	}
 	jwks := jwk.NewSet()
-	jwks.Add(key)
+	jwks.AddKey(key)
 	return JWKS{jwks}
 }
