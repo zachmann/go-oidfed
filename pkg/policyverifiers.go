@@ -69,6 +69,58 @@ func policyVerifyAddInSubset(p MetadataPolicyEntry, pathInfo string) error {
 	return nil
 }
 
+func policyVerifyAddInValue(p MetadataPolicyEntry, pathInfo string) error {
+	valueV, valueSet := p[PolicyOperatorValue]
+	addV, addSet := p[PolicyOperatorAdd]
+	if !valueSet || !addSet {
+		return nil
+	}
+	if !utils.ReflectIsSubsetOf(addV, valueV) {
+		return errors.Errorf(
+			"after combining policies '%s' the '%s' operator values '%v' are not all included in the '%s' operator '%v'",
+			pathInfo,
+			PolicyOperatorAdd,
+			addV,
+			PolicyOperatorValue,
+			valueV,
+		)
+	}
+	return nil
+}
+
+func policyVerifyDefaultAndValue(p MetadataPolicyEntry, pathInfo string) error {
+	valueV, valueSet := p[PolicyOperatorValue]
+	_, defaultSet := p[PolicyOperatorDefault]
+	if !valueSet || !defaultSet {
+		return nil
+	}
+	if valueV == nil {
+		return errors.New("after combining policies: combining 'default' with a null 'value' policy is not allowed.")
+	}
+	return nil
+}
+
+func policyVerifySubsetOfAndValue(p MetadataPolicyEntry, pathInfo string) error {
+	valueV, valueSet := p[PolicyOperatorValue]
+	subsetV, subsetSet := p[PolicyOperatorSubsetOf]
+	if !valueSet || !subsetSet {
+		return nil
+	}
+
+	if !utils.ReflectIsSubsetOf(valueV, subsetV) {
+		return errors.Errorf(
+			"after combining policies '%s' the '%s' operator values '%v' are not all included in the '%s' operator '%v'",
+			pathInfo,
+			PolicyOperatorValue,
+			valueV,
+			PolicyOperatorSubsetOf,
+			subsetV,
+		)
+	}
+	return nil
+
+}
+
 func policyVerifyDefaultInSubset(p MetadataPolicyEntry, pathInfo string) error {
 	subsetV, subset := p[PolicyOperatorSubsetOf]
 	defaultV, defaultSet := p[PolicyOperatorDefault]
@@ -184,9 +236,12 @@ func init() {
 	RegisterPolicyVerifier(policyVerifierSubsetSupersetOf)
 	RegisterPolicyVerifier(policyVerifyAddInSubset)
 	RegisterPolicyVerifier(policyVerifyAddInOneOf)
-	RegisterPolicyVerifier(policyVerifyDefaultInOneOf)
-	RegisterPolicyVerifier(policyVerifyDefaultInSubset)
-	RegisterPolicyVerifier(policyVerifyDefaultSuperset)
-	RegisterPolicyVerifier(policyVerifySubsetOfStillHasValues)
+	RegisterPolicyVerifier(policyVerifyAddInValue)
+	// RegisterPolicyVerifier(policyVerifyDefaultInOneOf)
+	// RegisterPolicyVerifier(policyVerifyDefaultInSubset)
+	// RegisterPolicyVerifier(policyVerifyDefaultSuperset)
+	// RegisterPolicyVerifier(policyVerifySubsetOfStillHasValues)
 	RegisterPolicyVerifier(policyVerifyOneOfStillHasValues)
+	RegisterPolicyVerifier(policyVerifySubsetOfAndValue)
+	RegisterPolicyVerifier(policyVerifyDefaultAndValue)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"unsafe"
 )
 
 // Metadata is a type for holding the different metadata types
@@ -80,6 +81,9 @@ func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) 
 	}
 	v := reflect.ValueOf(metadata)
 	t := v.Elem().Type()
+
+	wasSetField := v.Elem().FieldByName("wasSet")
+	wasSet := *(*map[string]bool)(unsafe.Pointer(wasSetField.UnsafeAddr()))
 	for i := 0; i < t.NumField(); i++ {
 		j, ok := t.Field(i).Tag.Lookup("json")
 		if !ok {
@@ -91,13 +95,15 @@ func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) 
 			continue
 		}
 		f := reflect.Indirect(v).Field(i)
-		value, err := p.ApplyTo(f.Interface(), fmt.Sprintf("%s.%s", ownTag, j))
+		value, err := p.ApplyTo(f.Interface(), wasSet[t.Field(i).Name], fmt.Sprintf("%s.%s", ownTag, j))
 		if err != nil {
 			return nil, err
 		}
 		rV := reflect.ValueOf(value)
 		if rV.IsValid() {
 			f.Set(rV)
+		} else {
+			f.SetZero()
 		}
 	}
 
@@ -106,6 +112,7 @@ func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) 
 
 // OAuthClientMetadata is a type for holding the metadata about an oauth client
 type OAuthClientMetadata OpenIDRelyingPartyMetadata
+type oAuthClientMetadataWithPtrs openIDRelyingPartyMetadataWithPtrs
 
 // OAuthAuthorizationServerMetadata is a type for holding the metadata about an oauth authorization server
 type OAuthAuthorizationServerMetadata OpenIDProviderMetadata
@@ -122,6 +129,23 @@ func (m *OAuthAuthorizationServerMetadata) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*m = OAuthAuthorizationServerMetadata(op)
+	return nil
+}
+
+type oAuthAuthorizationServerMetadataWithPtrs openIDProviderMetadataWithPtrs
+
+// MarshalJSON implements the json.Marshaler interface
+func (m oAuthAuthorizationServerMetadataWithPtrs) MarshalJSON() ([]byte, error) {
+	return json.Marshal(openIDProviderMetadataWithPtrs(m))
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *oAuthAuthorizationServerMetadataWithPtrs) UnmarshalJSON(data []byte) error {
+	op := openIDProviderMetadataWithPtrs(*m)
+	if err := json.Unmarshal(data, &op); err != nil {
+		return err
+	}
+	*m = oAuthAuthorizationServerMetadataWithPtrs(op)
 	return nil
 }
 
@@ -142,6 +166,21 @@ func (m *OAuthClientMetadata) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*m = OAuthClientMetadata(rp)
+	return nil
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (m oAuthClientMetadataWithPtrs) MarshalJSON() ([]byte, error) {
+	return json.Marshal(openIDRelyingPartyMetadataWithPtrs(m))
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *oAuthClientMetadataWithPtrs) UnmarshalJSON(data []byte) error {
+	rp := openIDRelyingPartyMetadataWithPtrs(*m)
+	if err := json.Unmarshal(data, &rp); err != nil {
+		return err
+	}
+	*m = oAuthClientMetadataWithPtrs(rp)
 	return nil
 }
 

@@ -199,7 +199,7 @@ func (p MetadataPolicyEntry) Verify(pathInfo string) error {
 }
 
 // ApplyTo applies this MetadataPolicyEntry to the passed value and returns the resulting value
-func (p MetadataPolicyEntry) ApplyTo(value any, pathInfo string) (any, error) {
+func (p MetadataPolicyEntry) ApplyTo(value any, valueSet bool, pathInfo string) (any, error) {
 	var err error
 	essentialV, ok := p[PolicyOperatorEssential]
 	essential := false
@@ -215,7 +215,7 @@ func (p MetadataPolicyEntry) ApplyTo(value any, pathInfo string) (any, error) {
 		if !found {
 			return value, errors.Errorf("unsupported policy operator '%s' in '%s'", policyName, pathInfo)
 		}
-		value, err = operator.Apply(value, policyValue, essential, pathInfo)
+		value, valueSet, err = operator.Apply(value, valueSet, policyValue, essential, pathInfo)
 		if err != nil {
 			return value, err
 		}

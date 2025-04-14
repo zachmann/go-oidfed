@@ -54,10 +54,24 @@ var entitystatementMarshalData = map[string]marshalData{
 					Contacts:                 []string{"contact@email.com"},
 					IDTokenSignedResponseAlg: "ES512",
 					ClientRegistrationTypes:  []string{"automatic"},
+					wasSet: map[string]bool{
+						"Scope":                    true,
+						"RedirectURIS":             true,
+						"ResponseTypes":            true,
+						"GrantTypes":               true,
+						"ApplicationType":          true,
+						"Contacts":                 true,
+						"IDTokenSignedResponseAlg": true,
+						"ClientRegistrationTypes":  true,
+					},
 				},
 				FederationEntity: &FederationEntityMetadata{
 					OrganizationName: "organization",
 					HomepageURI:      "https://somewhere.com",
+					wasSet: map[string]bool{
+						"OrganizationName": true,
+						"HomepageURI":      true,
+					},
 				},
 			},
 			MetadataPolicy: &MetadataPolicies{
@@ -151,11 +165,11 @@ func TestEntityStatementPayload_UnmarshalJSON(t *testing.T) {
 				}
 				if !reflect.DeepEqual(test.Object, result) {
 					t.Errorf(
-						"Unmarshal result not as expected."+
-							"\nExpected: %s\n     Got: %s\nMarshalled: %s\n",
+						"Unmarshal result not as expected.\nExpected: %s\n     Got: %s\nMarshalled: %s\n  Original: %s\n",
 						render.Render(test.Object),
 						render.Render(result),
 						test.Data,
+						test.marshalData.Data,
 					)
 				}
 			},

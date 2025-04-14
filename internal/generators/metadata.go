@@ -71,6 +71,7 @@ package pkg
 
 import (
 	"encoding/json"
+	"reflect"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
 	
@@ -83,33 +84,45 @@ import (
 
 	// Generate the new structs that include commonMetadata
 	for name, other := range others {
+		withPtrName := name + "WithPtrs"
 		name = fmt.Sprintf("%s%s", strings.ToUpper(name[0:1]), name[1:])
-		_, _ = out.WriteString(generateCombinedStruct(name, other, commonMetadata))
-		_, _ = out.WriteString(generateMarshalUnmarshalFunctions(name))
+		_, _ = out.WriteString(generateCombinedStruct(name, withPtrName, other, commonMetadata))
+		_, _ = out.WriteString(generateMarshalUnmarshalFunctions(name, withPtrName))
 		_, _ = out.WriteString(generateApplyPolicyFunction(name))
 	}
 }
 
 // Generate a new struct that combines fields from both input structs
 func generateCombinedStruct(
-	newStructName string, structA,
+	newStructName, withPtrName string, structA,
 	structB *ast.StructType,
 ) string {
-	var sb strings.Builder
+	var builderForType strings.Builder
+	var builderForTypeWithPtrs strings.Builder
 	seenFields := make(map[string]bool) // Keep track of field names
 
-	sb.WriteString(fmt.Sprintf("type %s struct {\n", newStructName))
+	builderForType.WriteString(fmt.Sprintf("type %s struct {\n", newStructName))
+	builderForTypeWithPtrs.WriteString(fmt.Sprintf("type %s struct {\n", withPtrName))
+
+	builderForType.WriteString("wasSet map[string]bool\n")
 
 	// Add fields from struct A
 	for _, field := range structA.Fields.List {
 		for _, fieldName := range field.Names {
 			if !seenFields[fieldName.Name] {
 				seenFields[fieldName.Name] = true
-				sb.WriteString(fmt.Sprintf("    %s %s", fieldName.Name, fieldTypeAsString(field.Type)))
+				builderForType.WriteString(fmt.Sprintf("    %s %s", fieldName.Name, fieldTypeAsString(field.Type)))
+				builderForTypeWithPtrs.WriteString(
+					fmt.Sprintf(
+						"    %s %s", fieldName.Name, fieldTypeAsPtrString(field.Type),
+					),
+				)
 				if field.Tag != nil {
-					sb.WriteString(fmt.Sprintf(" %s", field.Tag.Value))
+					builderForType.WriteString(fmt.Sprintf(" %s", field.Tag.Value))
+					builderForTypeWithPtrs.WriteString(fmt.Sprintf(" %s", field.Tag.Value))
 				}
-				sb.WriteString("\n")
+				builderForType.WriteString("\n")
+				builderForTypeWithPtrs.WriteString("\n")
 			}
 		}
 	}
@@ -122,16 +135,29 @@ func generateCombinedStruct(
 			}
 			if !seenFields[fieldName.Name] {
 				seenFields[fieldName.Name] = true
-				sb.WriteString(fmt.Sprintf("    %s %s", fieldName.Name, fieldTypeAsString(field.Type)))
+				builderForType.WriteString(fmt.Sprintf("    %s %s", fieldName.Name, fieldTypeAsString(field.Type)))
+				builderForTypeWithPtrs.WriteString(
+					fmt.Sprintf(
+						"    %s %s", fieldName.Name, fieldTypeAsPtrString(field.Type),
+					),
+				)
 				if field.Tag != nil {
-					sb.WriteString(fmt.Sprintf(" %s", field.Tag.Value))
+					builderForType.WriteString(fmt.Sprintf(" %s", field.Tag.Value))
+					builderForTypeWithPtrs.WriteString(
+						fmt.Sprintf(
+							" %s",
+							field.Tag.Value,
+						),
+					)
 				}
-				sb.WriteString("\n")
+				builderForType.WriteString("\n")
+				builderForTypeWithPtrs.WriteString("\n")
 			}
 		}
 	}
-	sb.WriteString("}\n")
-	return sb.String()
+	builderForType.WriteString("}\n")
+	builderForTypeWithPtrs.WriteString("}\n")
+	return builderForType.String() + "\n" + builderForTypeWithPtrs.String()
 }
 
 // Convert field type to string
@@ -152,12 +178,31 @@ func fieldTypeAsString(expr ast.Expr) string {
 	}
 }
 
-func generateMarshalUnmarshalFunctions(name string) string {
+// Convert field type as ptr to string
+func fieldTypeAsPtrString(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return "*" + t.Name
+	case *ast.SelectorExpr:
+		return fmt.Sprintf("%s.%s", t.X, t.Sel.Name)
+	case *ast.StarExpr:
+		return "*" + fieldTypeAsString(t.X)
+	case *ast.ArrayType:
+		return "[]" + fieldTypeAsString(t.Elt)
+	case *ast.MapType:
+		return fmt.Sprintf("map[%s]%s", fieldTypeAsString(t.Key), fieldTypeAsString(t.Value))
+	default:
+		return ""
+	}
+}
+
+func generateMarshalUnmarshalFunctions(name, withPtrsName string) string {
 	var sb strings.Builder
 
-	sb.WriteString(
-		fmt.Sprintf(
-			`
+	marshal := func(sb *strings.Builder, name string) {
+		sb.WriteString(
+			fmt.Sprintf(
+				`
 // MarshalJSON implements the json.Marshaler interface
 func (m %s) MarshalJSON() ([]byte, error) {
 	type Alias %s
@@ -168,9 +213,57 @@ func (m %s) MarshalJSON() ([]byte, error) {
 	return extraMarshalHelper(explicitFields, m.Extra)
 }
 `, name, name,
+			),
+		)
+	}
+
+	marshal(&sb, name)
+	marshal(&sb, withPtrsName)
+
+	sb.WriteString(
+		fmt.Sprintf(
+			`
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *%s) UnmarshalJSON(data []byte) error {
+	var withPtrs %s
+	if err := json.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+
+	m.wasSet = make(map[string]bool)
+
+	valOrig := reflect.ValueOf(m).Elem()
+	valWithPtrs := reflect.ValueOf(withPtrs)
+	typeWithPtrs := valWithPtrs.Type()
+
+	for i := 0; i < typeWithPtrs.NumField(); i++ {
+		ptrField := valWithPtrs.Field(i)
+		fieldName := typeWithPtrs.Field(i).Name
+
+		origField := valOrig.FieldByName(fieldName)
+		if !origField.IsValid() || !origField.CanSet() {
+			continue
+		}
+
+		if !ptrField.IsNil() {
+			m.wasSet[fieldName] = true
+		}
+		if ptrField.Kind() == reflect.Ptr {
+			if !ptrField.IsNil() {
+				origField.Set(ptrField.Elem())
+			}
+		} else {
+			origField.Set(ptrField)
+		}
+	}
+	for k,_ := range m.Extra {
+		m.wasSet[k] = true
+	}
+	return nil
+}
+`, name, withPtrsName,
 		),
 	)
-
 	sb.WriteString(
 		fmt.Sprintf(
 			`
@@ -187,13 +280,14 @@ func (m *%s) UnmarshalJSON(data []byte) error {
 	*m = %s(mm)
 	return nil
 }
-`, name, name, name,
+`, withPtrsName, withPtrsName, withPtrsName,
 		),
 	)
 
-	sb.WriteString(
-		fmt.Sprintf(
-			`
+	unmarshalMsgpack := func(sb *strings.Builder, name string) {
+		sb.WriteString(
+			fmt.Sprintf(
+				`
 // UnmarshalMsgpack implements the msgpack.Unmarshaler interface
 func (m *%s) UnmarshalMsgpack(data []byte) error {
 	type Alias %s
@@ -206,8 +300,11 @@ func (m *%s) UnmarshalMsgpack(data []byte) error {
 	return nil
 }
 `, name, name, name,
-		),
-	)
+			),
+		)
+	}
+	unmarshalMsgpack(&sb, name)
+	unmarshalMsgpack(&sb, withPtrsName)
 
 	return sb.String()
 }

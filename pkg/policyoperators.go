@@ -13,7 +13,7 @@ type PolicyOperator interface {
 	// Merge merges two policy operator values and returns the result
 	Merge(a, b any, pathInfo string) (any, error)
 	// Apply applies the policy operator value to the attribute value and returns the result
-	Apply(value, policyValue any, essential bool, pathInfo string) (any, error)
+	Apply(value any, valueSet bool, policyValue any, essential bool, pathInfo string) (any, bool, error)
 	// Name returns the PolicyOperatorName
 	Name() PolicyOperatorName
 	// MayCombineWith gives a list of PolicyOperatorName with which this PolicyOperator may be combined
@@ -53,7 +53,7 @@ func RegisterPolicyOperator(operator PolicyOperator) {
 type policyOperator struct {
 	name        PolicyOperatorName
 	merger      func(a, b any, pathInfo string) (any, error)
-	applier     func(value, policyValue any, essential bool, pathInfo string) (any, error)
+	applier     func(value any, valueSet bool, policyValue any, essential bool, pathInfo string) (any, bool, error)
 	combineWith []PolicyOperatorName
 }
 
@@ -68,8 +68,10 @@ func (op policyOperator) Merge(a, b any, pathInfo string) (any, error) {
 }
 
 // Apply implements the PolicyOperator interface
-func (op policyOperator) Apply(value, policyValue any, essential bool, pathInfo string) (any, error) {
-	return op.applier(value, policyValue, essential, pathInfo)
+func (op policyOperator) Apply(value any, valueSet bool, policyValue any, essential bool, pathInfo string) (
+	any, bool, error,
+) {
+	return op.applier(value, valueSet, policyValue, essential, pathInfo)
 }
 
 // MayCombineWith implements the PolicyOperator interface
@@ -81,7 +83,7 @@ func (op policyOperator) MayCombineWith() []PolicyOperatorName {
 func NewPolicyOperator(
 	name PolicyOperatorName,
 	merger func(a, b any, pathInfo string) (any, error),
-	applier func(value, policyValue any, essential bool, pathInfo string) (any, error),
+	applier func(value any, valueSet bool, policyValue any, essential bool, pathInfo string) (any, bool, error),
 	mayCombineWith []PolicyOperatorName,
 ) PolicyOperator {
 	return policyOperator{
@@ -103,16 +105,19 @@ var policyOperatorAdd = NewPolicyOperator(
 		}
 		return utils.ReflectUnion(a, b), nil
 	},
-	func(value, policyValue any, _ bool, _ string) (any, error) {
+	func(value any, valueSet bool, policyValue any, _ bool, _ string) (
+		any, bool, error,
+	) {
 		if value == nil {
-			return policyValue, nil
+			return policyValue, policyValue != nil, nil
 		}
 		if policyValue == nil {
-			return value, nil
+			return value, valueSet, nil
 		}
-		return utils.ReflectUnion(value, policyValue), nil
+		return utils.ReflectUnion(value, policyValue), true, nil
 	},
 	[]PolicyOperatorName{
+		PolicyOperatorValue,
 		PolicyOperatorDefault,
 		PolicyOperatorSubsetOf,
 		PolicyOperatorSupersetOf,
@@ -131,34 +136,38 @@ var policyOperatorSubsetOf = NewPolicyOperator(
 		}
 		return utils.ReflectIntersect(a, b), nil
 	},
-	func(value, policyValue any, essential bool, pathInfo string) (any, error) {
-		if value == nil && !essential {
-			return value, nil
+	func(
+		value any, valueSet bool, policyValue any, essential bool,
+		pathInfo string,
+	) (any, bool, error) {
+		if !valueSet && !essential {
+			return value, valueSet, nil
 		}
 		if policyValue == nil {
-			return value, nil
+			return value, valueSet, nil
 		}
 		p := utils.Slicify(policyValue)
-		if value == nil { // policyValue is not nil and value is essential
-			return value, errors.Errorf(
+		if !valueSet { // policyValue is not nil and value is essential
+			return value, valueSet, errors.Errorf(
 				"policy operator check failed: '%s' not set, but essential and must be one of '%+q'",
 				pathInfo, policyValue,
 			)
 		}
 		v := utils.Slicify(value)
 		newValue := utils.ReflectIntersect(v, p)
-		if reflect.ValueOf(newValue).Len() == 0 {
-			newValue = nil
-			if essential {
-				return newValue, errors.Errorf(
-					"policy operator check failed for '%s': '%+q' is not subset of '%+q' but essential",
-					pathInfo, value, p,
-				)
-			}
-		}
-		return newValue, nil
+		// if reflect.ValueOf(newValue).Len() == 0 {
+		// 	newValue = nil
+		// 	if essential {
+		// 		return newValue, errors.Errorf(
+		// 			"policy operator check failed for '%s': '%+q' is not subset of '%+q' but essential",
+		// 			pathInfo, value, p,
+		// 		)
+		// 	}
+		// }
+		return newValue, true, nil
 	},
 	[]PolicyOperatorName{
+		PolicyOperatorValue,
 		PolicyOperatorAdd,
 		PolicyOperatorDefault,
 		PolicyOperatorSupersetOf,
@@ -177,29 +186,33 @@ var policyOperatorOneOf = NewPolicyOperator(
 		}
 		return utils.ReflectIntersect(a, b), nil
 	},
-	func(value, policyValue any, essential bool, pathInfo string) (any, error) {
-		if value == nil && !essential {
-			return value, nil
+	func(
+		value any, valueSet bool, policyValue any, essential bool,
+		pathInfo string,
+	) (any, bool, error) {
+		if !valueSet && !essential {
+			return value, valueSet, nil
 		}
 		if policyValue == nil {
-			return value, nil
+			return value, valueSet, nil
 		}
 		p := utils.Slicify(policyValue)
-		if value == nil { // policyValue is not nil and value is essential
-			return value, errors.Errorf(
+		if !valueSet { // policyValue is not nil and value is essential
+			return value, valueSet, errors.Errorf(
 				"policy operator check failed: '%s' not set, but essential and must be one of '%+q'",
 				pathInfo, policyValue,
 			)
 		}
 		if !utils.ReflectSliceContains(value, p) {
-			return value, errors.Errorf(
+			return value, valueSet, errors.Errorf(
 				"policy operator check failed for '%s': '%+q' is not one of '%+q'",
 				pathInfo, value, p,
 			)
 		}
-		return value, nil
+		return value, valueSet, nil
 	},
 	[]PolicyOperatorName{
+		PolicyOperatorValue,
 		PolicyOperatorDefault,
 		PolicyOperatorEssential,
 	},
@@ -216,16 +229,19 @@ var policyOperatorSupersetOf = NewPolicyOperator(
 		}
 		return utils.ReflectUnion(a, b), nil
 	},
-	func(value, policyValue any, essential bool, pathInfo string) (any, error) {
-		if value == nil && !essential {
-			return value, nil
+	func(
+		value any, valueSet bool, policyValue any, essential bool,
+		pathInfo string,
+	) (any, bool, error) {
+		if !valueSet && !essential {
+			return value, valueSet, nil
 		}
 		if policyValue == nil {
-			return value, nil
+			return value, valueSet, nil
 		}
 		p := utils.Slicify(policyValue)
-		if value == nil { // policyValue is not nil and value is essential
-			return value, errors.Errorf(
+		if !valueSet { // policyValue is not nil and value is essential
+			return value, valueSet, errors.Errorf(
 				"policy operator check failed: '%s' not set, but essential and must be superset of '%+q'",
 				pathInfo, policyValue,
 			)
@@ -233,14 +249,15 @@ var policyOperatorSupersetOf = NewPolicyOperator(
 
 		v := utils.Slicify(value)
 		if !utils.ReflectIsSupersetOf(v, p) {
-			return value, errors.Errorf(
+			return value, valueSet, errors.Errorf(
 				"policy operator check failed for '%s': '%+q' is not a superset of '%+q'",
 				pathInfo, v, p,
 			)
 		}
-		return value, nil
+		return value, valueSet, nil
 	},
 	[]PolicyOperatorName{
+		PolicyOperatorValue,
 		PolicyOperatorAdd,
 		PolicyOperatorDefault,
 		PolicyOperatorSubsetOf,
@@ -251,12 +268,12 @@ var policyOperatorSupersetOf = NewPolicyOperator(
 var policyOperatorValue = NewPolicyOperator(
 	PolicyOperatorValue,
 	func(a, b any, pathInfo string) (any, error) {
-		if a == nil {
-			return b, nil
-		}
-		if b == nil {
-			return a, nil
-		}
+		// if a == nil {
+		// 	return b, nil
+		// }
+		// if b == nil {
+		// 	return a, nil
+		// }
 		if utils.SliceEqual(a, b) {
 			return a, nil
 		}
@@ -264,13 +281,20 @@ var policyOperatorValue = NewPolicyOperator(
 			"conflicting values '%v' and '%v' when merging '%s' operator in '%s'", a, b, PolicyOperatorValue, pathInfo,
 		)
 	},
-	func(value, policyValue any, _ bool, _ string) (any, error) {
+	func(value any, valueSet bool, policyValue any, _ bool, _ string) (any, bool, error) {
 		if policyValue == nil {
-			return value, nil
+			return nil, false, nil
 		}
-		return utils.ReflectSliceCast(policyValue, utils.Slicify(value)), nil
+		return utils.ReflectSliceCast(policyValue, utils.Slicify(value)), true, nil
 	},
-	[]PolicyOperatorName{PolicyOperatorEssential},
+	[]PolicyOperatorName{
+		PolicyOperatorAdd,
+		PolicyOperatorDefault,
+		PolicyOperatorOneOf,
+		PolicyOperatorSubsetOf,
+		PolicyOperatorSupersetOf,
+		PolicyOperatorEssential,
+	},
 )
 
 var policyOperatorDefault = NewPolicyOperator(
@@ -290,13 +314,14 @@ var policyOperatorDefault = NewPolicyOperator(
 			pathInfo,
 		)
 	},
-	func(value, policyValue any, _ bool, _ string) (any, error) {
-		if value == nil || reflect.ValueOf(value).IsZero() {
-			return utils.ReflectSliceCast(policyValue, utils.Slicify(value)), nil
+	func(value any, valueSet bool, policyValue any, _ bool, _ string) (any, bool, error) {
+		if !valueSet && (value == nil || reflect.ValueOf(value).IsZero()) {
+			return utils.ReflectSliceCast(policyValue, utils.Slicify(value)), true, nil
 		}
-		return value, nil
+		return value, valueSet, nil
 	},
 	[]PolicyOperatorName{
+		PolicyOperatorValue,
 		PolicyOperatorAdd,
 		PolicyOperatorOneOf,
 		PolicyOperatorSubsetOf,
@@ -321,14 +346,15 @@ var policyOperatorEssential = NewPolicyOperator(
 		}
 		return ab || bb, nil
 	},
-	func(value, policyValue any, _ bool, pathInfo string) (any, error) {
+	func(value any, valueSet bool, policyValue any, _ bool, pathInfo string) (any, bool, error) {
 		if policyValue == nil {
-			return value, nil
+			return value, valueSet, nil
 		}
-		if essential, eok := policyValue.(bool); eok && essential && (value == nil || reflect.ValueOf(value).IsZero()) {
-			return nil, errors.Errorf("metadata value for '%s' not set but required", pathInfo)
+		if essential, eok := policyValue.(bool); eok && essential &&
+			(value == nil || (!utils.IsSlice(value) && reflect.ValueOf(value).IsZero())) {
+			return nil, valueSet, errors.Errorf("metadata value for '%s' not set but required", pathInfo)
 		}
-		return value, nil
+		return value, valueSet, nil
 	},
 	nil,
 )

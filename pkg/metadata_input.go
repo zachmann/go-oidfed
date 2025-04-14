@@ -112,7 +112,7 @@ type openIDProviderMetadata struct {
 	UILocalesSupported                                        []string          `json:"ui_locales_supported,omitempty"`
 	ClaimsParameterSupported                                  bool              `json:"claims_parameter_supported,omitempty"`
 	RequestParameterSupported                                 bool              `json:"request_parameter_supported,omitempty"`
-	RequestURIParameterSupported                              bool              `json:"request_uri_parameter_supported"`
+	RequestURIParameterSupported                              bool              `json:"request_uri_parameter_supported,omitempty"`
 	RequireRequestURIRegistration                             bool              `json:"require_request_uri_registration,omitempty"`
 	OPPolicyURI                                               string            `json:"op_policy_uri,omitempty"`
 	OPTOSURI                                                  string            `json:"op_tos_uri,omitempty"`
