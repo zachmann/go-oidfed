@@ -17,6 +17,8 @@ import (
 type EntityConfigurationTrustMarkConfig struct {
 	TrustMarkID          string                     `yaml:"trust_mark_id"`
 	TrustMarkIssuer      string                     `yaml:"trust_mark_issuer"`
+	SelfIssued           bool                       `yaml:"self_issued"`
+	SelfIssuanceSpec     TrustMarkSpec              `yaml:"self_issuance_spec"`
 	JWT                  string                     `yaml:"trust_mark_jwt"`
 	Refresh              bool                       `yaml:"refresh"`
 	MinLifetime          unixtime.DurationInSeconds `yaml:"min_lifetime"`
@@ -25,11 +27,14 @@ type EntityConfigurationTrustMarkConfig struct {
 	lastTried            unixtime.Unixtime
 	sub                  string
 	ownTrustMarkEndpoint string
+	ownTrustMarkIssuer   *TrustMarkIssuer
 }
 
 // Verify verifies that the EntityConfigurationTrustMarkConfig is correct and also extracts trust mark id and issuer
 // if a trust mark jwt is given as well as sets default values
-func (c *EntityConfigurationTrustMarkConfig) Verify(sub, ownTrustMarkEndpoint string) error {
+func (c *EntityConfigurationTrustMarkConfig) Verify(
+	sub, ownTrustMarkEndpoint string, ownTrustMarkSigner *TrustMarkSigner,
+) error {
 	c.sub = sub
 	c.ownTrustMarkEndpoint = ownTrustMarkEndpoint
 	if c.MinLifetime.Duration == 0 {
@@ -56,6 +61,17 @@ func (c *EntityConfigurationTrustMarkConfig) Verify(sub, ownTrustMarkEndpoint st
 		return nil
 	}
 	c.Refresh = true
+	if c.SelfIssued {
+		c.SelfIssuanceSpec.ID = c.TrustMarkID
+		c.ownTrustMarkIssuer = NewTrustMarkIssuer(
+			sub, ownTrustMarkSigner,
+			[]TrustMarkSpec{c.SelfIssuanceSpec},
+		)
+		if c.TrustMarkID == "" {
+			return errors.New("trust_mark_id must be provided for self-issued trust marks")
+		}
+		return nil
+	}
 	if c.TrustMarkID == "" || c.TrustMarkIssuer == "" {
 		return errors.New("either trust_mark_jwt or trust_mark_issuer and trust_mark_id must be specified")
 	}
@@ -85,6 +101,21 @@ func (c *EntityConfigurationTrustMarkConfig) refresh() error {
 		return errors.New("only trying to refresh trust mark once a minute")
 	}
 	c.lastTried = unixtime.Now()
+	if c.SelfIssued {
+		tmi, err := c.ownTrustMarkIssuer.IssueTrustMark(c.TrustMarkID, c.sub)
+		if err != nil {
+			return err
+		}
+		c.JWT = tmi.TrustMarkJWT
+		exp := tmi.trustmark.ExpiresAt
+		if exp != nil {
+			c.expiration = *exp
+		} else {
+			c.expiration = unixtime.Unixtime{}
+		}
+		return nil
+	}
+
 	var endpoint string
 	if c.TrustMarkIssuer == c.sub {
 		endpoint = c.ownTrustMarkEndpoint

@@ -23,6 +23,14 @@ func main() {
 	c := config.Get()
 	initKey()
 	log.Println("Loaded signing key")
+	for _, tmc := range c.TrustMarks {
+		if err := tmc.Verify(
+			c.EntityID, c.Endpoints.TrustMarkEndpoint.ValidateURL(c.EntityID),
+			pkg.NewTrustMarkSigner(signingKey, jwa.ES512()),
+		); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	subordinateStorage, trustMarkedEntitiesStorage, err := config.LoadStorageBackends(c)
 	if err != nil {

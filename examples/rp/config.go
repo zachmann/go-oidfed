@@ -48,11 +48,6 @@ func mustLoadConfig() {
 	if conf.EnableDebugLog {
 		pkg.EnableDebugLogging()
 	}
-	for _, c := range conf.TrustMarks {
-		if err = c.Verify(conf.EntityID, ""); err != nil {
-			log.Fatal(err)
-		}
-	}
 	if conf.ClientName == "" {
 		conf.ClientName = "example go oidfed rp"
 	}

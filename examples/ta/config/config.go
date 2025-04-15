@@ -136,11 +136,6 @@ func Load(filename string) {
 			log.Fatal(err)
 		}
 	}
-	for _, tmc := range c.TrustMarks {
-		if err = tmc.Verify(c.EntityID, c.Endpoints.TrustMarkEndpoint.ValidateURL(c.EntityID)); err != nil {
-			log.Fatal(err)
-		}
-	}
 }
 
 // LoadStorageBackends loads and returns the storage backends for the passed Config
