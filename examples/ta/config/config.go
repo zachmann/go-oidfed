@@ -19,6 +19,7 @@ import (
 type Config struct {
 	ServerPort            int                                       `yaml:"server_port"`
 	EntityID              string                                    `yaml:"entity_id"`
+	LogoURI               string                                    `yaml:"logo_uri"`
 	AuthorityHints        []string                                  `yaml:"authority_hints"`
 	MetadataPolicyFile    string                                    `yaml:"metadata_policy_file"`
 	MetadataPolicy        *pkg.MetadataPolicies                     `yaml:"-"`

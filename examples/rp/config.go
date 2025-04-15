@@ -11,6 +11,8 @@ import (
 
 type config struct {
 	EntityID           string                                    `yaml:"entity_id"`
+	ClientName         string                                    `yaml:"client_name"`
+	LogoURI            string                                    `yaml:"logo_uri"`
 	TrustAnchors       pkg.TrustAnchors                          `yaml:"trust_anchors"`
 	AuthorityHints     []string                                  `yaml:"authority_hints"`
 	OrganisationName   string                                    `yaml:"organisation_name"`
@@ -50,5 +52,8 @@ func mustLoadConfig() {
 		if err = c.Verify(conf.EntityID, ""); err != nil {
 			log.Fatal(err)
 		}
+	}
+	if conf.ClientName == "" {
+		conf.ClientName = "example go oidfed rp"
 	}
 }

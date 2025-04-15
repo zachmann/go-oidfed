@@ -34,6 +34,7 @@ func main() {
 		&pkg.Metadata{
 			FederationEntity: &pkg.FederationEntityMetadata{
 				OrganizationName: c.OrganizationName,
+				LogoURI:          c.LogoURI,
 			},
 		},
 		signingKey, jwa.ES512(), c.ConfigurationLifetime, fedentities.SubordinateStatementsConfig{

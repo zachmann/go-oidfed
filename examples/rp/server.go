@@ -159,13 +159,15 @@ func fedLeaf() *pkg.FederationLeaf {
 				ResponseTypes:           []string{"code"},
 				GrantTypes:              []string{"authorization_code"},
 				ApplicationType:         "web",
-				ClientName:              "example go oidfed rp",
+				ClientName:              conf.ClientName,
+				LogoURI:                 conf.LogoURI,
 				JWKS:                    getJWKS(oidcSigningKeyName),
 				OrganizationName:        conf.OrganisationName,
 				ClientRegistrationTypes: []string{"automatic"},
 			},
 			FederationEntity: &pkg.FederationEntityMetadata{
 				OrganizationName: conf.OrganisationName,
+				LogoURI:          conf.LogoURI,
 			},
 		}
 		var err error
