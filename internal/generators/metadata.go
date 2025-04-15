@@ -248,7 +248,7 @@ func (m *%s) UnmarshalJSON(data []byte) error {
 		if !ptrField.IsNil() {
 			m.wasSet[fieldName] = true
 		}
-		if ptrField.Kind() == reflect.Ptr {
+		if ptrField.Kind() == reflect.Ptr && origField.Kind() != reflect.Ptr {
 			if !ptrField.IsNil() {
 				origField.Set(ptrField.Elem())
 			}

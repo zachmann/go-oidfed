@@ -193,7 +193,7 @@ func (m *OpenIDRelyingPartyMetadata) UnmarshalJSON(data []byte) error {
 		if !ptrField.IsNil() {
 			m.wasSet[fieldName] = true
 		}
-		if ptrField.Kind() == reflect.Ptr {
+		if ptrField.Kind() == reflect.Ptr && origField.Kind() != reflect.Ptr {
 			if !ptrField.IsNil() {
 				origField.Set(ptrField.Elem())
 			}
@@ -456,7 +456,7 @@ func (m *OpenIDProviderMetadata) UnmarshalJSON(data []byte) error {
 		if !ptrField.IsNil() {
 			m.wasSet[fieldName] = true
 		}
-		if ptrField.Kind() == reflect.Ptr {
+		if ptrField.Kind() == reflect.Ptr && origField.Kind() != reflect.Ptr {
 			if !ptrField.IsNil() {
 				origField.Set(ptrField.Elem())
 			}
@@ -603,7 +603,7 @@ func (m *OAuthProtectedResourceMetadata) UnmarshalJSON(data []byte) error {
 		if !ptrField.IsNil() {
 			m.wasSet[fieldName] = true
 		}
-		if ptrField.Kind() == reflect.Ptr {
+		if ptrField.Kind() == reflect.Ptr && origField.Kind() != reflect.Ptr {
 			if !ptrField.IsNil() {
 				origField.Set(ptrField.Elem())
 			}
@@ -738,7 +738,7 @@ func (m *FederationEntityMetadata) UnmarshalJSON(data []byte) error {
 		if !ptrField.IsNil() {
 			m.wasSet[fieldName] = true
 		}
-		if ptrField.Kind() == reflect.Ptr {
+		if ptrField.Kind() == reflect.Ptr && origField.Kind() != reflect.Ptr {
 			if !ptrField.IsNil() {
 				origField.Set(ptrField.Elem())
 			}
