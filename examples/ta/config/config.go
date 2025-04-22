@@ -28,6 +28,7 @@ type Config struct {
 	OrganizationName      string                                    `yaml:"organization_name"`
 	DataLocation          string                                    `yaml:"data_location"`
 	ReadableStorage       bool                                      `yaml:"human_readable_storage"`
+	EnableDebugLog        bool                                      `yaml:"enable_debug_log"`
 	Endpoints             Endpoints                                 `yaml:"endpoints"`
 	TrustMarkSpecs        []extendedTrustMarkSpec                   `yaml:"trust_mark_specs"`
 	TrustMarks            []*pkg.EntityConfigurationTrustMarkConfig `yaml:"trust_marks"`
@@ -112,6 +113,9 @@ func Load(filename string) {
 	}
 	if err = yaml.Unmarshal(content, &c); err != nil {
 		log.Fatal(err)
+	}
+	if c.EnableDebugLog {
+		pkg.EnableDebugLogging()
 	}
 	if c.EntityID == "" {
 		log.Fatal("entity_id not set")
