@@ -217,18 +217,11 @@ func (m %s) MarshalJSON() ([]byte, error) {
 		)
 	}
 
-	marshal(&sb, name)
-	marshal(&sb, withPtrsName)
-
-	sb.WriteString(
-		fmt.Sprintf(
-			`
-// UnmarshalJSON implements the json.Unmarshaler interface
-func (m *%s) UnmarshalJSON(data []byte) error {
-	var withPtrs %s
-	if err := json.Unmarshal(data, &withPtrs); err != nil {
-		return err
-	}
+	unmarshalHelper := func(sb *strings.Builder, name, nameWithPtrs string) {
+		sb.WriteString(
+			fmt.Sprintf(
+				`
+func (m *%s)fromPointers(withPtrs %s) {
 
 	m.wasSet = make(map[string]bool)
 
@@ -259,6 +252,27 @@ func (m *%s) UnmarshalJSON(data []byte) error {
 	for k,_ := range m.Extra {
 		m.wasSet[k] = true
 	}
+}
+`, name, nameWithPtrs,
+			),
+		)
+	}
+
+	marshal(&sb, name)
+	marshal(&sb, withPtrsName)
+
+	unmarshalHelper(&sb, name, withPtrsName)
+
+	sb.WriteString(
+		fmt.Sprintf(
+			`
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *%s) UnmarshalJSON(data []byte) error {
+	var withPtrs %s
+	if err := json.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
 	return nil
 }
 `, name, withPtrsName,
@@ -303,8 +317,24 @@ func (m *%s) UnmarshalMsgpack(data []byte) error {
 			),
 		)
 	}
-	unmarshalMsgpack(&sb, name)
+
 	unmarshalMsgpack(&sb, withPtrsName)
+
+	sb.WriteString(
+		fmt.Sprintf(
+			`
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
+func (m *%s) UnmarshalMsgpack(data []byte) error {
+	var withPtrs %s
+	if err := msgpack.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
+	return nil
+}
+`, name, withPtrsName,
+		),
+	)
 
 	return sb.String()
 }

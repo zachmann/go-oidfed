@@ -164,6 +164,7 @@ type oAuthProtectedResourceMetadata struct {
 	ResourceSigningAlgValuesSupported    []string `json:"resource_signing_alg_values_supported,omitempty"`
 	ResourceEncryptionAlgValuesSupported []string `json:"resource_encryption_alg_values_supported"`
 	ResourceEncryptionEncValuesSupported []string `json:"resource_encryption_enc_values_supported"`
+	ResourceName                         string   `json:"resource_name,omitempty"`
 	ResourceDocumentation                string   `json:"resource_documentation,omitempty"`
 	ResourcePolicyURI                    string   `json:"resource_policy_uri,omitempty"`
 	ResourceTOSURI                       string   `json:"resource_tos_uri,omitempty"`

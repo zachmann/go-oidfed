@@ -11,6 +11,143 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
+type FederationEntityMetadata struct {
+	wasSet                            map[string]bool
+	FederationFetchEndpoint           string         `json:"federation_fetch_endpoint,omitempty"`
+	FederationListEndpoint            string         `json:"federation_list_endpoint,omitempty"`
+	FederationResolveEndpoint         string         `json:"federation_resolve_endpoint,omitempty"`
+	FederationTrustMarkStatusEndpoint string         `json:"federation_trust_mark_status_endpoint,omitempty"`
+	FederationTrustMarkListEndpoint   string         `json:"federation_trust_mark_list_endpoint,omitempty"`
+	FederationTrustMarkEndpoint       string         `json:"federation_trust_mark_endpoint,omitempty"`
+	FederationHistoricalLKeysEndpoint string         `json:"federation_historical_keys_endpoint,omitempty"`
+	Extra                             map[string]any `json:"-"`
+	OrganizationName                  string         `json:"organization_name,omitempty"`
+	Contacts                          []string       `json:"contacts,omitempty"`
+	LogoURI                           string         `json:"logo_uri,omitempty"`
+	PolicyURI                         string         `json:"policy_uri,omitempty"`
+	HomepageURI                       string         `json:"homepage_uri,omitempty"`
+}
+
+type federationEntityMetadataWithPtrs struct {
+	FederationFetchEndpoint           *string        `json:"federation_fetch_endpoint,omitempty"`
+	FederationListEndpoint            *string        `json:"federation_list_endpoint,omitempty"`
+	FederationResolveEndpoint         *string        `json:"federation_resolve_endpoint,omitempty"`
+	FederationTrustMarkStatusEndpoint *string        `json:"federation_trust_mark_status_endpoint,omitempty"`
+	FederationTrustMarkListEndpoint   *string        `json:"federation_trust_mark_list_endpoint,omitempty"`
+	FederationTrustMarkEndpoint       *string        `json:"federation_trust_mark_endpoint,omitempty"`
+	FederationHistoricalLKeysEndpoint *string        `json:"federation_historical_keys_endpoint,omitempty"`
+	Extra                             map[string]any `json:"-"`
+	OrganizationName                  *string        `json:"organization_name,omitempty"`
+	Contacts                          []string       `json:"contacts,omitempty"`
+	LogoURI                           *string        `json:"logo_uri,omitempty"`
+	PolicyURI                         *string        `json:"policy_uri,omitempty"`
+	HomepageURI                       *string        `json:"homepage_uri,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (m FederationEntityMetadata) MarshalJSON() ([]byte, error) {
+	type Alias FederationEntityMetadata
+	explicitFields, err := json.Marshal(Alias(m))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return extraMarshalHelper(explicitFields, m.Extra)
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (m federationEntityMetadataWithPtrs) MarshalJSON() ([]byte, error) {
+	type Alias federationEntityMetadataWithPtrs
+	explicitFields, err := json.Marshal(Alias(m))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return extraMarshalHelper(explicitFields, m.Extra)
+}
+
+func (m *FederationEntityMetadata) fromPointers(withPtrs federationEntityMetadataWithPtrs) {
+
+	m.wasSet = make(map[string]bool)
+
+	valOrig := reflect.ValueOf(m).Elem()
+	valWithPtrs := reflect.ValueOf(withPtrs)
+	typeWithPtrs := valWithPtrs.Type()
+
+	for i := 0; i < typeWithPtrs.NumField(); i++ {
+		ptrField := valWithPtrs.Field(i)
+		fieldName := typeWithPtrs.Field(i).Name
+
+		origField := valOrig.FieldByName(fieldName)
+		if !origField.IsValid() || !origField.CanSet() {
+			continue
+		}
+
+		if !ptrField.IsNil() {
+			m.wasSet[fieldName] = true
+		}
+		if ptrField.Kind() == reflect.Ptr && origField.Kind() != reflect.Ptr {
+			if !ptrField.IsNil() {
+				origField.Set(ptrField.Elem())
+			}
+		} else {
+			origField.Set(ptrField)
+		}
+	}
+	for k, _ := range m.Extra {
+		m.wasSet[k] = true
+	}
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *FederationEntityMetadata) UnmarshalJSON(data []byte) error {
+	var withPtrs federationEntityMetadataWithPtrs
+	if err := json.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
+	return nil
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *federationEntityMetadataWithPtrs) UnmarshalJSON(data []byte) error {
+	type Alias federationEntityMetadataWithPtrs
+	mm := Alias(*m)
+
+	extra, err := unmarshalWithExtra(data, &mm)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	mm.Extra = extra
+	*m = federationEntityMetadataWithPtrs(mm)
+	return nil
+}
+
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
+func (m *federationEntityMetadataWithPtrs) UnmarshalMsgpack(data []byte) error {
+	type Alias federationEntityMetadataWithPtrs
+	mm := Alias(*m)
+	err := msgpack.Unmarshal(data, &mm)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	*m = federationEntityMetadataWithPtrs(mm)
+	return nil
+}
+
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
+func (m *FederationEntityMetadata) UnmarshalMsgpack(data []byte) error {
+	var withPtrs federationEntityMetadataWithPtrs
+	if err := msgpack.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
+	return nil
+}
+
+// ApplyPolicy applies a MetadataPolicy to the FederationEntityMetadata
+func (m FederationEntityMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
+	return applyPolicy(&m, policy, "federation_entity")
+}
+
 type OpenIDRelyingPartyMetadata struct {
 	wasSet                                map[string]bool
 	Scope                                 string         `json:"scope,omitempty"`
@@ -168,12 +305,7 @@ func (m openIDRelyingPartyMetadataWithPtrs) MarshalJSON() ([]byte, error) {
 	return extraMarshalHelper(explicitFields, m.Extra)
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface
-func (m *OpenIDRelyingPartyMetadata) UnmarshalJSON(data []byte) error {
-	var withPtrs openIDRelyingPartyMetadataWithPtrs
-	if err := json.Unmarshal(data, &withPtrs); err != nil {
-		return err
-	}
+func (m *OpenIDRelyingPartyMetadata) fromPointers(withPtrs openIDRelyingPartyMetadataWithPtrs) {
 
 	m.wasSet = make(map[string]bool)
 
@@ -204,6 +336,15 @@ func (m *OpenIDRelyingPartyMetadata) UnmarshalJSON(data []byte) error {
 	for k, _ := range m.Extra {
 		m.wasSet[k] = true
 	}
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *OpenIDRelyingPartyMetadata) UnmarshalJSON(data []byte) error {
+	var withPtrs openIDRelyingPartyMetadataWithPtrs
+	if err := json.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
 	return nil
 }
 
@@ -222,18 +363,6 @@ func (m *openIDRelyingPartyMetadataWithPtrs) UnmarshalJSON(data []byte) error {
 }
 
 // UnmarshalMsgpack implements the msgpack.Unmarshaler interface
-func (m *OpenIDRelyingPartyMetadata) UnmarshalMsgpack(data []byte) error {
-	type Alias OpenIDRelyingPartyMetadata
-	mm := Alias(*m)
-	err := msgpack.Unmarshal(data, &mm)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	*m = OpenIDRelyingPartyMetadata(mm)
-	return nil
-}
-
-// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
 func (m *openIDRelyingPartyMetadataWithPtrs) UnmarshalMsgpack(data []byte) error {
 	type Alias openIDRelyingPartyMetadataWithPtrs
 	mm := Alias(*m)
@@ -242,6 +371,16 @@ func (m *openIDRelyingPartyMetadataWithPtrs) UnmarshalMsgpack(data []byte) error
 		return errors.WithStack(err)
 	}
 	*m = openIDRelyingPartyMetadataWithPtrs(mm)
+	return nil
+}
+
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
+func (m *OpenIDRelyingPartyMetadata) UnmarshalMsgpack(data []byte) error {
+	var withPtrs openIDRelyingPartyMetadataWithPtrs
+	if err := msgpack.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
 	return nil
 }
 
@@ -431,12 +570,7 @@ func (m openIDProviderMetadataWithPtrs) MarshalJSON() ([]byte, error) {
 	return extraMarshalHelper(explicitFields, m.Extra)
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface
-func (m *OpenIDProviderMetadata) UnmarshalJSON(data []byte) error {
-	var withPtrs openIDProviderMetadataWithPtrs
-	if err := json.Unmarshal(data, &withPtrs); err != nil {
-		return err
-	}
+func (m *OpenIDProviderMetadata) fromPointers(withPtrs openIDProviderMetadataWithPtrs) {
 
 	m.wasSet = make(map[string]bool)
 
@@ -467,6 +601,15 @@ func (m *OpenIDProviderMetadata) UnmarshalJSON(data []byte) error {
 	for k, _ := range m.Extra {
 		m.wasSet[k] = true
 	}
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *OpenIDProviderMetadata) UnmarshalJSON(data []byte) error {
+	var withPtrs openIDProviderMetadataWithPtrs
+	if err := json.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
 	return nil
 }
 
@@ -485,18 +628,6 @@ func (m *openIDProviderMetadataWithPtrs) UnmarshalJSON(data []byte) error {
 }
 
 // UnmarshalMsgpack implements the msgpack.Unmarshaler interface
-func (m *OpenIDProviderMetadata) UnmarshalMsgpack(data []byte) error {
-	type Alias OpenIDProviderMetadata
-	mm := Alias(*m)
-	err := msgpack.Unmarshal(data, &mm)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	*m = OpenIDProviderMetadata(mm)
-	return nil
-}
-
-// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
 func (m *openIDProviderMetadataWithPtrs) UnmarshalMsgpack(data []byte) error {
 	type Alias openIDProviderMetadataWithPtrs
 	mm := Alias(*m)
@@ -505,6 +636,16 @@ func (m *openIDProviderMetadataWithPtrs) UnmarshalMsgpack(data []byte) error {
 		return errors.WithStack(err)
 	}
 	*m = openIDProviderMetadataWithPtrs(mm)
+	return nil
+}
+
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
+func (m *OpenIDProviderMetadata) UnmarshalMsgpack(data []byte) error {
+	var withPtrs openIDProviderMetadataWithPtrs
+	if err := msgpack.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
 	return nil
 }
 
@@ -522,6 +663,7 @@ type OAuthProtectedResourceMetadata struct {
 	ResourceSigningAlgValuesSupported    []string       `json:"resource_signing_alg_values_supported,omitempty"`
 	ResourceEncryptionAlgValuesSupported []string       `json:"resource_encryption_alg_values_supported"`
 	ResourceEncryptionEncValuesSupported []string       `json:"resource_encryption_enc_values_supported"`
+	ResourceName                         string         `json:"resource_name,omitempty"`
 	ResourceDocumentation                string         `json:"resource_documentation,omitempty"`
 	ResourcePolicyURI                    string         `json:"resource_policy_uri,omitempty"`
 	ResourceTOSURI                       string         `json:"resource_tos_uri,omitempty"`
@@ -544,6 +686,7 @@ type oAuthProtectedResourceMetadataWithPtrs struct {
 	ResourceSigningAlgValuesSupported    []string       `json:"resource_signing_alg_values_supported,omitempty"`
 	ResourceEncryptionAlgValuesSupported []string       `json:"resource_encryption_alg_values_supported"`
 	ResourceEncryptionEncValuesSupported []string       `json:"resource_encryption_enc_values_supported"`
+	ResourceName                         *string        `json:"resource_name,omitempty"`
 	ResourceDocumentation                *string        `json:"resource_documentation,omitempty"`
 	ResourcePolicyURI                    *string        `json:"resource_policy_uri,omitempty"`
 	ResourceTOSURI                       *string        `json:"resource_tos_uri,omitempty"`
@@ -578,12 +721,7 @@ func (m oAuthProtectedResourceMetadataWithPtrs) MarshalJSON() ([]byte, error) {
 	return extraMarshalHelper(explicitFields, m.Extra)
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface
-func (m *OAuthProtectedResourceMetadata) UnmarshalJSON(data []byte) error {
-	var withPtrs oAuthProtectedResourceMetadataWithPtrs
-	if err := json.Unmarshal(data, &withPtrs); err != nil {
-		return err
-	}
+func (m *OAuthProtectedResourceMetadata) fromPointers(withPtrs oAuthProtectedResourceMetadataWithPtrs) {
 
 	m.wasSet = make(map[string]bool)
 
@@ -614,6 +752,15 @@ func (m *OAuthProtectedResourceMetadata) UnmarshalJSON(data []byte) error {
 	for k, _ := range m.Extra {
 		m.wasSet[k] = true
 	}
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (m *OAuthProtectedResourceMetadata) UnmarshalJSON(data []byte) error {
+	var withPtrs oAuthProtectedResourceMetadataWithPtrs
+	if err := json.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
 	return nil
 }
 
@@ -632,18 +779,6 @@ func (m *oAuthProtectedResourceMetadataWithPtrs) UnmarshalJSON(data []byte) erro
 }
 
 // UnmarshalMsgpack implements the msgpack.Unmarshaler interface
-func (m *OAuthProtectedResourceMetadata) UnmarshalMsgpack(data []byte) error {
-	type Alias OAuthProtectedResourceMetadata
-	mm := Alias(*m)
-	err := msgpack.Unmarshal(data, &mm)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	*m = OAuthProtectedResourceMetadata(mm)
-	return nil
-}
-
-// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
 func (m *oAuthProtectedResourceMetadataWithPtrs) UnmarshalMsgpack(data []byte) error {
 	type Alias oAuthProtectedResourceMetadataWithPtrs
 	mm := Alias(*m)
@@ -655,142 +790,17 @@ func (m *oAuthProtectedResourceMetadataWithPtrs) UnmarshalMsgpack(data []byte) e
 	return nil
 }
 
+// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
+func (m *OAuthProtectedResourceMetadata) UnmarshalMsgpack(data []byte) error {
+	var withPtrs oAuthProtectedResourceMetadataWithPtrs
+	if err := msgpack.Unmarshal(data, &withPtrs); err != nil {
+		return err
+	}
+	m.fromPointers(withPtrs)
+	return nil
+}
+
 // ApplyPolicy applies a MetadataPolicy to the OAuthProtectedResourceMetadata
 func (m OAuthProtectedResourceMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
 	return applyPolicy(&m, policy, "oauth_resource")
-}
-
-type FederationEntityMetadata struct {
-	wasSet                            map[string]bool
-	FederationFetchEndpoint           string         `json:"federation_fetch_endpoint,omitempty"`
-	FederationListEndpoint            string         `json:"federation_list_endpoint,omitempty"`
-	FederationResolveEndpoint         string         `json:"federation_resolve_endpoint,omitempty"`
-	FederationTrustMarkStatusEndpoint string         `json:"federation_trust_mark_status_endpoint,omitempty"`
-	FederationTrustMarkListEndpoint   string         `json:"federation_trust_mark_list_endpoint,omitempty"`
-	FederationTrustMarkEndpoint       string         `json:"federation_trust_mark_endpoint,omitempty"`
-	FederationHistoricalLKeysEndpoint string         `json:"federation_historical_keys_endpoint,omitempty"`
-	Extra                             map[string]any `json:"-"`
-	OrganizationName                  string         `json:"organization_name,omitempty"`
-	Contacts                          []string       `json:"contacts,omitempty"`
-	LogoURI                           string         `json:"logo_uri,omitempty"`
-	PolicyURI                         string         `json:"policy_uri,omitempty"`
-	HomepageURI                       string         `json:"homepage_uri,omitempty"`
-}
-
-type federationEntityMetadataWithPtrs struct {
-	FederationFetchEndpoint           *string        `json:"federation_fetch_endpoint,omitempty"`
-	FederationListEndpoint            *string        `json:"federation_list_endpoint,omitempty"`
-	FederationResolveEndpoint         *string        `json:"federation_resolve_endpoint,omitempty"`
-	FederationTrustMarkStatusEndpoint *string        `json:"federation_trust_mark_status_endpoint,omitempty"`
-	FederationTrustMarkListEndpoint   *string        `json:"federation_trust_mark_list_endpoint,omitempty"`
-	FederationTrustMarkEndpoint       *string        `json:"federation_trust_mark_endpoint,omitempty"`
-	FederationHistoricalLKeysEndpoint *string        `json:"federation_historical_keys_endpoint,omitempty"`
-	Extra                             map[string]any `json:"-"`
-	OrganizationName                  *string        `json:"organization_name,omitempty"`
-	Contacts                          []string       `json:"contacts,omitempty"`
-	LogoURI                           *string        `json:"logo_uri,omitempty"`
-	PolicyURI                         *string        `json:"policy_uri,omitempty"`
-	HomepageURI                       *string        `json:"homepage_uri,omitempty"`
-}
-
-// MarshalJSON implements the json.Marshaler interface
-func (m FederationEntityMetadata) MarshalJSON() ([]byte, error) {
-	type Alias FederationEntityMetadata
-	explicitFields, err := json.Marshal(Alias(m))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return extraMarshalHelper(explicitFields, m.Extra)
-}
-
-// MarshalJSON implements the json.Marshaler interface
-func (m federationEntityMetadataWithPtrs) MarshalJSON() ([]byte, error) {
-	type Alias federationEntityMetadataWithPtrs
-	explicitFields, err := json.Marshal(Alias(m))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return extraMarshalHelper(explicitFields, m.Extra)
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface
-func (m *FederationEntityMetadata) UnmarshalJSON(data []byte) error {
-	var withPtrs federationEntityMetadataWithPtrs
-	if err := json.Unmarshal(data, &withPtrs); err != nil {
-		return err
-	}
-
-	m.wasSet = make(map[string]bool)
-
-	valOrig := reflect.ValueOf(m).Elem()
-	valWithPtrs := reflect.ValueOf(withPtrs)
-	typeWithPtrs := valWithPtrs.Type()
-
-	for i := 0; i < typeWithPtrs.NumField(); i++ {
-		ptrField := valWithPtrs.Field(i)
-		fieldName := typeWithPtrs.Field(i).Name
-
-		origField := valOrig.FieldByName(fieldName)
-		if !origField.IsValid() || !origField.CanSet() {
-			continue
-		}
-
-		if !ptrField.IsNil() {
-			m.wasSet[fieldName] = true
-		}
-		if ptrField.Kind() == reflect.Ptr && origField.Kind() != reflect.Ptr {
-			if !ptrField.IsNil() {
-				origField.Set(ptrField.Elem())
-			}
-		} else {
-			origField.Set(ptrField)
-		}
-	}
-	for k, _ := range m.Extra {
-		m.wasSet[k] = true
-	}
-	return nil
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface
-func (m *federationEntityMetadataWithPtrs) UnmarshalJSON(data []byte) error {
-	type Alias federationEntityMetadataWithPtrs
-	mm := Alias(*m)
-
-	extra, err := unmarshalWithExtra(data, &mm)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	mm.Extra = extra
-	*m = federationEntityMetadataWithPtrs(mm)
-	return nil
-}
-
-// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
-func (m *FederationEntityMetadata) UnmarshalMsgpack(data []byte) error {
-	type Alias FederationEntityMetadata
-	mm := Alias(*m)
-	err := msgpack.Unmarshal(data, &mm)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	*m = FederationEntityMetadata(mm)
-	return nil
-}
-
-// UnmarshalMsgpack implements the msgpack.Unmarshaler interface
-func (m *federationEntityMetadataWithPtrs) UnmarshalMsgpack(data []byte) error {
-	type Alias federationEntityMetadataWithPtrs
-	mm := Alias(*m)
-	err := msgpack.Unmarshal(data, &mm)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	*m = federationEntityMetadataWithPtrs(mm)
-	return nil
-}
-
-// ApplyPolicy applies a MetadataPolicy to the FederationEntityMetadata
-func (m FederationEntityMetadata) ApplyPolicy(policy MetadataPolicy) (any, error) {
-	return applyPolicy(&m, policy, "federation_entity")
 }
