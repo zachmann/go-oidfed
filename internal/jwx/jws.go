@@ -55,7 +55,7 @@ func (p *ParsedJWT) VerifyWithSet(keys myjwk.JWKS) ([]byte, error) {
 	if keys.Set == nil || keys.Len() == 0 {
 		return nil, errors.New("jwt verify: no keys passed")
 	}
-	return jws.Verify(p.RawJWT, jws.WithKeySet(keys.Set))
+	return jws.Verify(p.RawJWT, jws.WithKeySet(keys.Set, jws.WithInferAlgorithmFromKey(true)))
 }
 
 // VerifyType verifies that the header typ has a certain value
