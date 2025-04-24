@@ -122,7 +122,7 @@ func (tm *TrustMarkInfo) VerifyFederation(ta *EntityStatementPayload) error {
 		return err
 	}
 	if mark.ID != tm.ID {
-		return errors.Errorf("trust mark object claim 'id' does not match JWT claim")
+		return errors.Errorf("trust mark object claim 'trust_mark_id' does not match JWT claim")
 	}
 	return mark.VerifyFederation(ta)
 }
@@ -135,7 +135,7 @@ func (tm *TrustMarkInfo) VerifyExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec
 		return err
 	}
 	if mark.ID != tm.ID {
-		return errors.Errorf("trust mark object claim 'id' does not match JWT claim")
+		return errors.Errorf("trust mark object claim 'trust_mark_id' does not match JWT claim")
 	}
 	return mark.VerifyExternal(jwks, tmo...)
 }
