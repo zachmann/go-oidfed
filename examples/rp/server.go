@@ -19,8 +19,12 @@ import (
 
 const loginHtml = `<!DOCTYPE html>
 <html>
+<head>
+<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+</head>
 <body>
-<h1>Choose an OP from the supported federations to login</h1>
+<h1>Dummy oidfed RPC</h1>
+<h3>Choose an OP from the supported federations to login</h1>
 <form action="login">
   <select name="op" id="op">
 	<option value="/" selected disabled>Choose OP...</option>
@@ -33,8 +37,23 @@ const loginHtml = `<!DOCTYPE html>
 
 const userHtml = `<!DOCTYPE html>
 <html>
+<head>
+<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+</head>
 <body>
 <h3>Hello %s@%s</h3>
+<a href="/">Back to Login</a>
+</body>
+</html>`
+
+const errorHtml = `<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+</head>
+<body>
+<h3>Error %s</h3>
+<p>%s</p>
 <a href="/">Back to Login</a>
 </body>
 </html>`
@@ -79,6 +98,10 @@ type stateData struct {
 
 var stateDB map[string]stateData
 
+func errorPage(error, message string) string {
+	return fmt.Sprintf(errorHtml, error, message)
+}
+
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	if authBuilder == nil {
 		authBuilder = pkg.NewRequestObjectProducer(conf.EntityID, getKey(oidcSigningKeyName), jwa.ES512(), 60)
@@ -114,17 +137,14 @@ func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 	e := r.URL.Query().Get("error")
 	errorDescription := r.URL.Query().Get("error_description")
 	if e != "" {
-		if errorDescription != "" {
-			e += ": " + errorDescription
-		}
 		w.WriteHeader(444)
-		_, _ = io.WriteString(w, e)
+		_, _ = io.WriteString(w, errorPage(e, errorDescription))
 		return
 	}
 	stateInfo, found := stateDB[state]
 	if !found {
 		w.WriteHeader(444)
-		_, _ = io.WriteString(w, "state mismatch")
+		_, _ = io.WriteString(w, errorPage("state mismatch", ""))
 		return
 	}
 	params := url.Values{}
@@ -133,23 +153,19 @@ func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 	tokenRes, errRes, err := fedLeaf().CodeExchange(stateInfo.issuer, code, redirectURI, params)
 	if err != nil {
 		w.WriteHeader(500)
-		_, _ = io.WriteString(w, err.Error())
+		_, _ = io.WriteString(w, errorPage("internal error", err.Error()))
 		return
 	}
 	if errRes != nil {
-		e = errRes.Error
-		if errRes.ErrorDescription != "" {
-			e += ": " + errRes.ErrorDescription
-		}
 		w.WriteHeader(444)
-		_, _ = io.WriteString(w, e)
+		_, _ = io.WriteString(w, errorPage(errRes.Error, errRes.ErrorDescription))
 		return
 	}
 
 	msg, err := jws.ParseString(tokenRes.IDToken)
 	if err != nil {
 		w.WriteHeader(500)
-		_, _ = io.WriteString(w, err.Error())
+		_, _ = io.WriteString(w, errorPage("internal error", err.Error()))
 		return
 	}
 	delete(stateDB, state)
@@ -157,7 +173,7 @@ func handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(msg.Payload(), &msgData)
 	if err != nil {
 		w.WriteHeader(500)
-		_, _ = io.WriteString(w, err.Error())
+		_, _ = io.WriteString(w, errorPage("internal error", err.Error()))
 		return
 	}
 
