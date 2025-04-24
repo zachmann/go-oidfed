@@ -14,6 +14,7 @@ import (
 	"github.com/zachmann/go-oidfed/examples/rp/pkce"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/zachmann/go-oidfed/pkg/apimodel"
 )
 
 const loginHtml = `<!DOCTYPE html>
@@ -41,15 +42,32 @@ const userHtml = `<!DOCTYPE html>
 func handleHome(w http.ResponseWriter, r *http.Request) {
 	const opOptionFmt = `<option value="%s">%s</option>`
 	var options string
-	filters := []pkg.OPDiscoveryFilter{}
-	if conf.OnlyAutomaticOPs {
-		filters = append(filters, pkg.OPDiscoveryFilterAutomaticRegistration)
+	filters := []pkg.EntityCollectionFilter{}
+	// if conf.OnlyAutomaticOPs {
+	// 	filters = append(filters, pkg.OPDiscoveryFilterAutomaticRegistration)
+	// }
+	allOPs := make(map[string]*pkg.CollectedEntity)
+	for _, ta := range conf.TrustAnchors {
+		ops := pkg.FilterableVerifiedChainsEntityCollector{
+			Filters: filters,
+		}.CollectEntities(
+			apimodel.EntityCollectionRequest{
+				TrustAnchor: ta.EntityID,
+				EntityTypes: []string{"openid_provider"},
+			},
+		)
+		for _, op := range ops {
+			allOPs[op.EntityID] = op
+		}
 	}
-	ops := pkg.FilterableVerifiedChainsOPDiscoverer{
-		Filters: filters,
-	}.Discover(conf.TrustAnchors...)
-	for _, op := range ops {
-		options += fmt.Sprintf(opOptionFmt, op.Issuer, utils.FirstNonEmpty(op.OrganizationName, op.Issuer))
+	for _, op := range allOPs {
+		options += fmt.Sprintf(
+			opOptionFmt, op.EntityID, utils.FirstNonEmpty(
+				op.DisplayNames["openid_provider"],
+				op.DisplayNames["federation_entity"],
+				op.EntityID,
+			),
+		)
 	}
 	_, _ = io.WriteString(w, fmt.Sprintf(loginHtml, options))
 }

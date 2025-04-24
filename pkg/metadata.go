@@ -18,6 +18,11 @@ type Metadata struct {
 	FederationEntity         *FederationEntityMetadata         `json:"federation_entity,omitempty"`
 }
 
+// DisplayNameGuesser is an interface for types to return a (guessed) display name
+type DisplayNameGuesser interface {
+	GuessDisplayName() string
+}
+
 // GuessEntityTypes returns a slice of entity types for which metadata is set
 func (m Metadata) GuessEntityTypes() (entityTypes []string) {
 	value := reflect.ValueOf(m)
@@ -32,6 +37,112 @@ func (m Metadata) GuessEntityTypes() (entityTypes []string) {
 		}
 	}
 	return
+}
+
+// GuessDisplayName implements the DisplayNameGuesser interface
+func (m OpenIDProviderMetadata) GuessDisplayName() string {
+	if dn, ok := m.Extra["display_name"].(string); ok {
+		return dn
+	}
+	if dn, ok := m.Extra["provider_name"].(string); ok {
+		return dn
+	}
+	if dn, ok := m.Extra["authorization_server_name"].(string); ok {
+		return dn
+	}
+	return m.OrganizationName
+}
+
+// GuessDisplayName implements the DisplayNameGuesser interface
+func (m OpenIDRelyingPartyMetadata) GuessDisplayName() string {
+	return m.ClientName
+}
+
+// GuessDisplayName implements the DisplayNameGuesser interface
+func (m OAuthAuthorizationServerMetadata) GuessDisplayName() string {
+	if dn, ok := m.Extra["display_name"].(string); ok {
+		return dn
+	}
+	if dn, ok := m.Extra["provider_name"].(string); ok {
+		return dn
+	}
+	if dn, ok := m.Extra["authorization_server_name"].(string); ok {
+		return dn
+	}
+	return m.OrganizationName
+}
+
+// GuessDisplayName implements the DisplayNameGuesser interface
+func (m OAuthClientMetadata) GuessDisplayName() string {
+	return m.ClientName
+}
+
+// GuessDisplayName implements the DisplayNameGuesser interface
+func (m OAuthProtectedResourceMetadata) GuessDisplayName() string {
+	return m.ResourceName
+}
+
+// GuessDisplayName implements the DisplayNameGuesser interface
+func (m FederationEntityMetadata) GuessDisplayName() string {
+	if dn, ok := m.Extra["display_name"].(string); ok {
+		return dn
+	}
+	return m.OrganizationName
+}
+
+// GuessDisplayNames collects (guessed) display names for all present metadata types.
+func (m Metadata) GuessDisplayNames() map[string]string {
+	result := make(map[string]string)
+	value := reflect.ValueOf(m)
+	typ := value.Type()
+
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Field(i)
+		if field.Kind() == reflect.Ptr && !field.IsNil() {
+			structField := typ.Field(i)
+			entityTag := structField.Tag.Get("json")
+			entityTag = strings.TrimSuffix(entityTag, ",omitempty")
+
+			elem := field.Elem().Interface()
+			displayNamer, ok := elem.(DisplayNameGuesser)
+			if ok {
+				result[entityTag] = displayNamer.GuessDisplayName()
+			}
+		}
+	}
+	return result
+}
+
+// CollectStringClaim collects a claim that has a string value for all metadata types.
+func (m Metadata) CollectStringClaim(tag string) map[string]string {
+	result := make(map[string]string)
+	value := reflect.ValueOf(m)
+	typ := value.Type()
+
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Field(i)
+		if field.Kind() == reflect.Ptr && !field.IsNil() {
+			structField := typ.Field(i)
+			entityTag := structField.Tag.Get("json")
+			entityTag = strings.TrimSuffix(entityTag, ",omitempty")
+
+			elem := field.Elem()
+			elemType := elem.Type()
+
+			for j := 0; j < elem.NumField(); j++ {
+				subField := elem.Field(j)
+				subStructField := elemType.Field(j)
+				jsonTag := subStructField.Tag.Get("json")
+				jsonTag = strings.TrimSuffix(jsonTag, ",omitempty")
+
+				if jsonTag == tag && subField.Kind() == reflect.String {
+					result[entityTag] = subField.Interface().(string)
+					break
+				}
+			}
+		}
+	}
+	return result
 }
 
 type policyApplicable interface {

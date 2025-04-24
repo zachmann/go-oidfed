@@ -77,6 +77,7 @@ const (
 	KeyTrustTree                  = "trust_tree"
 	KeyTrustTreeChains            = "trust_tree_chains"
 	KeyTrustChainResolvedMetadata = "trustchain_resolved_metadata"
+	KeySubordinateListing         = "subordinate_listing"
 )
 
 // Key combines a sub system prefix with the key to a cache key

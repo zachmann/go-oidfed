@@ -1,8 +1,13 @@
 package pkg
 
 import (
-	"net/url"
+	"encoding/json"
+	"slices"
+	"strings"
+	"time"
 
+	arrays "github.com/adam-hanna/arrayOperations"
+	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 
@@ -10,201 +15,393 @@ import (
 	"github.com/zachmann/go-oidfed/internal/http"
 	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg/apimodel"
+	"github.com/zachmann/go-oidfed/pkg/cache"
+	"github.com/zachmann/go-oidfed/pkg/unixtime"
 )
 
-// OPDiscoverer is an interface that discovers OPs
-type OPDiscoverer interface {
-	Discover(authorities ...string) []*OpenIDProviderMetadata
+const defaultSubordinateListingCacheTime = time.Hour
+
+// EntityCollectionResponse is a type describing the response of an entity
+// collection request
+type EntityCollectionResponse struct {
+	FederationEntities []*CollectedEntity     `json:"federation_entities"`
+	NextEntityID       string                 `json:"next_entity_id,omitempty"`
+	LastUpdated        *unixtime.Unixtime     `json:"last_updated,omitempty"`
+	Extra              map[string]interface{} `json:"-"`
 }
 
-// SimpleOPDiscoverer is an OPDiscoverer that checks authorities for subordinate OPs and verifies that those
-// publish openid_provider metadata in their EntityConfiguration
-type SimpleOPDiscoverer struct {
+// CollectedEntity is a type describing a single collected entity
+type CollectedEntity struct {
+	EntityID     string                 `json:"entity_id"`
+	TrustMarks   TrustMarkInfos         `json:"trust_marks,omitempty"`
+	TrustChain   JWSMessages            `json:"trust_chain,omitempty"`
+	Metadata     *Metadata              `json:"metadata,omitempty"`
+	EntityTypes  []string               `json:"entity_types,omitempty"`
+	LogoURIs     map[string]string      `json:"logo_uris,omitempty"`
+	DisplayNames map[string]string      `json:"display_names,omitempty"`
+	Extra        map[string]interface{} `json:"-"`
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (e CollectedEntity) MarshalJSON() ([]byte, error) {
+	type Alias CollectedEntity
+	explicitFields, err := json.Marshal(Alias(e))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return extraMarshalHelper(explicitFields, e.Extra)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (e *CollectedEntity) UnmarshalJSON(data []byte) error {
+	type Alias CollectedEntity
+	ee := Alias(*e)
+
+	extra, err := unmarshalWithExtra(data, &ee)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	ee.Extra = extra
+	*e = CollectedEntity(ee)
+	return nil
+}
+
+// EntityCollector is an interface that discovers / collects Entities in a
+// federation
+type EntityCollector interface {
+	CollectEntities(req apimodel.EntityCollectionRequest) []*CollectedEntity
+}
+
+// SimpleEntityCollector is an EntityCollector that collects entities in a
+// federation
+type SimpleEntityCollector struct {
 	visitedEntities *strset.Set
 }
 
-// VerifiedChainsOPDiscoverer is an OPDiscoverer that compared to VerifiedOPDiscoverer additionally verifies that there
-// is a valid TrustChain between the op and one of the specified trust anchors
-type VerifiedChainsOPDiscoverer struct{}
+// SimpleOPCollector is an EntityCollector that uses the
+// SimpleEntityCollector to collect OPs in a federation
+type SimpleOPCollector struct{}
 
-// OPDiscoveryFilter is an interface to filter discovered OPs
-type OPDiscoveryFilter interface {
-	Filter(*OpenIDProviderMetadata) bool
+// CollectEntities implements the EntityCollector interface
+func (d *SimpleOPCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
+	req.EntityTypes = []string{"openid_provider"}
+	return (&SimpleEntityCollector{}).CollectEntities(req)
 }
 
-type opDiscoveryFilter struct {
-	filter func(*OpenIDProviderMetadata) bool
+// VerifiedChainsEntityCollector is an EntityCollector that compared to
+// SimpleEntityCollector additionally verifies that there
+// is a valid TrustChain between the entity and one of the specified trust
+// anchors
+type VerifiedChainsEntityCollector struct{}
+
+// EntityCollectionFilter is an interface to filter discovered entities
+type EntityCollectionFilter interface {
+	Filter(*CollectedEntity) bool
 }
 
-// Filter implements the OPDiscoveryFilter interface
-func (f opDiscoveryFilter) Filter(metadata *OpenIDProviderMetadata) bool {
-	return f.filter(metadata)
+type entityCollectionFilter struct {
+	filter func(entity *CollectedEntity) bool
 }
 
-// NewOPDiscoveryFilter returns an OPDiscoveryFilter a filter func
-func NewOPDiscoveryFilter(filter func(metadata *OpenIDProviderMetadata) bool) OPDiscoveryFilter {
-	return opDiscoveryFilter{filter: filter}
+// Filter implements the EntityCollectionFilter interface
+func (f entityCollectionFilter) Filter(entity *CollectedEntity) bool {
+	return f.filter(entity)
 }
 
-type filterableVerifiedChainsOPDiscoverer struct {
-	Filters []OPDiscoveryFilter
+// NewEntityCollectionFilter returns an EntityCollectionFilter for a filter func
+func NewEntityCollectionFilter(filter func(entity *CollectedEntity) bool) EntityCollectionFilter {
+	return entityCollectionFilter{filter: filter}
 }
 
-// FilterableVerifiedChainsOPDiscoverer is a type implementing OPDiscoverer that is able to filter the discovered OPs
-// through a number of OPDiscoveryFilter
-type FilterableVerifiedChainsOPDiscoverer struct {
-	Filters []OPDiscoveryFilter
+type filterableVerifiedChainsEntityCollector struct {
+	Filters []EntityCollectionFilter
 }
 
-// Discover implements the OPDiscoverer interface
-func (d *SimpleOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
+// FilterableVerifiedChainsEntityCollector is a type implementing
+// EntityCollector
+// that is able to filter the discovered OPs
+// through a number of EntityCollectionFilter
+type FilterableVerifiedChainsEntityCollector struct {
+	Filters []EntityCollectionFilter
+}
+
+// CollectEntities implements the EntityCollector interface
+func (d *SimpleEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
 	d.visitedEntities = strset.New()
-	return d.discover(authorities...)
+	return d.collect(req, NewTrustAnchorsFromEntityIDs(req.TrustAnchor)...)
 }
 
-func (d *SimpleOPDiscoverer) discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
-	internal.Logf("Discovering OPs for authorities: %+q", authorities)
-	infos := make(map[string]*OpenIDProviderMetadata)
+func (d *SimpleEntityCollector) collect(
+	req apimodel.EntityCollectionRequest, authorities ...TrustAnchor,
+) (entities []*CollectedEntity) {
+	internal.Logf("Discovering Entities for authorities: %+q", authorities)
+	var ta *EntityStatement
+	infos := make(map[string]*CollectedEntity)
 	for _, a := range authorities {
 		if d.visitedEntities.Has(a.EntityID) {
 			internal.Logf("Already visited: %s -> skipping", a.EntityID)
 			continue
 		}
 		d.visitedEntities.Add(a.EntityID)
-		internal.Logf("Discovering OPs and subordinates for: %+q", a.EntityID)
+		internal.Logf("Discovering Entities for: %+q", a.EntityID)
 		stmt, err := GetEntityConfiguration(a.EntityID)
 		if err != nil {
 			internal.Logf("Could not get entity configuration: %s -> skipping", err.Error())
 			continue
 		}
-		if stmt.Metadata == nil || stmt.Metadata.FederationEntity == nil || stmt.Metadata.FederationEntity.
-			FederationListEndpoint == "" {
+		if stmt.Metadata == nil || stmt.Metadata.FederationEntity == nil || stmt.Metadata.FederationEntity.FederationListEndpoint == "" {
 			internal.Log("Could not get list endpoint from metadata -> skipping")
 			continue
 		}
-		thoseOPs, err := fetchList(stmt.Metadata.FederationEntity.FederationListEndpoint, "openid_provider")
+		subordinates, err := fetchList(stmt.Metadata.FederationEntity.FederationListEndpoint)
 		if err == nil {
-			internal.Logf("Found these (possible) OPs: %+q", thoseOPs)
-			for _, op := range thoseOPs {
-				internal.Logf("Checking OP: %+q", op)
-				if _, alreadyProcessed := infos[op]; alreadyProcessed {
+			internal.Logf("Found these entities: %+q", subordinates)
+			for _, s := range subordinates {
+				internal.Logf("Checking subordinate: %+q", s)
+				if _, alreadyProcessed := infos[s]; alreadyProcessed {
 					internal.Log("Already processed -> skipping")
 					continue
 				}
-				entityConfig, err := GetEntityConfiguration(op)
+				entityConfig, err := GetEntityConfiguration(s)
 				if err != nil {
 					internal.Logf("Could not get entity configuration: %s -> skipping", err.Error())
 					continue
 				}
-				if entityConfig.Metadata == nil || entityConfig.Metadata.OpenIDProvider == nil {
-					internal.Log("No OP metadata present -> skipping")
+				if entityConfig.Metadata == nil {
+					internal.Log("No metadata present -> skipping")
 					continue
 				}
-				opMetata := entityConfig.Metadata.OpenIDProvider
-				if opMetata.OrganizationName == "" && entityConfig.Metadata.FederationEntity != nil && entityConfig.
-					Metadata.FederationEntity.OrganizationName != "" {
-					opMetata.OrganizationName = entityConfig.Metadata.FederationEntity.OrganizationName
+				et := entityConfig.Metadata.GuessEntityTypes()
+				displayNames := entityConfig.Metadata.GuessDisplayNames()
+
+				includeEntity := true
+				if req.EntityTypes != nil && len(arrays.Intersect(et, req.EntityTypes)) == 0 {
+					includeEntity = false
 				}
-				infos[op] = opMetata
-				internal.Logf("Added OP %+q", op)
+				if req.NameQuery != "" && !matchDisplayName(req.NameQuery, displayNames, MatchModeFuzzy) {
+					includeEntity = false
+				}
+				for _, trustMarkID := range req.TrustMarkIDs {
+					trustMarkInfo := entityConfig.TrustMarks.FindByID(trustMarkID)
+					if trustMarkInfo == nil {
+						includeEntity = false
+						break
+					}
+					if ta == nil {
+						ta, err = GetEntityConfiguration(req.TrustAnchor)
+						if err != nil {
+							internal.Logf(
+								"Could not get entity configuration for trust anchor: %s", err.Error(),
+							)
+							return
+						}
+					}
+					if err = trustMarkInfo.VerifyFederation(&ta.EntityStatementPayload); err != nil {
+						internal.Logf("trust mark '%s' did not verify: %s", trustMarkID, err.Error())
+						includeEntity = false
+						break
+					}
+				}
+
+				if includeEntity {
+					collectedEntity := &CollectedEntity{
+						EntityID: s,
+					}
+
+					if req.Claims == nil || slices.Contains(req.Claims, "entity_types") {
+						collectedEntity.EntityTypes = et
+					}
+
+					if req.Claims == nil || slices.Contains(req.Claims, "logo_uris") {
+						collectedEntity.LogoURIs = entityConfig.Metadata.CollectStringClaim("logo_uri")
+					}
+
+					if req.Claims == nil || slices.Contains(req.Claims, "display_names") {
+						collectedEntity.DisplayNames = displayNames
+					}
+
+					if slices.ContainsFunc(
+						req.Claims, func(s string) bool { return s == "metadata" || s == "trust_chain" },
+					) {
+						resolveRequest := apimodel.ResolveRequest{
+							Subject:     s,
+							TrustAnchor: []string{req.TrustAnchor},
+						}
+						var res ResolveResponsePayload
+						switch resolver := DefaultMetadataResolver.(type) {
+						case LocalMetadataResolver:
+							res, _, err = resolver.resolveResponsePayloadWithoutTrustMarks(resolveRequest)
+						default:
+							res, err = DefaultMetadataResolver.ResolveResponsePayload(resolveRequest)
+						}
+						if err != nil {
+							internal.Logf("error while resolving trust chain for '%s': %s", s, err.Error())
+						} else {
+							if res.TrustMarks != nil && slices.Contains(req.Claims, "trust_marks") {
+								collectedEntity.TrustMarks = res.TrustMarks
+							}
+							if slices.Contains(req.Claims, "metadata") {
+								collectedEntity.Metadata = res.Metadata
+							}
+							if slices.Contains(req.Claims, "trust_chain") {
+								collectedEntity.TrustChain = res.TrustChain
+							}
+						}
+					}
+
+					if collectedEntity.TrustMarks == nil && slices.Contains(req.Claims, "trust_marks") {
+						if ta == nil {
+							ta, err = GetEntityConfiguration(req.TrustAnchor)
+							if err != nil {
+								internal.Logf(
+									"Could not get entity configuration for trust anchor: %s", err.Error(),
+								)
+								return
+							}
+						}
+						collectedEntity.TrustMarks = entityConfig.TrustMarks.VerifiedFederation(&ta.EntityStatementPayload)
+					}
+
+					infos[s] = collectedEntity
+					internal.Logf("Added Entity %+q", s)
+				}
+
+				if entityConfig.Metadata.FederationEntity != nil && entityConfig.Metadata.FederationEntity.FederationListEndpoint != "" {
+					collectedEntitites := d.collect(req, NewTrustAnchorsFromEntityIDs(s)...)
+					for _, e := range collectedEntitites {
+						_, alreadyInList := infos[e.EntityID]
+						if !alreadyInList {
+							infos[e.EntityID] = e
+						}
+					}
+				}
 			}
-		}
-		subordinates, err := fetchList(stmt.Metadata.FederationEntity.FederationListEndpoint, "federation_entity")
-		if err != nil {
-			continue
-		}
-		sOPs := d.discover(NewTrustAnchorsFromEntityIDs(subordinates...)...)
-		for _, sOP := range sOPs {
-			_, alreadyInList := infos[sOP.Issuer]
-			if alreadyInList {
-				continue
-			}
-			infos[sOP.Issuer] = sOP
 		}
 	}
-	for _, op := range infos {
-		opInfos = append(opInfos, op)
+	for _, e := range infos {
+		entities = append(entities, e)
 	}
 	return
 }
 
-// Discover implements the OPDiscoverer interface
-func (VerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (ops []*OpenIDProviderMetadata) {
-	return FilterableVerifiedChainsOPDiscoverer{}.Discover(authorities...)
+type matchMode string
+
+const (
+	MatchModeSubstringCaseInsensitive matchMode = "substring-case-insensitive"
+	MatchModeSubstringCaseSensitive   matchMode = "substring-case-sensitive"
+	MatchModeExactCaseSensitive       matchMode = "exact-case-sensitive"
+	MatchModeExactCaseInsensitive     matchMode = "exact-case-insensitive"
+	MatchModeFuzzy                    matchMode = "fuzzy"
+)
+
+func matchDisplayName(input string, names map[string]string, mode matchMode) bool {
+	collectedNames := make([]string, len(names))
+	i := 0
+	for _, name := range names {
+		collectedNames[i] = name
+		i++
+	}
+	return matchWithMode(input, collectedNames, mode)
 }
 
-// Discover implements the OPDiscoverer interface
-func (d filterableVerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
-	in := (&SimpleOPDiscoverer{}).Discover(authorities...)
-	for _, op := range in {
+func matchWithMode(input string, names []string, mode matchMode) bool {
+	switch mode {
+	case MatchModeFuzzy:
+		return len(fuzzy.FindNormalizedFold(input, names)) > 0
+	case MatchModeExactCaseSensitive:
+		return slices.Contains(names, input)
+	case MatchModeExactCaseInsensitive:
+		return slices.ContainsFunc(
+			names, func(s string) bool {
+				return strings.EqualFold(s, input)
+			},
+		)
+	case MatchModeSubstringCaseSensitive:
+		return slices.ContainsFunc(
+			names, func(s string) bool {
+				return strings.Contains(s, input)
+			},
+		)
+	case MatchModeSubstringCaseInsensitive:
+		return slices.ContainsFunc(
+			names, func(s string) bool {
+				return strings.Contains(strings.ToLower(s), strings.ToLower(input))
+			},
+		)
+	default:
+		return false
+	}
+}
+
+// CollectEntities implements the EntityCollector interface
+func (VerifiedChainsEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
+	return FilterableVerifiedChainsEntityCollector{}.CollectEntities(req)
+}
+
+// CollectEntities implements the EntityCollector interface
+func (d filterableVerifiedChainsEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
+	in := (&SimpleEntityCollector{}).CollectEntities(req)
+	for _, e := range in {
 		var approved bool
 		for _, f := range d.Filters {
-			if approved = f.Filter(op); !approved {
+			if approved = f.Filter(e); !approved {
 				break
 			}
 		}
 		if approved {
-			opInfos = append(opInfos, op)
+			entities = append(entities, e)
 		}
 	}
 	return
 }
 
-// Discover implements the OPDiscoverer interface
-func (d FilterableVerifiedChainsOPDiscoverer) Discover(authorities ...TrustAnchor) (opInfos []*OpenIDProviderMetadata) {
-	discoverer := filterableVerifiedChainsOPDiscoverer{
+// CollectEntities implements the EntityCollector interface
+func (d FilterableVerifiedChainsEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
+	discoverer := filterableVerifiedChainsEntityCollector{
 		Filters: append(
-			[]OPDiscoveryFilter{
-				OPDiscoveryFilterVerifiedChains{
-					TrustAnchors: authorities,
+			[]EntityCollectionFilter{
+				EntityCollectionFilterVerifiedChains{
+					TrustAnchors: NewTrustAnchorsFromEntityIDs(req.TrustAnchor),
 				},
 			}, d.Filters...,
 		),
 	}
-	return discoverer.Discover(authorities...)
+	return discoverer.CollectEntities(req)
 }
 
-// OPDiscoveryFilterVerifiedChains is a OPDiscoveryFilter that filters the discovered OPs to the one that have a
+// EntityCollectionFilterVerifiedChains is a EntityCollectionFilter that filters the discovered OPs to the one that have a
 // valid TrustChain to one of the specified TrustAnchors
-type OPDiscoveryFilterVerifiedChains struct {
+type EntityCollectionFilterVerifiedChains struct {
 	TrustAnchors TrustAnchors
 }
 
-// Filter implements the OPDiscoveryFilter interface
-func (f OPDiscoveryFilterVerifiedChains) Filter(op *OpenIDProviderMetadata) bool {
+// Filter implements the EntityCollectionFilter interface
+func (f EntityCollectionFilterVerifiedChains) Filter(e *CollectedEntity) bool {
 	confirmedValid, _ := DefaultMetadataResolver.ResolvePossible(
 		apimodel.ResolveRequest{
-			Subject:     op.Issuer,
+			Subject:     e.EntityID,
 			TrustAnchor: f.TrustAnchors.EntityIDs(),
 		},
 	)
 	return confirmedValid
 }
 
-type opDiscoveryFilterAutomaticRegistration struct{}
-
-// Filter implements the OPDiscoveryFilter interface
-func (opDiscoveryFilterAutomaticRegistration) Filter(op *OpenIDProviderMetadata) bool {
-	return utils.SliceContains(ClientRegistrationTypeAutomatic, op.ClientRegistrationTypesSupported)
+func fetchList(listEndpoint string) ([]string, error) {
+	if ids := subordinateListingCacheGet(listEndpoint); ids != nil {
+		internal.Log("Obtained listing response from cache")
+		return ids, nil
+	}
+	ids, err := httpFetchList(listEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	internal.Log("Obtained listing response from http")
+	subordinateListingCacheSet(listEndpoint, ids)
+	return ids, nil
 }
 
-type opDiscoveryFilterExplicitRegistration struct{}
-
-// Filter implements the OPDiscoveryFilter interface
-func (opDiscoveryFilterExplicitRegistration) Filter(op *OpenIDProviderMetadata) bool {
-	return utils.SliceContains(ClientRegistrationTypeExplicit, op.ClientRegistrationTypesSupported)
-}
-
-// OPDiscoveryFilterExplicitRegistration is an OPDiscoveryFilter that filters to OPs that support explicit registration
-var OPDiscoveryFilterExplicitRegistration opDiscoveryFilterExplicitRegistration
-
-// OPDiscoveryFilterAutomaticRegistration is an OPDiscoveryFilter that filters to OPs that support automatic registration
-var OPDiscoveryFilterAutomaticRegistration opDiscoveryFilterAutomaticRegistration
-
-func fetchList(listEndpoint, entityType string) ([]string, error) {
-	params := url.Values{}
-	params.Add("entity_type", entityType)
-	resp, errRes, err := http.Get(listEndpoint, params, &[]string{})
+func httpFetchList(listEndpoint string) ([]string, error) {
+	resp, errRes, err := http.Get(listEndpoint, nil, &[]string{})
 	if err != nil {
 		return nil, err
 	}
@@ -218,28 +415,135 @@ func fetchList(listEndpoint, entityType string) ([]string, error) {
 	return *entities, nil
 }
 
-// OPDiscoveryFilterSupportedGrantTypesIncludes returns an OPDiscoveryFilter that filters to OPs that support the
+func getMetadataForCollectedEntity(e *CollectedEntity, trustAnchors []string) *Metadata {
+	if e.Metadata != nil {
+		return e.Metadata
+	}
+	metadata, _ := DefaultMetadataResolver.Resolve(
+		apimodel.ResolveRequest{
+			Subject:     e.EntityID,
+			TrustAnchor: trustAnchors,
+		},
+	)
+	return metadata
+}
+
+// EntityCollectionFilterOPSupportedGrantTypesIncludes returns an
+// EntityCollectionFilter that filters to OPs that support the
 // passed grant types
-func OPDiscoveryFilterSupportedGrantTypesIncludes(neededGrantTypes ...string) OPDiscoveryFilter {
-	return NewOPDiscoveryFilter(
-		func(op *OpenIDProviderMetadata) bool {
-			if op == nil {
+func EntityCollectionFilterOPSupportedGrantTypesIncludes(
+	trustAnchorIDs []string, neededGrantTypes ...string,
+) EntityCollectionFilter {
+	return NewEntityCollectionFilter(
+		func(e *CollectedEntity) bool {
+			if e == nil {
 				return false
 			}
-			return utils.ReflectIsSubsetOf(neededGrantTypes, op.GrantTypesSupported)
+			metadata := getMetadataForCollectedEntity(e, trustAnchorIDs)
+			if metadata == nil || metadata.OpenIDProvider == nil {
+				return false
+			}
+			return utils.ReflectIsSubsetOf(neededGrantTypes, metadata.OpenIDProvider.GrantTypesSupported)
 		},
 	)
 }
 
-// OPDiscoveryFilterSupportedScopesIncludes returns an OPDiscoveryFilter that filters to OPs that support the passed
+// EntityCollectionFilterOPSupportedScopesIncludes returns an
+// EntityCollectionFilter that filters to OPs that support the passed
 // scopes
-func OPDiscoveryFilterSupportedScopesIncludes(neededScopes ...string) OPDiscoveryFilter {
-	return NewOPDiscoveryFilter(
-		func(op *OpenIDProviderMetadata) bool {
-			if op == nil {
+func EntityCollectionFilterOPSupportedScopesIncludes(
+	trustAnchorIDs []string,
+	neededScopes ...string,
+) EntityCollectionFilter {
+	return NewEntityCollectionFilter(
+		func(e *CollectedEntity) bool {
+			if e == nil {
 				return false
 			}
-			return utils.ReflectIsSubsetOf(neededScopes, op.ScopesSupported)
+			metadata := getMetadataForCollectedEntity(e, trustAnchorIDs)
+			if metadata == nil || metadata.OpenIDProvider == nil {
+				return false
+			}
+			return utils.ReflectIsSubsetOf(neededScopes, metadata.OpenIDProvider.ScopesSupported)
 		},
 	)
+}
+
+// EntityCollectionFilterOPSupportsExplicitRegistration returns an
+// EntityCollectionFilter that filters to OPs that support explicit registration
+func EntityCollectionFilterOPSupportsExplicitRegistration(
+	trustAnchorIDs []string,
+) EntityCollectionFilter {
+	return NewEntityCollectionFilter(
+		func(e *CollectedEntity) bool {
+			if e == nil {
+				return false
+			}
+			metadata := getMetadataForCollectedEntity(e, trustAnchorIDs)
+			if metadata == nil || metadata.OpenIDProvider == nil {
+				return false
+			}
+			return slices.Contains(
+				metadata.OpenIDProvider.ClientRegistrationTypesSupported, ClientRegistrationTypeExplicit,
+			)
+		},
+	)
+}
+
+// EntityCollectionFilterOPSupportsAutomaticRegistration returns an
+// EntityCollectionFilter that filters to OPs that support automatic
+// registration
+func EntityCollectionFilterOPSupportsAutomaticRegistration(
+	trustAnchorIDs []string,
+) EntityCollectionFilter {
+	return NewEntityCollectionFilter(
+		func(e *CollectedEntity) bool {
+			if e == nil {
+				return false
+			}
+			metadata := getMetadataForCollectedEntity(e, trustAnchorIDs)
+			if metadata == nil || metadata.OpenIDProvider == nil {
+				return false
+			}
+			return slices.Contains(
+				metadata.OpenIDProvider.ClientRegistrationTypesSupported, ClientRegistrationTypeAutomatic,
+			)
+		},
+	)
+}
+
+// EntityCollectionFilterOPs returns an EntityCollectionFilter that filters to OPs
+func EntityCollectionFilterOPs(
+	trustAnchorIDs []string,
+) EntityCollectionFilter {
+	return NewEntityCollectionFilter(
+		func(e *CollectedEntity) bool {
+			if e == nil {
+				return false
+			}
+			return slices.Contains(e.EntityTypes, "openid_provider")
+		},
+	)
+}
+
+func subordinateListingCacheSet(listingEndpoint string, ids []string) {
+	if err := cache.Set(
+		cache.Key(cache.KeySubordinateListing, listingEndpoint), ids,
+		defaultSubordinateListingCacheTime,
+	); err != nil {
+		internal.Log(err)
+	}
+}
+
+func subordinateListingCacheGet(listingEndpoint string) []string {
+	var ids []string
+	set, err := cache.Get(cache.Key(cache.KeySubordinateListing, listingEndpoint), &ids)
+	if err != nil {
+		internal.Log(err)
+		return nil
+	}
+	if !set {
+		return nil
+	}
+	return ids
 }

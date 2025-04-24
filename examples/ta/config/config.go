@@ -91,6 +91,7 @@ type Endpoints struct {
 	EnrollmentEndpoint        extendedEndpointConfig   `yaml:"enroll"`
 	EnrollmentRequestEndpoint fedentities.EndpointConf `yaml:"enroll_request"`
 	TrustMarkRequestEndpoint  fedentities.EndpointConf `yaml:"trust_mark_request"`
+	EntityCollectionEndpoint  fedentities.EndpointConf `yaml:"entity_collection"`
 }
 
 type extendedEndpointConfig struct {

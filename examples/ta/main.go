@@ -115,6 +115,9 @@ func main() {
 	if endpoint := c.Endpoints.EnrollmentRequestEndpoint; endpoint.IsSet() {
 		entity.AddEnrollRequestEndpoint(endpoint, subordinateStorage)
 	}
+	if endpoint := c.Endpoints.EntityCollectionEndpoint; endpoint.IsSet() {
+		entity.AddEntityCollectionEndpoint(endpoint)
+	}
 	log.Println("Added Endpoints")
 
 	log.Printf("Start serving on port %d\n", c.ServerPort)
