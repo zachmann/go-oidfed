@@ -190,6 +190,9 @@ func (r *TrustResolver) Resolve() {
 		internal.Log("Obtained trust tree from cache")
 		return
 	}
+	if r.StartingEntity == "" {
+		return
+	}
 	starting, err := GetEntityConfiguration(r.StartingEntity)
 	if err != nil {
 		return
@@ -455,6 +458,9 @@ func (t *trustTree) verifySignatures(anchors TrustAnchors) bool {
 func (t trustTree) chains() (chains []TrustChain) {
 	if t.Authorities == nil {
 		if t.Subordinate == nil {
+			if t.Entity == nil {
+				return nil
+			}
 			return []TrustChain{
 				{
 					t.Entity,
