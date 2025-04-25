@@ -8,6 +8,7 @@ import (
 	"time"
 
 	arrays "github.com/adam-hanna/arrayOperations"
+	"github.com/google/go-querystring/query"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
@@ -115,7 +116,8 @@ func NewEntityCollectionFilter(filter func(entity *CollectedEntity) bool) Entity
 }
 
 type filterableVerifiedChainsEntityCollector struct {
-	Filters []EntityCollectionFilter
+	Collector EntityCollector
+	Filters   []EntityCollectionFilter
 }
 
 // FilterableVerifiedChainsEntityCollector is a type implementing
@@ -123,7 +125,8 @@ type filterableVerifiedChainsEntityCollector struct {
 // that is able to filter the discovered OPs
 // through a number of EntityCollectionFilter
 type FilterableVerifiedChainsEntityCollector struct {
-	Filters []EntityCollectionFilter
+	Collector EntityCollector
+	Filters   []EntityCollectionFilter
 }
 
 // CollectEntities implements the EntityCollector interface
@@ -388,7 +391,10 @@ func (VerifiedChainsEntityCollector) CollectEntities(req apimodel.EntityCollecti
 
 // CollectEntities implements the EntityCollector interface
 func (d filterableVerifiedChainsEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
-	in := (&SimpleEntityCollector{}).CollectEntities(req)
+	if d.Collector == nil {
+		d.Collector = &SimpleEntityCollector{}
+	}
+	in := d.Collector.CollectEntities(req)
 	for _, e := range in {
 		var approved bool
 		for _, f := range d.Filters {
@@ -406,6 +412,7 @@ func (d filterableVerifiedChainsEntityCollector) CollectEntities(req apimodel.En
 // CollectEntities implements the EntityCollector interface
 func (d FilterableVerifiedChainsEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
 	discoverer := filterableVerifiedChainsEntityCollector{
+		Collector: d.Collector,
 		Filters: append(
 			[]EntityCollectionFilter{
 				EntityCollectionFilterVerifiedChains{
@@ -594,4 +601,75 @@ func subordinateListingCacheGet(listingEndpoint string) []string {
 		return nil
 	}
 	return ids
+}
+
+// SimpleRemoteEntityCollector is a EntityCollector that utilizes a given
+// EntityCollectionEndpoint
+type SimpleRemoteEntityCollector struct {
+	EntityCollectionEndpoint string
+}
+
+// CollectEntities queries a remote EntityCollectionEndpoint for the
+// collected entities and implements the EntityCollector interface
+func (c SimpleRemoteEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) []*CollectedEntity {
+	params, err := query.Values(req)
+	if err != nil {
+		internal.Logf("error while creating query parameters for entity collection request: %s", err)
+		return nil
+	}
+	var res EntityCollectionResponse
+	_, errRes, err := http.Get(
+		c.EntityCollectionEndpoint, params,
+		&res,
+	)
+	if err != nil {
+		internal.Logf("error while fetching entity collection endpoint: %s", err)
+		return nil
+	}
+	if errRes != nil {
+		internal.Logf("error while fetching entity collection endpoint: %s", errRes.Err().Error())
+		return nil
+	}
+	return res.FederationEntities
+}
+
+// SmartRemoteEntityCollector is a EntityCollector that utilizes remote
+// entity collection endpoints.
+// It will iterate through the entity collect endpoints of the
+// given TrustAnchors and stop if one is successful,
+// if no entity collection endpoint is successful,
+// the SimpleEntityCollector is used
+type SmartRemoteEntityCollector struct {
+	TrustAnchors []string
+}
+
+// CollectEntities  implements the EntityCollector interface
+func (c SmartRemoteEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) []*CollectedEntity {
+	// construct a list of trust anchors to query; always start with the
+	// trust anchor from the request
+	trustAnchors := append([]string{req.TrustAnchor}, utils.RemoveFromSlice(c.TrustAnchors, req.TrustAnchor)...)
+
+	for _, tr := range trustAnchors {
+		entityConfig, err := GetEntityConfiguration(tr)
+		if err != nil {
+			internal.Logf("error while obtaining entity configuration: %v", err)
+			continue
+		}
+		var entityCollectionEndpoint string
+		if entityConfig != nil && entityConfig.Metadata != nil && entityConfig.Metadata.FederationEntity != nil && entityConfig.Metadata.FederationEntity.Extra != nil {
+			entityCollectionEndpoint, _ = entityConfig.Metadata.FederationEntity.Extra["federation_collection_endpoint"].(string)
+		}
+		if entityCollectionEndpoint == "" {
+			continue
+		}
+		remoteCollector := SimpleRemoteEntityCollector{
+			EntityCollectionEndpoint: entityCollectionEndpoint,
+		}
+		entities := remoteCollector.CollectEntities(req)
+		if entities == nil {
+			continue
+		}
+		return entities
+	}
+	return (&SimpleEntityCollector{}).CollectEntities(req)
 }

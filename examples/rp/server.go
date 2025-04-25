@@ -23,7 +23,7 @@ const loginHtml = `<!DOCTYPE html>
 <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
 </head>
 <body>
-<h1>Dummy oidfed RPC</h1>
+<h1>Dummy oidfed RP</h1>
 <h3>Choose an OP from the supported federations to login</h1>
 <form action="login">
   <select name="op" id="op">
@@ -62,13 +62,22 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 	const opOptionFmt = `<option value="%s">%s</option>`
 	var options string
 	filters := []pkg.EntityCollectionFilter{}
-	// if conf.OnlyAutomaticOPs {
-	// 	filters = append(filters, pkg.OPDiscoveryFilterAutomaticRegistration)
-	// }
+	if conf.OnlyAutomaticOPs {
+		filters = append(
+			filters, pkg.EntityCollectionFilterOPSupportsAutomaticRegistration(conf.TrustAnchors.EntityIDs()),
+		)
+	}
 	allOPs := make(map[string]*pkg.CollectedEntity)
 	for _, ta := range conf.TrustAnchors {
+		var collector pkg.EntityCollector
+		if conf.UseEntityCollectionEndpoint {
+			collector = pkg.SmartRemoteEntityCollector{TrustAnchors: conf.TrustAnchors.EntityIDs()}
+		} else {
+			collector = &pkg.SimpleEntityCollector{}
+		}
 		ops := pkg.FilterableVerifiedChainsEntityCollector{
-			Filters: filters,
+			Collector: collector,
+			Filters:   filters,
 		}.CollectEntities(
 			apimodel.EntityCollectionRequest{
 				TrustAnchor: ta.EntityID,
