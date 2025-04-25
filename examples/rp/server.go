@@ -24,7 +24,9 @@ const loginHtml = `<!DOCTYPE html>
 </head>
 <body>
 <h1>Dummy oidfed RP</h1>
-<h3>Choose an OP from the supported federations to login</h1>
+<h2>%s</h2>
+%s
+<h4>Choose an OP from the supported federations to login</h4>
 <form action="login">
   <select name="op" id="op">
 	<option value="/" selected disabled>Choose OP...</option>
@@ -97,7 +99,11 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 			),
 		)
 	}
-	_, _ = io.WriteString(w, fmt.Sprintf(loginHtml, options))
+	var img string
+	if conf.LogoURI != "" {
+		img = fmt.Sprintf(`<img src="%s" alt="%s" />`, conf.LogoURI, "Logo")
+	}
+	_, _ = io.WriteString(w, fmt.Sprintf(loginHtml, conf.ClientName, img, options))
 }
 
 type stateData struct {
