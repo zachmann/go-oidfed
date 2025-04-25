@@ -48,7 +48,6 @@ func (r ResolveResponse) MarshalJSON() ([]byte, error) {
 	}
 	additional, err := json.Marshal(
 		additionalData{
-			// Step 3
 			Issuer:    r.Issuer,
 			Subject:   r.Subject,
 			IssuedAt:  r.IssuedAt,
@@ -110,12 +109,12 @@ func (m JWSMessages) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements the json.Marshaler interface.
 func (m *JWSMessages) UnmarshalJSON(data []byte) error {
-	var datas [][]byte
+	var datas []string
 	if err := json.Unmarshal(data, &datas); err != nil {
 		return err
 	}
 	for _, d := range datas {
-		jwt, err := jwx.Parse(d)
+		jwt, err := jwx.Parse([]byte(d))
 		if err != nil {
 			return err
 		}
