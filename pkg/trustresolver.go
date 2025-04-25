@@ -456,7 +456,11 @@ func (t *trustTree) verifySignatures(anchors TrustAnchors) bool {
 func (t trustTree) chains() (chains []TrustChain) {
 	if t.Authorities == nil {
 		if t.Subordinate == nil {
-			return nil
+			return []TrustChain{
+				{
+					t.Entity,
+				},
+			}
 		}
 		return []TrustChain{
 			{
