@@ -571,15 +571,15 @@ func httpGetEntityConfiguration(
 func FetchEntityStatement(fetchEndpoint, subID, issID string) (*EntityStatement, error) {
 	return getEntityStatementOrConfiguration(
 		subID, issID, func() (*EntityStatement, error) {
-			return httpFetchEntityStatement(fetchEndpoint, subID, issID)
+			return httpFetchEntityStatement(fetchEndpoint, subID)
 		},
 	)
 }
-func httpFetchEntityStatement(fetchEndpoint, subID, issID string) (*EntityStatement, error) {
+
+func httpFetchEntityStatement(fetchEndpoint, subID string) (*EntityStatement, error) {
 	uri := fetchEndpoint
 	params := url.Values{}
 	params.Add("sub", subID)
-	params.Add("iss", issID)
 	res, errRes, err := http.Get(uri, params, nil)
 	if err != nil {
 		return nil, err
