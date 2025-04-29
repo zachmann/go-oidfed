@@ -136,7 +136,10 @@ func (m Metadata) CollectStringClaim(tag string) map[string]string {
 				jsonTag = strings.TrimSuffix(jsonTag, ",omitempty")
 
 				if jsonTag == tag && subField.Kind() == reflect.String {
-					result[entityTag] = subField.Interface().(string)
+					str := subField.Interface().(string)
+					if str != "" {
+						result[entityTag] = str
+					}
 					break
 				}
 			}
