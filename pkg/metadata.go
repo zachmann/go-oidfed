@@ -214,6 +214,12 @@ func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) 
 			return nil, err
 		}
 		rV := reflect.ValueOf(value)
+		if t.Field(i).Name == "Scope" && rV.IsValid() && rV.Kind() == reflect.Slice {
+			strSlice, ok := value.([]string)
+			if ok {
+				rV = reflect.ValueOf(strings.Join(strSlice, " "))
+			}
+		}
 		if rV.IsValid() {
 			f.Set(rV)
 		} else {
