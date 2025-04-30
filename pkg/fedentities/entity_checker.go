@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
+	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/apimodel"
 	"github.com/zachmann/go-oidfed/pkg/jwk"
@@ -318,7 +319,11 @@ func (c EntityIDEntityChecker) Check(
 	entityConfiguration *pkg.EntityStatement,
 	_ []string,
 ) (bool, int, *pkg.Error) {
-	if !slices.Contains(c.AllowedIDs, entityConfiguration.Subject) {
+	if !slices.ContainsFunc(
+		c.AllowedIDs, func(s string) bool {
+			return utils.CompareEntityIDs(s, entityConfiguration.Subject)
+		},
+	) {
 		errRes := pkg.ErrorInvalidRequest("this entity is not allowed")
 		return false, fiber.StatusBadRequest, &errRes
 	}
@@ -348,7 +353,11 @@ func (c AuthorityHintEntityChecker) Check(
 	entityConfiguration *pkg.EntityStatement,
 	_ []string,
 ) (bool, int, *pkg.Error) {
-	if !slices.Contains(entityConfiguration.AuthorityHints, c.EntityID) {
+	if !slices.ContainsFunc(
+		entityConfiguration.AuthorityHints, func(s string) bool {
+			return utils.CompareEntityIDs(s, c.EntityID)
+		},
+	) {
 		errRes := pkg.ErrorInvalidRequest(
 			fmt.Sprintf("must include '%s' in authority_hints", c.EntityID),
 		)

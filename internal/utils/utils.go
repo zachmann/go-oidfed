@@ -79,3 +79,30 @@ func MergeMaps(overwrite bool, mm ...map[string]any) map[string]any {
 func NewInt(i int) *int {
 	return &i
 }
+
+func CompareEntityIDs(a, b string) bool {
+	aLen := len(a)
+	bLen := len(b)
+	lenDiff := bLen - aLen
+	if lenDiff > 1 || lenDiff < -1 {
+		return false
+	}
+	if a[aLen-1] != '/' {
+		a += "/"
+	}
+	if b[bLen-1] != '/' {
+		b += "/"
+	}
+	return a == b
+}
+
+func TheOtherEntityIDComparisonOption(id string) string {
+	l := len(id)
+	if l < 2 {
+		return id
+	}
+	if id[l-1] == '/' {
+		return id[:l-2]
+	}
+	return id + "/"
+}
