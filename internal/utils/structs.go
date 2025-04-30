@@ -18,6 +18,21 @@ func NilAllExceptByTag(v interface{}, jsonTags []string) {
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
 		fieldType := typ.Field(i)
+		if fieldType.Name == "Extra" &&
+			fieldType.Type == reflect.TypeOf(map[string]any{}) &&
+			!field.IsNil() {
+			// We already checked the field's type, so this type assertion can't fail
+			asMap := field.Interface().(map[string]any)
+			sanitized := map[string]any{}
+			for key, value := range asMap {
+				if slices.Contains(jsonTags, key) {
+					sanitized[key] = value
+				}
+			}
+
+			field.Set(reflect.ValueOf(sanitized))
+			continue
+		}
 		tag := fieldType.Tag.Get("json")
 
 		// Handle the case where the tag includes ",omitempty" or other options

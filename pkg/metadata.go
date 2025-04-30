@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"unsafe"
+
+	"github.com/pkg/errors"
 )
 
 // Metadata is a type for holding the different metadata types
@@ -16,6 +18,8 @@ type Metadata struct {
 	OAuthClient              *OAuthClientMetadata              `json:"oauth_client,omitempty"`
 	OAuthProtectedResource   *OAuthProtectedResourceMetadata   `json:"oauth_resource,omitempty"`
 	FederationEntity         *FederationEntityMetadata         `json:"federation_entity,omitempty"`
+	// Extra contains additional metadata this entity should advertise.
+	Extra map[string]any `json:"-"`
 }
 
 // DisplayNameGuesser is an interface for types to return a (guessed) display name
@@ -148,6 +152,31 @@ func (m Metadata) CollectStringClaim(tag string) map[string]string {
 	return result
 }
 
+// MarshalJSON implements the json.Marshaler interface.
+// It also marshals extra fields.
+func (m Metadata) MarshalJSON() ([]byte, error) {
+	type metadata Metadata
+	explicitFields, err := json.Marshal(metadata(m))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return extraMarshalHelper(explicitFields, m.Extra)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It also unmarshalls additional fields into the Extra claim.
+func (m *Metadata) UnmarshalJSON(data []byte) error {
+	type Alias Metadata
+	mm := Alias(*m)
+	extra, err := unmarshalWithExtra(data, &mm)
+	if err != nil {
+		return err
+	}
+	mm.Extra = extra
+	*m = Metadata(mm)
+	return nil
+}
+
 type policyApplicable interface {
 	ApplyPolicy(policy MetadataPolicy) (any, error)
 }
@@ -161,6 +190,11 @@ func (m Metadata) ApplyPolicy(p *MetadataPolicies) (*Metadata, error) {
 	v := reflect.ValueOf(m)
 	out := &Metadata{}
 	for i := 0; i < t.NumField(); i++ {
+		// Ignore extra entities. We'll handle those separately without reflection.
+		if t.Field(i).Name == "Extra" {
+			continue
+		}
+
 		policy, policyOk := reflect.ValueOf(*p).Field(i).Interface().(MetadataPolicy)
 		if !policyOk || policy == nil {
 			reflect.Indirect(reflect.ValueOf(out)).Field(i).Set(v.Field(i))
@@ -182,14 +216,33 @@ func (m Metadata) ApplyPolicy(p *MetadataPolicies) (*Metadata, error) {
 		}
 		reflect.Indirect(reflect.ValueOf(out)).Field(i).Set(reflect.ValueOf(applied))
 	}
+
+	// Iterate over extra metadata and associated policies
+	if len(m.Extra) > 0 {
+		out.Extra = map[string]interface{}{}
+		for entityType, metadata := range m.Extra {
+			var metadataToReturn interface{}
+			if policy, ok := p.Extra[entityType]; ok {
+				// Found a policy for the entity type, so apply it
+				applied, err := applyPolicy(metadata, policy, entityType)
+				if err != nil {
+					return nil, err
+				}
+
+				metadataToReturn = applied
+			} else {
+				// No policy found, so copy the metadata into out
+				metadataToReturn = metadata
+			}
+
+			out.Extra[entityType] = metadataToReturn
+		}
+	}
+
 	return out, nil
 }
 
-type metadatas interface {
-	*OpenIDProviderMetadata | *OpenIDRelyingPartyMetadata | *OAuthAuthorizationServerMetadata | *OAuthClientMetadata | *OAuthProtectedResourceMetadata | *FederationEntityMetadata
-}
-
-func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) (any, error) {
+func applyPolicy(metadata any, policy MetadataPolicy, ownTag string) (any, error) {
 	if policy == nil {
 		return metadata, nil
 	}
@@ -228,6 +281,52 @@ func applyPolicy[M metadatas](metadata M, policy MetadataPolicy, ownTag string) 
 	}
 
 	return metadata, nil
+}
+
+// FindEntityMetadata finds metadata for the specified entity type in the
+// metadata and decodes it into the provided metadata object.
+func (m *Metadata) FindEntityMetadata(entityType string, metadata any) error {
+	// Check if the entity type indicates one of the explicit struct fields.
+	v := reflect.ValueOf(m)
+	t := v.Elem().Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		j, ok := t.Field(i).Tag.Lookup("json")
+		if !ok {
+			continue
+		}
+		j = strings.TrimSuffix(j, ",omitempty")
+		if j != entityType {
+			continue
+		}
+		if j == entityType {
+			fmt.Printf("found entity type %s\n", entityType)
+		}
+
+		value := v.Elem().FieldByName(t.Field(i).Name)
+		if value.IsZero() {
+			continue
+		}
+
+		metadata = value.Interface()
+		return nil
+	}
+
+	// Requested entity type was not a struct field, so find it in the extra metadata.
+	metadataMap, ok := m.Extra[entityType]
+	if !ok {
+		return errors.Errorf("could not find metadata for entity %s", entityType)
+	}
+
+	// Go will deserialize each metadata into a map[string]interface{}. There may be a nicer way to
+	// do this with generics, but we encode that back to JSON, then decode it into the provided
+	// struct so we can use RTTI to give the caller a richer representation.
+	jsonMetadata, err := json.Marshal(metadataMap)
+	if err != nil {
+		return errors.Errorf("failed to marshal metadata: %s", err)
+	}
+
+	return json.Unmarshal(jsonMetadata, metadata)
 }
 
 // OAuthClientMetadata is a type for holding the metadata about an oauth client
