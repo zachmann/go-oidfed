@@ -36,7 +36,7 @@ trust_mark_issuers:
     - "https://edugain.fedservice.lh"
   https://erasmus-plus.ec.europa.eu:
     - "https://erasmus-plus.fedservice.lh"
-  "https://studid.io/federations/HAKA/member":
+  "http://www.csc.fi/haka/member":
     - "https://haka.fedservice.lh"
   "https://puhuri.io":
     - "https://puhuri.fedservice.lh"
