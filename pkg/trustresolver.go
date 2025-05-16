@@ -304,11 +304,7 @@ func (t *trustTree) resolve(anchors TrustAnchors) {
 	if t.Entity.ExpiresAt.Before(t.expiresAt.Time) {
 		t.expiresAt = t.Entity.ExpiresAt
 	}
-	if slices.ContainsFunc(
-		anchors.EntityIDs(), func(s string) bool {
-			return utils.CompareEntityIDs(t.Entity.Issuer, s)
-		},
-	) {
+	if utils.SliceContains(t.Entity.Issuer, anchors.EntityIDs()) {
 		return
 	}
 	if len(t.Entity.AuthorityHints) > 0 {

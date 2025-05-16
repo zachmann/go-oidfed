@@ -182,7 +182,7 @@ func (d *SimpleEntityCollector) collect(
 	for _, authority := range authorities {
 		run(
 			func() {
-				if d.visitedEntities.Has(authority.EntityID) || d.visitedEntities.Has(utils.TheOtherEntityIDComparisonOption(authority.EntityID)) {
+				if d.visitedEntities.Has(authority.EntityID) {
 					internal.Logf("Already visited: %s -> skipping", authority.EntityID)
 					return
 				}

@@ -3,7 +3,6 @@ package fedentities
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/constants"
 	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
@@ -28,11 +27,8 @@ func (fed *FedEntity) AddFetchEndpoint(endpoint EndpointConf, store storage.Subo
 				return ctx.JSON(pkg.ErrorServerError(err.Error()))
 			}
 			if info == nil {
-				info, err = store.Subordinate(utils.TheOtherEntityIDComparisonOption(sub))
-				if info == nil {
-					ctx.Status(fiber.StatusNotFound)
-					return ctx.JSON(pkg.ErrorNotFound("the requested entity identifier is not found"))
-				}
+				ctx.Status(fiber.StatusNotFound)
+				return ctx.JSON(pkg.ErrorNotFound("the requested entity identifier is not found"))
 			}
 			payload := fed.CreateSubordinateStatement(info)
 			jwt, err := fed.SignEntityStatement(payload)
