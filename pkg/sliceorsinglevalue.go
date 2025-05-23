@@ -2,6 +2,8 @@ package pkg
 
 import (
 	"encoding/json"
+
+	"gopkg.in/yaml.v3"
 )
 
 // SliceOrSingleValue is a type that supports (un-)marshaling
@@ -29,4 +31,27 @@ func (v SliceOrSingleValue[T]) MarshalJSON() ([]byte, error) {
 		return json.Marshal(v[0])
 	}
 	return json.Marshal([]T(v))
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface
+func (v *SliceOrSingleValue[T]) UnmarshalYAML(value *yaml.Node) error {
+	var t T
+	if err := value.Decode(&t); err == nil {
+		*v = []T{t}
+		return nil
+	}
+	var tSlice []T
+	if err := value.Decode(&tSlice); err != nil {
+		return err
+	}
+	*v = tSlice
+	return nil
+}
+
+// MarshalYAML implements the yaml.Marshaler interface
+func (v SliceOrSingleValue[T]) MarshalYAML() (interface{}, error) {
+	if len(v) == 1 {
+		return v[0], nil
+	}
+	return []T(v), nil
 }
