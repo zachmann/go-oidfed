@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -80,7 +79,8 @@ func runDelegation(cmd *cobra.Command, args []string) error {
 		)
 		conf.SigningKey = string(privkeyPem)
 	} else {
-		sk, err = jwt.ParseECPrivateKeyFromPEM([]byte(conf.SigningKey))
+		block, _ := pem.Decode([]byte(conf.SigningKey))
+		sk, err = x509.ParseECPrivateKey(block.Bytes)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse signing key")
 		}

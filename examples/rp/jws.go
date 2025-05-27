@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/lestrrat-go/jwx/v3/jwa"
 
 	"github.com/zachmann/go-oidfed/pkg/jwk"
@@ -34,7 +33,8 @@ func mustLoadKey(name string) crypto.Signer {
 		}
 		return sk
 	}
-	sk, err := jwt.ParseECPrivateKeyFromPEM(data)
+	block, _ := pem.Decode(data)
+	sk, err := x509.ParseECPrivateKey(block.Bytes)
 	if err != nil {
 		log.Fatal(err)
 	}
