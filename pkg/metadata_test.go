@@ -40,7 +40,7 @@ var metadataMarshalData = map[string]marshalData{
 		},
 	},
 	"federation + op": {
-		Data: []byte(`{"openid_provider":{"authorization_endpoint":"https://op.example.com/authorization","client_registration_types_supported":["automatic"],"code_challenge_methods_supported":["S256"],"grant_types_supported":["authorization_code","refresh_token"],"id_token_signed_response_alg_values_supported":["ES256","ES512"],"introspection_endpoint":"https://op.example.com/introspect","issuer":"https://op.example.com","jwks_uri":"https://op.example.com/jwks","organization_name":"Test OP Org","request_signed_response_alg_values_supported":["ES256","ES512"],"response_types_supported":["code"],"revocation_endpoint":"https://op.example.com/revoke","scopes_supported":["openid","profile","email","offline_access"],"subject_types_supported":null,"token_endpoint":"https://op.example.com/token","userinfo_endpoint":"https://op.example.com/userinfo","userinfo_signed_response_alg_values_supported":["ES256","ES512"]},"federation_entity":{"contacts":["contact@op.example.com"],"organization_name":"Test OP Org"}}`),
+		Data: []byte(`{"federation_entity":{"contacts":["contact@op.example.com"],"organization_name":"Test OP Org"},"openid_provider":{"authorization_endpoint":"https://op.example.com/authorization","client_registration_types_supported":["automatic"],"code_challenge_methods_supported":["S256"],"grant_types_supported":["authorization_code","refresh_token"],"id_token_signed_response_alg_values_supported":["ES256","ES512"],"introspection_endpoint":"https://op.example.com/introspect","issuer":"https://op.example.com","jwks_uri":"https://op.example.com/jwks","organization_name":"Test OP Org","request_signed_response_alg_values_supported":["ES256","ES512"],"response_types_supported":["code"],"revocation_endpoint":"https://op.example.com/revoke","scopes_supported":["openid","profile","email","offline_access"],"subject_types_supported":null,"token_endpoint":"https://op.example.com/token","userinfo_endpoint":"https://op.example.com/userinfo","userinfo_signed_response_alg_values_supported":["ES256","ES512"]}}`),
 		Object: Metadata{
 			OpenIDProvider: &OpenIDProviderMetadata{
 				Issuer:                "https://op.example.com",
@@ -106,7 +106,7 @@ var metadataMarshalData = map[string]marshalData{
 		},
 	},
 	"federation + rp": {
-		Data: []byte(`{"openid_relying_party":{"application_type":"web","client_name":"test rp","client_registration_types":["automatic"],"client_uri":"https://rp.example.org","contacts":["contact@rp.example.org"],"grant_types":["authorization_code"],"jwks_uri":"https://rp.example.org/jwks","organization_name":"test rp org","policy_uri":"https://rp.example.org/policy","redirect_uris":["https://rp.example.org/redirect"],"response_types":["code"],"scope":"openid profile email","tos_uri":"https://rp.example.org/tos"},"federation_entity":{"contacts":["contact@rp.example.org"],"organization_name":"test rp org"}}`),
+		Data: []byte(`{"federation_entity":{"contacts":["contact@rp.example.org"],"organization_name":"test rp org"},"openid_relying_party":{"application_type":"web","client_name":"test rp","client_registration_types":["automatic"],"client_uri":"https://rp.example.org","contacts":["contact@rp.example.org"],"grant_types":["authorization_code"],"jwks_uri":"https://rp.example.org/jwks","organization_name":"test rp org","policy_uri":"https://rp.example.org/policy","redirect_uris":["https://rp.example.org/redirect"],"response_types":["code"],"scope":"openid profile email","tos_uri":"https://rp.example.org/tos"}}`),
 		Object: Metadata{
 			RelyingParty: &OpenIDRelyingPartyMetadata{
 				Scope:                   "openid profile email",
@@ -274,6 +274,22 @@ var metadataMarshalData = map[string]marshalData{
 			},
 		},
 	},
+	"extra metadata": {
+		Data: []byte(`{"another-entity":{"a-key":"a-value"},"federation_entity":{"federation_fetch_endpoint":"https://federation.endpoint/fetch"}}`),
+		Object: Metadata{
+			FederationEntity: &FederationEntityMetadata{
+				FederationFetchEndpoint: "https://federation.endpoint/fetch",
+				wasSet: map[string]bool{
+					"FederationFetchEndpoint": true,
+				},
+			},
+			Extra: map[string]interface{}{
+				"another-entity": map[string]interface{}{
+					"a-key": "a-value",
+				},
+			},
+		},
+	},
 }
 
 func TestMetadata_MarshalJSON(t *testing.T) {
@@ -313,5 +329,55 @@ func TestMetadata_UnmarshalJSON(t *testing.T) {
 				}
 			},
 		)
+	}
+}
+
+func TestMetadata_FindEntityMetadata(t *testing.T) {
+	type AnotherEntityMetadata struct {}
+	var metadata Metadata
+	if err := json.Unmarshal(metadataMarshalData["extra metadata"].Data, &metadata); err != nil {
+		t.Fatal(err)
+	}
+
+	testCases := map[string]struct {
+		metadataType string
+		deserializeInto any
+		shouldSucceed bool
+	} {
+		"Metadata is present and in an explicit struct field": {
+			metadataType: "federation_entity",
+			deserializeInto: FederationEntityMetadata{},
+			shouldSucceed: true,
+		},
+		"Metadata is present and in extra metadata":
+		{
+			metadataType: "another-entity",
+			deserializeInto: AnotherEntityMetadata{},
+			shouldSucceed: true,
+		},
+		"Metadata is absent and would be in an explicit struct field":
+		{
+			metadataType: "openid_provider",
+			deserializeInto: OpenIDProviderMetadata{},
+			shouldSucceed: false,
+		},
+		"Metadata is absent and would be in extra metadata":
+		{
+			metadataType: "no-such-metadata",
+			deserializeInto: struct{}{},
+			shouldSucceed: false,
+		},
+	}
+
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := metadata.FindEntityMetadata(testCase.metadataType, &testCase.deserializeInto)
+			if testCase.shouldSucceed && err != nil {
+				t.Error(err)
+			} else if !testCase.shouldSucceed && err == nil {
+				t.Errorf("finding %s metadata should fail", testCase.metadataType)
+				t.Logf("%+v", testCase.deserializeInto)
+			}
+		})
 	}
 }
