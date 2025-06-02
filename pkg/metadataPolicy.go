@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -17,6 +18,53 @@ type MetadataPolicies struct {
 	OAuthClient              MetadataPolicy `json:"oauth_client,omitempty"`
 	OAuthProtectedResource   MetadataPolicy `json:"oauth_resource,omitempty"`
 	FederationEntity         MetadataPolicy `json:"federation_entity,omitempty"`
+	// Extra contains metadata policies for entity types unknown to this module.
+	Extra map[string]MetadataPolicy `json:"-"`
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (m MetadataPolicies) MarshalJSON() ([]byte, error) {
+	type Alias MetadataPolicies
+	explicitFields, err := json.Marshal(Alias(m))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	interfaceMap := make(map[string]interface{})
+	for k, v := range m.Extra {
+		interfaceMap[k] = interface{}(v)
+	}
+
+	return extraMarshalHelper(explicitFields, interfaceMap)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// It also unmarshalls additional fields into the Extra claim.
+func (m *MetadataPolicies) UnmarshalJSON(data []byte) error {
+	type Alias MetadataPolicies
+	mm := Alias(*m)
+	extra, err := unmarshalWithExtra(data, &mm)
+	if err != nil {
+		return err
+	}
+
+	// Be careful not to set mm.Extra if there was no extra in the JSON, so that
+	// we don't set the field to an empty map when we want it to be nil.
+	if len(extra) > 0 {
+		policyMap := make(map[string]MetadataPolicy)
+		for k, v := range extra {
+			policy, ok := v.(MetadataPolicy)
+			if !ok {
+				return errors.Errorf("non MetadataPolicy in metadata policies")
+			}
+
+			policyMap[k] = policy
+		}
+
+		mm.Extra = policyMap
+	}
+	*m = MetadataPolicies(mm)
+	return nil
 }
 
 // MetadataPolicy is a type for holding MetadataPolicyEntry for each relevant attribute
@@ -46,6 +94,7 @@ func MergeMetadataPolicies(policies ...*MetadataPolicies) (*MetadataPolicies, er
 	ocEntries := make([]MetadataPolicy, 0)
 	prEntries := make([]MetadataPolicy, 0)
 	feEntries := make([]MetadataPolicy, 0)
+	extraEntries := make(map[string][]MetadataPolicy, 0)
 	for _, p := range policies {
 		if p == nil {
 			continue
@@ -56,6 +105,9 @@ func MergeMetadataPolicies(policies ...*MetadataPolicies) (*MetadataPolicies, er
 		ocEntries = append(ocEntries, p.OAuthClient)
 		prEntries = append(prEntries, p.OAuthProtectedResource)
 		feEntries = append(feEntries, p.FederationEntity)
+		for k, v := range p.Extra {
+			extraEntries[k] = append(extraEntries[k], v)
+		}
 	}
 	op, err := CombineMetadataPolicy("openid_provider", opEntries...)
 	if err != nil {
@@ -81,6 +133,13 @@ func MergeMetadataPolicies(policies ...*MetadataPolicies) (*MetadataPolicies, er
 	if err != nil {
 		return nil, err
 	}
+	extra := make(map[string]MetadataPolicy, 0)
+	for k, v := range extraEntries {
+		extra[k], err = CombineMetadataPolicy(k, v...)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &MetadataPolicies{
 		OpenIDProvider:           op,
 		RelyingParty:             rp,
@@ -88,6 +147,7 @@ func MergeMetadataPolicies(policies ...*MetadataPolicies) (*MetadataPolicies, er
 		OAuthClient:              c,
 		OAuthProtectedResource:   pr,
 		FederationEntity:         fed,
+		Extra:                    extra,
 	}, nil
 }
 
