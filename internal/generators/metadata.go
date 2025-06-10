@@ -104,7 +104,7 @@ func generateCombinedStruct(
 	builderForType.WriteString(fmt.Sprintf("type %s struct {\n", newStructName))
 	builderForTypeWithPtrs.WriteString(fmt.Sprintf("type %s struct {\n", withPtrName))
 
-	builderForType.WriteString("wasSet map[string]bool\n")
+	builderForType.WriteString("\twasSet map[string]bool\n")
 
 	// Add fields from struct A
 	for _, field := range structA.Fields.List {

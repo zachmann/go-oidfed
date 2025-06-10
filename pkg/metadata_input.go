@@ -11,11 +11,15 @@ type commonMetadata struct {
 	JWKSURI       string    `json:"jwks_uri,omitempty"`
 	JWKS          *jwk.JWKS `json:"jwks,omitempty"`
 
-	OrganizationName string   `json:"organization_name,omitempty"`
+	DisplayName      string   `json:"display_name,omitempty"`
+	Description      string   `json:"description,omitempty"`
+	Keywords         []string `json:"keywords,omitempty"`
 	Contacts         []string `json:"contacts,omitempty"`
 	LogoURI          string   `json:"logo_uri,omitempty"`
 	PolicyURI        string   `json:"policy_uri,omitempty"`
-	HomepageURI      string   `json:"homepage_uri,omitempty"`
+	InformationURI   string   `json:"information_uri,omitempty"`
+	OrganizationName string   `json:"organization_name,omitempty"`
+	OrganizationURI  string   `json:"organization_uri,omitempty"`
 }
 
 type openIDRelyingPartyMetadata struct {
