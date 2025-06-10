@@ -45,13 +45,7 @@ func (m Metadata) GuessEntityTypes() (entityTypes []string) {
 
 // GuessDisplayName implements the DisplayNameGuesser interface
 func (m OpenIDProviderMetadata) GuessDisplayName() string {
-	if dn, ok := m.Extra["display_name"].(string); ok {
-		return dn
-	}
-	if dn, ok := m.Extra["provider_name"].(string); ok {
-		return dn
-	}
-	if dn, ok := m.Extra["authorization_server_name"].(string); ok {
+	if dn := m.DisplayName; dn != "" {
 		return dn
 	}
 	return m.OrganizationName
@@ -59,18 +53,15 @@ func (m OpenIDProviderMetadata) GuessDisplayName() string {
 
 // GuessDisplayName implements the DisplayNameGuesser interface
 func (m OpenIDRelyingPartyMetadata) GuessDisplayName() string {
+	if dn := m.DisplayName; dn != "" {
+		return dn
+	}
 	return m.ClientName
 }
 
 // GuessDisplayName implements the DisplayNameGuesser interface
 func (m OAuthAuthorizationServerMetadata) GuessDisplayName() string {
-	if dn, ok := m.Extra["display_name"].(string); ok {
-		return dn
-	}
-	if dn, ok := m.Extra["provider_name"].(string); ok {
-		return dn
-	}
-	if dn, ok := m.Extra["authorization_server_name"].(string); ok {
+	if dn := m.DisplayName; dn != "" {
 		return dn
 	}
 	return m.OrganizationName
@@ -78,17 +69,23 @@ func (m OAuthAuthorizationServerMetadata) GuessDisplayName() string {
 
 // GuessDisplayName implements the DisplayNameGuesser interface
 func (m OAuthClientMetadata) GuessDisplayName() string {
+	if dn := m.DisplayName; dn != "" {
+		return dn
+	}
 	return m.ClientName
 }
 
 // GuessDisplayName implements the DisplayNameGuesser interface
 func (m OAuthProtectedResourceMetadata) GuessDisplayName() string {
+	if dn := m.DisplayName; dn != "" {
+		return dn
+	}
 	return m.ResourceName
 }
 
 // GuessDisplayName implements the DisplayNameGuesser interface
 func (m FederationEntityMetadata) GuessDisplayName() string {
-	if dn, ok := m.Extra["display_name"].(string); ok {
+	if dn := m.DisplayName; dn != "" {
 		return dn
 	}
 	return m.OrganizationName
@@ -117,9 +114,43 @@ func (m Metadata) GuessDisplayNames() map[string]string {
 	return result
 }
 
-// CollectStringClaim collects a claim that has a string value for all metadata types.
-func (m Metadata) CollectStringClaim(tag string) map[string]string {
-	result := make(map[string]string)
+// IterateStringSliceClaim collects a claim that has a []string value for all
+// metadata types and calls the iterator on it.
+func (m Metadata) IterateStringSliceClaim(tag string, iterator func(entityType string, value []string)) {
+	value := reflect.ValueOf(m)
+	typ := value.Type()
+
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Field(i)
+		if field.Kind() == reflect.Ptr && !field.IsNil() {
+			structField := typ.Field(i)
+			entityTag := structField.Tag.Get("json")
+			entityTag = strings.TrimSuffix(entityTag, ",omitempty")
+
+			elem := field.Elem()
+			elemType := elem.Type()
+
+			for j := 0; j < elem.NumField(); j++ {
+				subField := elem.Field(j)
+				subStructField := elemType.Field(j)
+				jsonTag := subStructField.Tag.Get("json")
+				jsonTag = strings.TrimSuffix(jsonTag, ",omitempty")
+
+				if jsonTag == tag && subField.Kind() == reflect.String {
+					slice := subField.Interface().([]string)
+					if slice != nil {
+						iterator(entityTag, slice)
+					}
+					break
+				}
+			}
+		}
+	}
+}
+
+// IterateStringClaim collects a claim that has a string value for all metadata
+// types and calls the iterator on it.
+func (m Metadata) IterateStringClaim(tag string, iterator func(entityType, value string)) {
 	value := reflect.ValueOf(m)
 	typ := value.Type()
 
@@ -142,14 +173,13 @@ func (m Metadata) CollectStringClaim(tag string) map[string]string {
 				if jsonTag == tag && subField.Kind() == reflect.String {
 					str := subField.Interface().(string)
 					if str != "" {
-						result[entityTag] = str
+						iterator(entityTag, str)
 					}
 					break
 				}
 			}
 		}
 	}
-	return result
 }
 
 // MarshalJSON implements the json.Marshaler interface.

@@ -67,10 +67,10 @@ var entitystatementMarshalData = map[string]marshalData{
 				},
 				FederationEntity: &FederationEntityMetadata{
 					OrganizationName: "organization",
-					HomepageURI:      "https://somewhere.com",
+					OrganizationURI:  "https://somewhere.com",
 					wasSet: map[string]bool{
 						"OrganizationName": true,
-						"HomepageURI":      true,
+						"OrganizationURI":  true,
 					},
 				},
 			},

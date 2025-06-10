@@ -238,8 +238,6 @@ func fedLeaf() *pkg.FederationLeaf {
 var redirectURI string
 
 func handleEntityConfiguration(w http.ResponseWriter, r *http.Request) {
-	var err error
-
 	jwt, err := fedLeaf().EntityConfigurationJWT()
 	if err != nil {
 		log.Fatal(err)

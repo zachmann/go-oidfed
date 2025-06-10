@@ -2,12 +2,15 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	arrays "github.com/adam-hanna/arrayOperations"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/go-querystring/query"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/pkg/errors"
@@ -34,14 +37,74 @@ type EntityCollectionResponse struct {
 
 // CollectedEntity is a type describing a single collected entity
 type CollectedEntity struct {
-	EntityID     string                 `json:"entity_id"`
-	TrustMarks   TrustMarkInfos         `json:"trust_marks,omitempty"`
-	TrustChain   JWSMessages            `json:"trust_chain,omitempty"`
-	Metadata     *Metadata              `json:"metadata,omitempty"`
-	EntityTypes  []string               `json:"entity_types,omitempty"`
-	LogoURIs     map[string]string      `json:"logo_uris,omitempty"`
-	DisplayNames map[string]string      `json:"display_names,omitempty"`
-	Extra        map[string]interface{} `json:"-"`
+	EntityID    string                 `json:"entity_id"`
+	TrustMarks  TrustMarkInfos         `json:"trust_marks,omitempty"`
+	TrustChain  JWSMessages            `json:"trust_chain,omitempty"`
+	metadata    *Metadata              `json:"-"`
+	EntityTypes []string               `json:"entity_types,omitempty"`
+	UIInfos     map[string]UIInfo      `json:"ui_infos,omitempty"`
+	Extra       map[string]interface{} `json:"-"`
+}
+
+type UIInfo struct {
+	DisplayName    string                 `json:"display_name,omitempty"`
+	Description    string                 `json:"description,omitempty"`
+	Keywords       []string               `json:"keywords,omitempty"`
+	LogoURI        string                 `json:"logo_uri,omitempty"`
+	PolicyURI      string                 `json:"policy_uri,omitempty"`
+	InformationURI string                 `json:"information_uri,omitempty"`
+	Extra          map[string]interface{} `json:"-"`
+}
+
+// setUInfoField sets a field in UIInfo	 by matching the JSON tag.
+// Falls back to Extra if the field is not found or not assignable.
+func (e *CollectedEntity) setUIInfoField(
+	entityType, jsonTag string, value interface{},
+) error {
+	if e.UIInfos == nil {
+		e.UIInfos = make(map[string]UIInfo)
+	}
+
+	uiInfo := e.UIInfos[entityType]
+	uiInfoValue := reflect.ValueOf(&uiInfo).Elem()
+	uiInfoType := uiInfoValue.Type()
+
+	fieldFound := false
+
+	for i := 0; i < uiInfoType.NumField(); i++ {
+		structField := uiInfoType.Field(i)
+		tag := structField.Tag.Get("json")
+		tagName := tag
+		if commaIdx := len(tag); commaIdx != -1 {
+			tagName = tag[:commaIdx]
+		}
+
+		if tagName == jsonTag {
+			fieldValue := uiInfoValue.Field(i)
+			if fieldValue.CanSet() {
+				val := reflect.ValueOf(value)
+				if val.Type().AssignableTo(fieldValue.Type()) {
+					fieldValue.Set(val)
+					fieldFound = true
+					break
+				} else {
+					return fmt.Errorf(
+						"cannot assign value of type %s to field %s of type %s", val.Type(), jsonTag, fieldValue.Type(),
+					)
+				}
+			}
+		}
+	}
+
+	if !fieldFound {
+		if uiInfo.Extra == nil {
+			uiInfo.Extra = make(map[string]interface{})
+		}
+		uiInfo.Extra[jsonTag] = value
+	}
+
+	e.UIInfos[entityType] = uiInfo
+	return nil
 }
 
 // MarshalJSON implements the json.Marshaler interface
@@ -65,6 +128,30 @@ func (e *CollectedEntity) UnmarshalJSON(data []byte) error {
 	}
 	ee.Extra = extra
 	*e = CollectedEntity(ee)
+	return nil
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (i UIInfo) MarshalJSON() ([]byte, error) {
+	type Alias UIInfo
+	explicitFields, err := json.Marshal(Alias(i))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return extraMarshalHelper(explicitFields, i.Extra)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (i *UIInfo) UnmarshalJSON(data []byte) error {
+	type Alias UIInfo
+	ii := Alias(*i)
+
+	extra, err := unmarshalWithExtra(data, &ii)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	ii.Extra = extra
+	*i = UIInfo(ii)
 	return nil
 }
 
@@ -256,12 +343,47 @@ func (d *SimpleEntityCollector) collect(
 									collectedEntity.EntityTypes = et
 								}
 
-								if req.Claims == nil || slices.Contains(req.Claims, "logo_uris") {
-									collectedEntity.LogoURIs = entityConfig.Metadata.CollectStringClaim("logo_uri")
+								uiInfoClaims := []string{
+									"description",
+									"logo_uri",
+									"policy_uri",
+									"information_uri",
+								}
+								for _, c := range uiInfoClaims {
+									if req.Claims == nil || slices.Contains(req.Claims, c) {
+										entityConfig.Metadata.
+											IterateStringClaim(
+												c, func(entityType, value string) {
+													collectedEntity.setUIInfoField(
+														entityType, c, value,
+													)
+												},
+											)
+									}
+								}
+								keywordsTag := "keywords"
+								if req.Claims == nil || slices.Contains(req.Claims, keywordsTag) {
+									entityConfig.Metadata.
+										IterateStringSliceClaim(
+											keywordsTag,
+											func(entityType string, value []string) {
+												collectedEntity.setUIInfoField(
+													entityType, keywordsTag, value,
+												)
+											},
+										)
 								}
 
-								if req.Claims == nil || slices.Contains(req.Claims, "display_names") {
-									collectedEntity.DisplayNames = displayNames
+								if req.Claims == nil || slices.Contains(req.Claims, "display_name") {
+									for entityType, displayName := range displayNames {
+										if displayName != "" {
+											if err = collectedEntity.setUIInfoField(
+												entityType, "display_name", displayName,
+											); err != nil {
+												log.Error(err.Error())
+											}
+										}
+									}
 								}
 
 								if slices.ContainsFunc(
@@ -285,7 +407,7 @@ func (d *SimpleEntityCollector) collect(
 											collectedEntity.TrustMarks = res.TrustMarks
 										}
 										if slices.Contains(req.Claims, "metadata") {
-											collectedEntity.Metadata = res.Metadata
+											collectedEntity.metadata = res.Metadata
 										}
 										if slices.Contains(req.Claims, "trust_chain") {
 											collectedEntity.TrustChain = res.TrustChain
@@ -471,8 +593,8 @@ func httpFetchList(listEndpoint string) ([]string, error) {
 }
 
 func getMetadataForCollectedEntity(e *CollectedEntity, trustAnchors []string) *Metadata {
-	if e.Metadata != nil {
-		return e.Metadata
+	if e.metadata != nil {
+		return e.metadata
 	}
 	metadata, _ := DefaultMetadataResolver.Resolve(
 		apimodel.ResolveRequest{
