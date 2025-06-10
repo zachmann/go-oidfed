@@ -12,9 +12,9 @@ import (
 	"github.com/lestrrat-go/jwx/v3/jws"
 
 	"github.com/zachmann/go-oidfed/examples/rp/pkce"
-	"github.com/zachmann/go-oidfed/internal/utils"
 	"github.com/zachmann/go-oidfed/pkg"
 	"github.com/zachmann/go-oidfed/pkg/apimodel"
+	"github.com/zachmann/go-oidfed/pkg/constants"
 )
 
 const loginHtml = `<!DOCTYPE html>
@@ -92,11 +92,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, op := range allOPs {
 		options += fmt.Sprintf(
-			opOptionFmt, op.EntityID, utils.FirstNonEmpty(
-				op.DisplayNames["openid_provider"],
-				op.DisplayNames["federation_entity"],
-				op.EntityID,
-			),
+			opOptionFmt, op.EntityID, getDisplayNameFromEntityInfo(op),
 		)
 	}
 	var img string
@@ -104,6 +100,24 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 		img = fmt.Sprintf(`<img src="%s" alt="%s" />`, conf.LogoURI, "Logo")
 	}
 	_, _ = io.WriteString(w, fmt.Sprintf(loginHtml, conf.ClientName, img, options))
+}
+
+func getDisplayNameFromEntityInfo(entity *pkg.CollectedEntity) string {
+	if entity == nil {
+		return ""
+	}
+	if entity.UIInfos == nil {
+		return entity.EntityID
+	}
+	op, ok := entity.UIInfos[constants.EntityTypeOpenIDProvider]
+	if ok && op.DisplayName != "" {
+		return op.DisplayName
+	}
+	fed, ok := entity.UIInfos[constants.EntityTypeFederationEntity]
+	if ok && fed.DisplayName != "" {
+		return fed.DisplayName
+	}
+	return entity.EntityID
 }
 
 type stateData struct {
