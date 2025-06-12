@@ -27,7 +27,7 @@ func (c TrustChains) SortAsc(scorer TrustChainScoringFnc) TrustChains {
 
 	sort.Slice(
 		c, func(i, j int) bool {
-			return scores[i] < scores[j]
+			return scores[i] < scores[j] // skipcq: GO-W4009
 		},
 	)
 	return c
@@ -42,7 +42,7 @@ func (c TrustChains) SortDesc(scorer TrustChainScoringFnc) TrustChains {
 
 	sort.Slice(
 		c, func(i, j int) bool {
-			return scores[i] > scores[j]
+			return scores[i] > scores[j] // skipcq: GO-W4009
 		},
 	)
 	return c
