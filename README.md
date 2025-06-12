@@ -7,19 +7,33 @@
 
 This repository holds a work-in-process implementation of
 [OpenID Federation](https://openid.github.io/federation/main.html) in the `go` language with the goal to enable go applications to make 
-use of OpenID federations.
+use of OpenID federation.
 
 The implementation mainly focuses on the Relying Party and Intermediate / Trust Anchor side, but not on the OP side. However, building blocks can also be utilized for OPs or other entity types.
-We provide a basic library as well as a configurable and flexible fedentity to support higher level functionality. This serves as a base for our examples.
-The [examples](https://github.com/go-oidfed/lib/tree/main/examples) directory contains example 
-implementations for a [Relying Party](https://github.com/go-oidfed/lib/tree/main/examples/rp) and an 
-[Intermediate Authority / Trust Anchor / Trust Mark Issuer](https://github.com/go-oidfed/lib/tree/main/examples/ta). Those serve 
-as examples on how the oidfed 
-library and the fedentity can be used to implement such entities;
-they can be used as they are for proof of concepts;
-for production usage it is strongly recommended to tweak it to your needs.
+We provide a basic library as well as a configurable and flexible 
+federation entity to support higher level functionality.
 
-Please also refer to the README in the examples directories for further details.
+- This repository contains:
+    - The basic go-oidfed library with the core oidfed functionalities.
+    - It can be used to build all kind of oidfed capable entities.
+- The LightHouse repository at https://github.com/go-oidfed/lighthouse contains
+    - Higher level implementation for various federation endpoints
+    - The LightHouse federation entity. This is a configurable and flexible 
+      federation entity that can be used as a
+        - Trust Anchor
+        - Intermediate Authority
+        - Trust Mark Issuer
+        - Resolver
+        - Entity Collector
+        - Everything at the same time.
+- The whoami-rp repository at https://github.com/go-oidfed/whoami-rp contains:
+    - A simple - but not very useful - example RP.
+- The OFFA repository at https://github.com/go-oidfed/offa:
+    - OFFA stands for Openid Federation Forward Auth
+    - OFFA can be deployed next to existing services to add oidfed 
+      authentication to services that do not natively support it.
+    - OFFA can be used with Apache, Caddy, NGINX, and Traefik.
+
 
 ### Implementation State
 
