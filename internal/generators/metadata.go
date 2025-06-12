@@ -200,9 +200,9 @@ func generateMarshalUnmarshalFunctions(name, withPtrsName string) string {
 	var sb strings.Builder
 
 	marshal := func(sb *strings.Builder, name string) {
-		sb.WriteString(
-			fmt.Sprintf(
-				`
+		_, _ = fmt.Fprintf(
+			sb,
+			`
 // MarshalJSON implements the json.Marshaler interface
 func (m %s) MarshalJSON() ([]byte, error) {
 	type Alias %s
@@ -213,14 +213,13 @@ func (m %s) MarshalJSON() ([]byte, error) {
 	return extraMarshalHelper(explicitFields, m.Extra)
 }
 `, name, name,
-			),
 		)
 	}
 
 	unmarshalHelper := func(sb *strings.Builder, name, nameWithPtrs string) {
-		sb.WriteString(
-			fmt.Sprintf(
-				`
+		_, _ = fmt.Fprintf(
+			sb,
+			`
 func (m *%s)fromPointers(withPtrs %s) {
 
 	m.wasSet = make(map[string]bool)
@@ -254,7 +253,6 @@ func (m *%s)fromPointers(withPtrs %s) {
 	}
 }
 `, name, nameWithPtrs,
-			),
 		)
 	}
 
@@ -299,9 +297,9 @@ func (m *%s) UnmarshalJSON(data []byte) error {
 	)
 
 	unmarshalMsgpack := func(sb *strings.Builder, name string) {
-		sb.WriteString(
-			fmt.Sprintf(
-				`
+		_, _ = fmt.Fprintf(
+			sb,
+			`
 // UnmarshalMsgpack implements the msgpack.Unmarshaler interface
 func (m *%s) UnmarshalMsgpack(data []byte) error {
 	type Alias %s
@@ -314,7 +312,6 @@ func (m *%s) UnmarshalMsgpack(data []byte) error {
 	return nil
 }
 `, name, name, name,
-			),
 		)
 	}
 

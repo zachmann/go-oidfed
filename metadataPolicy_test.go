@@ -60,7 +60,7 @@ func init() {
 // 				if err != nil {
 // 					t.Fatal(err)
 // 				}
-// 				if bytes.Compare(expectedMarshalled, combinedMarshalled) != 0 {
+// 				if !bytes.Equal(expectedMarshalled, combinedMarshalled) {
 // 					t.Fatalf(
 // 						"merged policy does not match expected policy"+
 // 							": expected: \n%s\n\n, combined: \n%s\n", expectedMarshalled, combinedMarshalled,
@@ -101,7 +101,7 @@ func TestApplyPolicies(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if bytes.Compare(expectedMarshalled, resolvedMarshalled) != 0 {
+				if !bytes.Equal(expectedMarshalled, resolvedMarshalled) {
 					t.Fatalf(
 						"resolved metadata does not match expected"+
 							" metadata"+
@@ -155,7 +155,7 @@ func TestMergeAndApplyMetadataPolicies(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if bytes.Compare(expectedMarshalled, resolvedMarshalled) != 0 {
+				if !bytes.Equal(expectedMarshalled, resolvedMarshalled) {
 					t.Fatalf(
 						"resolved metadata does not match expected"+
 							" metadata"+

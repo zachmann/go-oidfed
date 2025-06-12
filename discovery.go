@@ -30,37 +30,37 @@ const defaultSubordinateListingCacheTime = time.Hour
 // EntityCollectionResponse is a type describing the response of an entity
 // collection request
 type EntityCollectionResponse struct {
-	FederationEntities []*CollectedEntity     `json:"federation_entities"`
-	NextEntityID       string                 `json:"next_entity_id,omitempty"`
-	LastUpdated        *unixtime.Unixtime     `json:"last_updated,omitempty"`
-	Extra              map[string]interface{} `json:"-"`
+	FederationEntities []*CollectedEntity `json:"federation_entities"`
+	NextEntityID       string             `json:"next_entity_id,omitempty"`
+	LastUpdated        *unixtime.Unixtime `json:"last_updated,omitempty"`
+	Extra              map[string]any     `json:"-"`
 }
 
 // CollectedEntity is a type describing a single collected entity
 type CollectedEntity struct {
-	EntityID    string                 `json:"entity_id"`
-	TrustMarks  TrustMarkInfos         `json:"trust_marks,omitempty"`
-	TrustChain  JWSMessages            `json:"trust_chain,omitempty"`
-	metadata    *Metadata              `json:"-"`
-	EntityTypes []string               `json:"entity_types,omitempty"`
-	UIInfos     map[string]UIInfo      `json:"ui_infos,omitempty"`
-	Extra       map[string]interface{} `json:"-"`
+	EntityID    string         `json:"entity_id"`
+	TrustMarks  TrustMarkInfos `json:"trust_marks,omitempty"`
+	TrustChain  JWSMessages    `json:"trust_chain,omitempty"`
+	metadata    *Metadata
+	EntityTypes []string          `json:"entity_types,omitempty"`
+	UIInfos     map[string]UIInfo `json:"ui_infos,omitempty"`
+	Extra       map[string]any    `json:"-"`
 }
 
 type UIInfo struct {
-	DisplayName    string                 `json:"display_name,omitempty"`
-	Description    string                 `json:"description,omitempty"`
-	Keywords       []string               `json:"keywords,omitempty"`
-	LogoURI        string                 `json:"logo_uri,omitempty"`
-	PolicyURI      string                 `json:"policy_uri,omitempty"`
-	InformationURI string                 `json:"information_uri,omitempty"`
-	Extra          map[string]interface{} `json:"-"`
+	DisplayName    string         `json:"display_name,omitempty"`
+	Description    string         `json:"description,omitempty"`
+	Keywords       []string       `json:"keywords,omitempty"`
+	LogoURI        string         `json:"logo_uri,omitempty"`
+	PolicyURI      string         `json:"policy_uri,omitempty"`
+	InformationURI string         `json:"information_uri,omitempty"`
+	Extra          map[string]any `json:"-"`
 }
 
 // setUInfoField sets a field in UIInfo	 by matching the JSON tag.
 // Falls back to Extra if the field is not found or not assignable.
 func (e *CollectedEntity) setUIInfoField(
-	entityType, jsonTag string, value interface{},
+	entityType, jsonTag string, value any,
 ) error {
 	if e.UIInfos == nil {
 		e.UIInfos = make(map[string]UIInfo)
@@ -84,22 +84,21 @@ func (e *CollectedEntity) setUIInfoField(
 			fieldValue := uiInfoValue.Field(i)
 			if fieldValue.CanSet() {
 				val := reflect.ValueOf(value)
-				if val.Type().AssignableTo(fieldValue.Type()) {
-					fieldValue.Set(val)
-					fieldFound = true
-					break
-				} else {
+				if !val.Type().AssignableTo(fieldValue.Type()) {
 					return fmt.Errorf(
 						"cannot assign value of type %s to field %s of type %s", val.Type(), jsonTag, fieldValue.Type(),
 					)
 				}
+				fieldValue.Set(val)
+				fieldFound = true
+				break
 			}
 		}
 	}
 
 	if !fieldFound {
 		if uiInfo.Extra == nil {
-			uiInfo.Extra = make(map[string]interface{})
+			uiInfo.Extra = make(map[string]any)
 		}
 		uiInfo.Extra[jsonTag] = value
 	}
@@ -173,7 +172,7 @@ type SimpleEntityCollector struct {
 type SimpleOPCollector struct{}
 
 // CollectEntities implements the EntityCollector interface
-func (d *SimpleOPCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
+func (*SimpleOPCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
 	req.EntityTypes = []string{"openid_provider"}
 	return (&SimpleEntityCollector{}).CollectEntities(req)
 }
@@ -513,7 +512,7 @@ func (VerifiedChainsEntityCollector) CollectEntities(req apimodel.EntityCollecti
 }
 
 // CollectEntities implements the EntityCollector interface
-func (d filterableVerifiedChainsEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
+func (d *filterableVerifiedChainsEntityCollector) CollectEntities(req apimodel.EntityCollectionRequest) (entities []*CollectedEntity) {
 	if d.Collector == nil {
 		d.Collector = &SimpleEntityCollector{}
 	}
@@ -691,9 +690,7 @@ func EntityCollectionFilterOPSupportsAutomaticRegistration(
 }
 
 // EntityCollectionFilterOPs returns an EntityCollectionFilter that filters to OPs
-func EntityCollectionFilterOPs(
-	trustAnchorIDs []string,
-) EntityCollectionFilter {
+func EntityCollectionFilterOPs() EntityCollectionFilter {
 	return NewEntityCollectionFilter(
 		func(e *CollectedEntity) bool {
 			if e == nil {

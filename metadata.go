@@ -280,7 +280,7 @@ func applyPolicy(metadata any, policy MetadataPolicy, ownTag string) (any, error
 	t := v.Elem().Type()
 
 	wasSetField := v.Elem().FieldByName("wasSet")
-	wasSet := *(*map[string]bool)(unsafe.Pointer(wasSetField.UnsafeAddr()))
+	wasSet := *(*map[string]bool)(unsafe.Pointer(wasSetField.UnsafeAddr())) // skipcq:  GSC-G103
 	for i := 0; i < t.NumField(); i++ {
 		j, ok := t.Field(i).Tag.Lookup("json")
 		if !ok {

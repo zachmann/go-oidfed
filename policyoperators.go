@@ -281,7 +281,7 @@ var policyOperatorValue = NewPolicyOperator(
 			"conflicting values '%v' and '%v' when merging '%s' operator in '%s'", a, b, PolicyOperatorValue, pathInfo,
 		)
 	},
-	func(value any, valueSet bool, policyValue any, _ bool, _ string) (any, bool, error) {
+	func(value any, _ bool, policyValue any, _ bool, _ string) (any, bool, error) {
 		if policyValue == nil {
 			return nil, false, nil
 		}

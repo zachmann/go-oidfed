@@ -95,7 +95,10 @@ func policyVerifyDefaultAndValue(p MetadataPolicyEntry, pathInfo string) error {
 		return nil
 	}
 	if valueV == nil {
-		return errors.New("after combining policies: combining 'default' with a null 'value' policy is not allowed.")
+		return errors.Errorf(
+			"after combining policies '%s': combining '%s' with a null '%s' policy is not allowed.", pathInfo,
+			PolicyOperatorDefault, PolicyOperatorValue,
+		)
 	}
 	return nil
 }
