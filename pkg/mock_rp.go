@@ -10,8 +10,8 @@ import (
 
 	"github.com/lestrrat-go/jwx/v3/jwa"
 
-	"github.com/zachmann/go-oidfed/pkg/jwk"
-	"github.com/zachmann/go-oidfed/pkg/unixtime"
+	"github.com/go-oidfed/lib/pkg/jwk"
+	"github.com/go-oidfed/lib/pkg/unixtime"
 )
 
 type mockRP struct {

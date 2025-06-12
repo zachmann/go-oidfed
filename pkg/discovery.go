@@ -16,12 +16,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 
-	"github.com/zachmann/go-oidfed/internal"
-	"github.com/zachmann/go-oidfed/internal/http"
-	"github.com/zachmann/go-oidfed/internal/utils"
-	"github.com/zachmann/go-oidfed/pkg/apimodel"
-	"github.com/zachmann/go-oidfed/pkg/cache"
-	"github.com/zachmann/go-oidfed/pkg/unixtime"
+	"github.com/go-oidfed/lib/internal"
+	"github.com/go-oidfed/lib/internal/http"
+	"github.com/go-oidfed/lib/internal/utils"
+	"github.com/go-oidfed/lib/pkg/apimodel"
+	"github.com/go-oidfed/lib/pkg/cache"
+	"github.com/go-oidfed/lib/pkg/unixtime"
 )
 
 const defaultSubordinateListingCacheTime = time.Hour

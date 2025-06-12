@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/go-oidfed/lib/pkg"
 )
 
 type config struct {

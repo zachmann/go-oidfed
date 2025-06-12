@@ -5,10 +5,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/apimodel"
-	"github.com/zachmann/go-oidfed/pkg/constants"
-	"github.com/zachmann/go-oidfed/pkg/unixtime"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/apimodel"
+	"github.com/go-oidfed/lib/pkg/constants"
+	"github.com/go-oidfed/lib/pkg/unixtime"
 )
 
 // TODO allow limiting the resolve endpoint to certain trust anchors

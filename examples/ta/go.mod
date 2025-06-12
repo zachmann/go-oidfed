@@ -1,4 +1,4 @@
-module github.com/zachmann/go-oidfed/examples/ta
+module github.com/go-oidfed/lib/examples/ta
 
 go 1.23.0
 
@@ -8,7 +8,7 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/lestrrat-go/jwx/v3 v3.0.0
 	github.com/pkg/errors v0.9.1
-	github.com/zachmann/go-oidfed v0.1.1-0.20240902133531-04f7ee5e29ac
+	github.com/go-oidfed/lib v0.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

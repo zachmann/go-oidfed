@@ -5,7 +5,7 @@ WORKDIR /app
 COPY ./ ./
 RUN go mod download
 
-RUN go build -o /oidfed-go-rp github.com/zachmann/go-oidfed/examples/rp
+RUN go build -o /oidfed-go-rp github.com/go-oidfed/lib/examples/rp
 
 FROM debian:stable
 RUN apt-get update && apt-get install -y ca-certificates && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*

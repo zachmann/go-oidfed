@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/go-oidfed/lib/internal/utils"
 )
 
 // PolicyVerifier is a function that verifies a MetadataPolicyEntry

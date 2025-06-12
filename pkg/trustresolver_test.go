@@ -10,8 +10,8 @@ import (
 
 	"github.com/jarcoal/httpmock"
 
-	"github.com/zachmann/go-oidfed/internal"
-	"github.com/zachmann/go-oidfed/internal/http"
+	"github.com/go-oidfed/lib/internal"
+	"github.com/go-oidfed/lib/internal/http"
 )
 
 func setup() {

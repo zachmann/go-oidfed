@@ -13,13 +13,13 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/lestrrat-go/jwx/v3/jwa"
 
-	"github.com/zachmann/go-oidfed/internal"
-	"github.com/zachmann/go-oidfed/internal/utils"
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/cache"
-	"github.com/zachmann/go-oidfed/pkg/constants"
-	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
-	"github.com/zachmann/go-oidfed/pkg/unixtime"
+	"github.com/go-oidfed/lib/internal"
+	"github.com/go-oidfed/lib/internal/utils"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/cache"
+	"github.com/go-oidfed/lib/pkg/constants"
+	"github.com/go-oidfed/lib/pkg/fedentities/storage"
+	"github.com/go-oidfed/lib/pkg/unixtime"
 )
 
 const entityConfigurationCachePeriod = 5 * time.Second

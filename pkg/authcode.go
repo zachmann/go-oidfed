@@ -12,7 +12,7 @@ import (
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/pkg/errors"
 
-	"github.com/zachmann/go-oidfed/internal/jwx"
+	"github.com/go-oidfed/lib/internal/jwx"
 )
 
 // OIDCErrorResponse is the error response of an oidc provider

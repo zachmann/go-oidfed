@@ -7,11 +7,11 @@ import (
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/pkg/errors"
 
-	"github.com/zachmann/go-oidfed/internal"
-	"github.com/zachmann/go-oidfed/pkg/apimodel"
-	"github.com/zachmann/go-oidfed/pkg/cache"
-	"github.com/zachmann/go-oidfed/pkg/jwk"
-	"github.com/zachmann/go-oidfed/pkg/unixtime"
+	"github.com/go-oidfed/lib/internal"
+	"github.com/go-oidfed/lib/pkg/apimodel"
+	"github.com/go-oidfed/lib/pkg/cache"
+	"github.com/go-oidfed/lib/pkg/jwk"
+	"github.com/go-oidfed/lib/pkg/unixtime"
 )
 
 // FederationEntity is a type for an entity participating in federations.

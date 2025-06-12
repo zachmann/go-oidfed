@@ -11,13 +11,13 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/zachmann/go-oidfed/internal"
-	"github.com/zachmann/go-oidfed/internal/constants"
-	"github.com/zachmann/go-oidfed/internal/http"
-	"github.com/zachmann/go-oidfed/internal/jwx"
-	"github.com/zachmann/go-oidfed/internal/utils"
-	"github.com/zachmann/go-oidfed/pkg/cache"
-	"github.com/zachmann/go-oidfed/pkg/unixtime"
+	"github.com/go-oidfed/lib/internal"
+	"github.com/go-oidfed/lib/internal/constants"
+	"github.com/go-oidfed/lib/internal/http"
+	"github.com/go-oidfed/lib/internal/jwx"
+	"github.com/go-oidfed/lib/internal/utils"
+	"github.com/go-oidfed/lib/pkg/cache"
+	"github.com/go-oidfed/lib/pkg/unixtime"
 )
 
 const cacheGracePeriod = time.Hour

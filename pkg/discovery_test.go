@@ -3,8 +3,8 @@ package pkg
 import (
 	"testing"
 
-	"github.com/zachmann/go-oidfed/internal/utils"
-	"github.com/zachmann/go-oidfed/pkg/apimodel"
+	"github.com/go-oidfed/lib/internal/utils"
+	"github.com/go-oidfed/lib/pkg/apimodel"
 )
 
 func TestSimpleOPCollector_CollectEntities(t *testing.T) {

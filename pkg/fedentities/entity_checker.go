@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/apimodel"
-	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/apimodel"
+	"github.com/go-oidfed/lib/pkg/jwk"
 )
 
 // EntityChecker is an interface used to check if an entity satisfies

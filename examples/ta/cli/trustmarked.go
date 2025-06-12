@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/zachmann/go-oidfed/examples/ta/config"
+	"github.com/go-oidfed/lib/examples/ta/config"
 )
 
 var tmCmd = &cobra.Command{

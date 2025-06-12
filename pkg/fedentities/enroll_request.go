@@ -3,8 +3,8 @@ package fedentities
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/fedentities/storage"
 )
 
 // AddEnrollRequestEndpoint adds an endpoint to request enrollment to this IA

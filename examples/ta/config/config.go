@@ -9,10 +9,10 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
-	"github.com/zachmann/go-oidfed/internal/utils"
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/fedentities"
-	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
+	"github.com/go-oidfed/lib/internal/utils"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/fedentities"
+	"github.com/go-oidfed/lib/pkg/fedentities/storage"
 )
 
 // Config holds configuration for the entity

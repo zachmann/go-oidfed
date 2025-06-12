@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/go-oidfed/lib/pkg/jwk"
 )
 
 // TrustAnchor is a type for specifying trust anchors

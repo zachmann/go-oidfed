@@ -5,7 +5,7 @@ import (
 
 	arrops "github.com/adam-hanna/arrayOperations"
 
-	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/go-oidfed/lib/internal/utils"
 )
 
 var rp1 = newMockRP(

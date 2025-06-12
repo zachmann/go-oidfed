@@ -6,8 +6,8 @@ import (
 	arrays "github.com/adam-hanna/arrayOperations"
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/fedentities/storage"
 )
 
 // AddSubordinateListingEndpoint adds a subordinate listing endpoint

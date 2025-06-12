@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	slices2 "tideland.dev/go/slices"
 
-	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/go-oidfed/lib/internal/utils"
 )
 
 // FileStorage is a storage backend for storing things in files

@@ -1,12 +1,9 @@
 # Implementation of OpenID Federations for Golang
 
-[![License](https://img.shields.io/github/license/zachmann/go-oidfed.svg)](https://github.com/zachmann/go-oidfed/blob/master/LICENSE)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/zachmann/go-oidfed)
-[![Go Report](https://goreportcard.com/badge/github.com/zachmann/go-oidfed)](https://goreportcard.com/report/github.com/zachmann/go-oidfed)
-[![DeepSource](https://deepsource.io/gh/zachmann/go-oidfed.svg/?label=active+issues&show_trend=true)](https://deepsource.io/gh/zachmann/go-oidfed/?ref=repository-badge)
-
-[//]: # ([![Release date]&#40;https://img.shields.io/github/release-date/zachmann/go-oidfed.svg&#41;]&#40;https://github.com/zachmann/go-oidfed/releases/latest&#41;)
-[//]: # ([![Release version]&#40;https://img.shields.io/github/release/zachmann/go-oidfed.svg&#41;]&#40;https://github.com/zachmann/go-oidfed/releases/latest&#41;)
+[![License](https://img.shields.io/github/license/go-oidfed/lib.svg)](https://github.com/go-oidfed/lib/blob/master/LICENSE)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/go-oidfed/lib)
+[![Go Report](https://goreportcard.com/badge/github.com/go-oidfed/lib)](https://goreportcard.com/report/github.com/go-oidfed/lib)
+[![DeepSource](https://deepsource.io/gh/go-oidfed/lib.svg/?label=active+issues&show_trend=true)](https://deepsource.io/gh/go-oidfed/lib/?ref=repository-badge)
 
 This repository holds a work-in-process implementation of
 [OpenID Federation](https://openid.github.io/federation/main.html) in the `go` language with the goal to enable go applications to make 
@@ -14,9 +11,9 @@ use of OpenID federations.
 
 The implementation mainly focuses on the Relying Party and Intermediate / Trust Anchor side, but not on the OP side. However, building blocks can also be utilized for OPs or other entity types.
 We provide a basic library as well as a configurable and flexible fedentity to support higher level functionality. This serves as a base for our examples.
-The [examples](https://github.com/zachmann/go-oidfed/tree/master/examples) directory contains example 
-implementations for a [Relying Party](https://github.com/zachmann/go-oidfed/tree/master/examples/rp) and an 
-[Intermediate Authority / Trust Anchor / Trust Mark Issuer](https://github.com/zachmann/go-oidfed/tree/master/examples/ta). Those serve 
+The [examples](https://github.com/go-oidfed/lib/tree/master/examples) directory contains example 
+implementations for a [Relying Party](https://github.com/go-oidfed/lib/tree/master/examples/rp) and an 
+[Intermediate Authority / Trust Anchor / Trust Mark Issuer](https://github.com/go-oidfed/lib/tree/master/examples/ta). Those serve 
 as examples on how the oidfed 
 library and the fedentity can be used to implement such entities;
 they can be used as they are for proof of concepts;

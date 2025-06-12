@@ -5,7 +5,7 @@ import (
 
 	"github.com/lestrrat-go/jwx/v3/jwa"
 
-	"github.com/zachmann/go-oidfed/pkg"
+	"github.com/go-oidfed/lib/pkg"
 )
 
 const fedSigningKeyName = "fed.signing.key"

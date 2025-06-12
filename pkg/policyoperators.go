@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/zachmann/go-oidfed/internal/utils"
+	"github.com/go-oidfed/lib/internal/utils"
 )
 
 // PolicyOperator is an interface implemented by policy operators

@@ -1,4 +1,4 @@
-module github.com/zachmann/go-oidfed/examples/ta/cli
+module github.com/go-oidfed/lib/examples/ta/cli
 
 go 1.23.0
 
@@ -8,8 +8,8 @@ require (
 	github.com/lestrrat-go/jwx/v3 v3.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
-	github.com/zachmann/go-oidfed v0.1.1-0.20240902133531-04f7ee5e29ac
-	github.com/zachmann/go-oidfed/examples/ta v0.0.0-20241206145349-52be7a6102b0
+	github.com/go-oidfed/lib v0.4.0
+	github.com/go-oidfed/lib/examples/ta v0.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

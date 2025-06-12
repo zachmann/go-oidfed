@@ -1,4 +1,4 @@
-module github.com/zachmann/go-oidfed
+module github.com/go-oidfed/lib
 
 go 1.23.0
 

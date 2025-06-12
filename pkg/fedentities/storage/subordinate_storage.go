@@ -5,8 +5,8 @@ import (
 
 	"github.com/vmihailenco/msgpack/v5"
 
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/jwk"
 )
 
 // Status is a type for holding a status for something that is stored in the

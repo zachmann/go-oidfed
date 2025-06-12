@@ -11,10 +11,10 @@ import (
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jws"
 
-	"github.com/zachmann/go-oidfed/examples/rp/pkce"
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/apimodel"
-	"github.com/zachmann/go-oidfed/pkg/constants"
+	"github.com/go-oidfed/lib/examples/rp/pkce"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/apimodel"
+	"github.com/go-oidfed/lib/pkg/constants"
 )
 
 const loginHtml = `<!DOCTYPE html>

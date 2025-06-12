@@ -5,9 +5,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/constants"
-	"github.com/zachmann/go-oidfed/pkg/fedentities/storage"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/constants"
+	"github.com/go-oidfed/lib/pkg/fedentities/storage"
 )
 
 // AddTrustMarkEndpoint adds a trust mark endpoint

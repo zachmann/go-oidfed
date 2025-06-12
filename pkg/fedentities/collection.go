@@ -3,8 +3,8 @@ package fedentities
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/zachmann/go-oidfed/pkg"
-	"github.com/zachmann/go-oidfed/pkg/apimodel"
+	"github.com/go-oidfed/lib/pkg"
+	"github.com/go-oidfed/lib/pkg/apimodel"
 )
 
 // TODO allow limiting the collection endpoint to certain trust anchors

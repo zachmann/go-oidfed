@@ -6,7 +6,7 @@ import (
 
 	"github.com/jarcoal/httpmock"
 
-	"github.com/zachmann/go-oidfed/internal/constants"
+	"github.com/go-oidfed/lib/internal/constants"
 )
 
 type mockedEntityConfigurationSigner interface {

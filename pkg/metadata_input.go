@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"github.com/zachmann/go-oidfed/pkg/jwk"
+	"github.com/go-oidfed/lib/pkg/jwk"
 )
 
 //go:generate go run ../internal/generators/metadata.go

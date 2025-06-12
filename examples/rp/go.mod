@@ -1,4 +1,4 @@
-module github.com/zachmann/go-oidfed/examples/rp
+module github.com/go-oidfed/lib/examples/rp
 
 go 1.23.0
 
@@ -7,7 +7,7 @@ toolchain go1.24.0
 require (
 	github.com/lestrrat-go/jwx/v3 v3.0.0
 	github.com/pkg/errors v0.9.1
-	github.com/zachmann/go-oidfed v0.3.1
+	github.com/go-oidfed/lib v0.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

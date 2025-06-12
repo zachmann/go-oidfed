@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"github.com/zachmann/go-oidfed/internal"
+	"github.com/go-oidfed/lib/internal"
 )
 
 // EnableDebugLogging enables debug logging
