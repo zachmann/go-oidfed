@@ -456,21 +456,23 @@ func (tmi *TrustMarkIssuer) AddTrustMark(spec TrustMarkSpec) {
 	tmi.trustMarks[spec.TrustMarkType] = spec
 }
 
-// TrustMarkIDs returns a slice of the trust mark ids for which this TrustMarKIssuer can issue TrustMarks
-func (tmi *TrustMarkIssuer) TrustMarkIDs() []string {
-	trustMarkIDs := make([]string, 0, len(tmi.trustMarks))
+// TrustMarkTypes returns a slice of the trust mark ids for which this TrustMarKIssuer can issue TrustMarks
+func (tmi *TrustMarkIssuer) TrustMarkTypes() []string {
+	trustMarkTypes := make([]string, 0, len(tmi.trustMarks))
 	for id := range tmi.trustMarks {
-		trustMarkIDs = append(trustMarkIDs, id)
+		trustMarkTypes = append(trustMarkTypes, id)
 	}
-	return trustMarkIDs
+	return trustMarkTypes
 }
 
 // IssueTrustMark issues a TrustMarkInfo for the passed trust mark id and subject; optionally  a custom lifetime can
 // be passed
-func (tmi TrustMarkIssuer) IssueTrustMark(trustMarkID, sub string, lifetime ...time.Duration) (*TrustMarkInfo, error) {
-	spec, ok := tmi.trustMarks[trustMarkID]
+func (tmi TrustMarkIssuer) IssueTrustMark(trustMarkType, sub string, lifetime ...time.Duration) (
+	*TrustMarkInfo, error,
+) {
+	spec, ok := tmi.trustMarks[trustMarkType]
 	if !ok {
-		return nil, errors.Errorf("unknown trustmark '%s'", trustMarkID)
+		return nil, errors.Errorf("unknown trustmark '%s'", trustMarkType)
 	}
 	now := time.Now()
 	tm := &TrustMark{
@@ -543,10 +545,10 @@ func (tmo *TrustMarkOwner) AddTrustMark(spec OwnedTrustMark) {
 
 // DelegationJWT issues a DelegationJWT (as []byte) for the passed trust mark id and subject; optionally a custom
 // lifetime can be passed
-func (tmo TrustMarkOwner) DelegationJWT(trustMarkID, sub string, lifetime ...time.Duration) ([]byte, error) {
-	spec, ok := tmo.ownedTrustMarks[trustMarkID]
+func (tmo TrustMarkOwner) DelegationJWT(trustMarkType, sub string, lifetime ...time.Duration) ([]byte, error) {
+	spec, ok := tmo.ownedTrustMarks[trustMarkType]
 	if !ok {
-		return nil, errors.Errorf("unknown trustmark '%s'", trustMarkID)
+		return nil, errors.Errorf("unknown trustmark '%s'", trustMarkType)
 	}
 	now := time.Now()
 	delegation := &DelegationJWT{

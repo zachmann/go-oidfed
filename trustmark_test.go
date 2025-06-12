@@ -139,28 +139,28 @@ func init() {
 func TestTrustMarkOwner_DelegationJWT(t *testing.T) {
 	tests := []struct {
 		name             string
-		trustMarkID      string
+		trustMarkType    string
 		sub              string
 		lifetime         time.Duration
 		expectedLifetime time.Duration
 		errExpected      bool
 	}{
 		{
-			name:        "no lifetime",
-			trustMarkID: "https://trustmarks.org/test",
-			sub:         "https://example.org",
-			errExpected: false,
+			name:          "no lifetime",
+			trustMarkType: "https://trustmarks.org/test",
+			sub:           "https://example.org",
+			errExpected:   false,
 		},
 		{
 			name:             "default tmo lifetime",
-			trustMarkID:      "https://trustmarks.org/tm-delegated",
+			trustMarkType:    "https://trustmarks.org/tm-delegated",
 			sub:              "https://example.org",
 			expectedLifetime: tmo.ownedTrustMarks["https://trustmarks.org/tm-delegated"].DelegationLifetime,
 			errExpected:      false,
 		},
 		{
 			name:             "custom lifetime lifetime",
-			trustMarkID:      "https://trustmarks.org/tm-delegated",
+			trustMarkType:    "https://trustmarks.org/tm-delegated",
 			sub:              "https://example.org",
 			lifetime:         time.Minute,
 			expectedLifetime: time.Minute,
@@ -173,9 +173,9 @@ func TestTrustMarkOwner_DelegationJWT(t *testing.T) {
 				var delegationJWT []byte
 				var err error
 				if test.lifetime == 0 {
-					delegationJWT, err = tmo.DelegationJWT(test.trustMarkID, test.sub)
+					delegationJWT, err = tmo.DelegationJWT(test.trustMarkType, test.sub)
 				} else {
-					delegationJWT, err = tmo.DelegationJWT(test.trustMarkID, test.sub, test.lifetime)
+					delegationJWT, err = tmo.DelegationJWT(test.trustMarkType, test.sub, test.lifetime)
 				}
 				if err != nil {
 					if test.errExpected {
@@ -192,9 +192,9 @@ func TestTrustMarkOwner_DelegationJWT(t *testing.T) {
 					t.Errorf("could not parse the produced delegation JWT: %v", err)
 					return
 				}
-				if delegation.TrustMarkType != test.trustMarkID {
+				if delegation.TrustMarkType != test.trustMarkType {
 					t.Errorf(
-						"parsed delegation JWT does not have matching ids: '%s' vs '%s'", test.trustMarkID,
+						"parsed delegation JWT does not have matching ids: '%s' vs '%s'", test.trustMarkType,
 						delegation.TrustMarkType,
 					)
 					return
@@ -218,7 +218,7 @@ func TestTrustMarkOwner_DelegationJWT(t *testing.T) {
 						return
 					}
 				}
-				for k, v := range tmo.ownedTrustMarks[test.trustMarkID].Extra {
+				for k, v := range tmo.ownedTrustMarks[test.trustMarkType].Extra {
 					if vv := delegation.Extra[k]; vv != v {
 						t.Errorf("extra key-value '%s: %s' not correct in delegation jwt: '%s'", k, v, vv)
 						return
@@ -293,35 +293,35 @@ func TestDelegationJWT_VerifyExternal(t *testing.T) {
 
 func TestDelegationJWT_VerifyFederation(t *testing.T) {
 	tests := []struct {
-		name        string
-		trustMarkID string
-		errExpected bool
+		name          string
+		trustMarkType string
+		errExpected   bool
 	}{
 		{
-			name:        "correct",
-			trustMarkID: "https://trustmarks.org/tm-delegated",
-			errExpected: false,
+			name:          "correct",
+			trustMarkType: "https://trustmarks.org/tm-delegated",
+			errExpected:   false,
 		},
 		{
-			name:        "correct 2",
-			trustMarkID: "https://trustmarks.org/test",
-			errExpected: false,
+			name:          "correct 2",
+			trustMarkType: "https://trustmarks.org/test",
+			errExpected:   false,
 		},
 		{
-			name:        "no owner statement",
-			trustMarkID: "https://trustmarks.org/invalid",
-			errExpected: true,
+			name:          "no owner statement",
+			trustMarkType: "https://trustmarks.org/invalid",
+			errExpected:   true,
 		},
 		{
-			name:        "other owner statement",
-			trustMarkID: "https://trustmarks.org/other",
-			errExpected: true,
+			name:          "other owner statement",
+			trustMarkType: "https://trustmarks.org/other",
+			errExpected:   true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(
 			test.name, func(t *testing.T) {
-				data, err := tmo.DelegationJWT(test.trustMarkID, "foobar")
+				data, err := tmo.DelegationJWT(test.trustMarkType, "foobar")
 				if err != nil {
 					t.Error(err)
 					return
@@ -350,7 +350,7 @@ func TestDelegationJWT_VerifyFederation(t *testing.T) {
 func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 	tests := []struct {
 		name              string
-		trustMarkID       string
+		trustMarkType     string
 		tmi               *TrustMarkIssuer
 		requestedLifetime time.Duration
 		requestLifetime   bool
@@ -361,7 +361,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 	}{
 		{
 			name:              "normal tm1",
-			trustMarkID:       "https://trustmarks.org/tm1",
+			trustMarkType:     "https://trustmarks.org/tm1",
 			tmi:               &tmi1.TrustMarkIssuer,
 			expectedLifetime:  time.Hour,
 			ta:                taWithTmo.EntityStatementPayload(),
@@ -370,7 +370,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 		},
 		{
 			name:              "custom lifetime tm1",
-			trustMarkID:       "https://trustmarks.org/tm1",
+			trustMarkType:     "https://trustmarks.org/tm1",
 			tmi:               &tmi1.TrustMarkIssuer,
 			requestLifetime:   true,
 			requestedLifetime: 2 * time.Hour,
@@ -381,7 +381,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 		},
 		{
 			name:              "unknown tm",
-			trustMarkID:       "https://trustmarks.org/unknown",
+			trustMarkType:     "https://trustmarks.org/unknown",
 			tmi:               &tmi1.TrustMarkIssuer,
 			ta:                taWithTmo.EntityStatementPayload(),
 			errExpectedIssue:  true,
@@ -389,7 +389,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 		},
 		{
 			name:              "tm3 not in TA",
-			trustMarkID:       "https://trustmarks.org/tm3",
+			trustMarkType:     "https://trustmarks.org/tm3",
 			tmi:               &tmi1.TrustMarkIssuer,
 			expectedLifetime:  time.Hour,
 			ta:                taWithTmo.EntityStatementPayload(),
@@ -398,7 +398,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 		},
 		{
 			name:              "tm4 tmi not in TA",
-			trustMarkID:       "https://trustmarks.org/tm4",
+			trustMarkType:     "https://trustmarks.org/tm4",
 			tmi:               &tmi1.TrustMarkIssuer,
 			expectedLifetime:  time.Hour,
 			ta:                taWithTmo.EntityStatementPayload(),
@@ -407,7 +407,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 		},
 		{
 			name:              "delegation no delegation jwt",
-			trustMarkID:       "https://trustmarks.org/tm-delegated",
+			trustMarkType:     "https://trustmarks.org/tm-delegated",
 			tmi:               &tmi1.TrustMarkIssuer,
 			expectedLifetime:  time.Hour,
 			ta:                taWithTmo.EntityStatementPayload(),
@@ -416,7 +416,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 		},
 		{
 			name:              "delegation ok",
-			trustMarkID:       "https://trustmarks.org/test",
+			trustMarkType:     "https://trustmarks.org/test",
 			tmi:               &tmi1.TrustMarkIssuer,
 			expectedLifetime:  time.Hour,
 			ta:                taWithTmo.EntityStatementPayload(),
@@ -425,7 +425,7 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 		},
 		{
 			name:              "delegation tmi not in ta",
-			trustMarkID:       "https://trustmarks.org/tm-delegated",
+			trustMarkType:     "https://trustmarks.org/tm-delegated",
 			tmi:               &tmi2.TrustMarkIssuer,
 			expectedLifetime:  time.Hour,
 			ta:                taWithTmo.EntityStatementPayload(),
@@ -439,9 +439,9 @@ func TestTrustMarkIssuer_IssueAndVerifyTrustMark(t *testing.T) {
 				var err error
 				var info *TrustMarkInfo
 				if test.requestLifetime {
-					info, err = test.tmi.IssueTrustMark(test.trustMarkID, "foobar", test.requestedLifetime)
+					info, err = test.tmi.IssueTrustMark(test.trustMarkType, "foobar", test.requestedLifetime)
 				} else {
-					info, err = test.tmi.IssueTrustMark(test.trustMarkID, "foobar")
+					info, err = test.tmi.IssueTrustMark(test.trustMarkType, "foobar")
 				}
 				if err != nil {
 					if test.errExpectedIssue {
