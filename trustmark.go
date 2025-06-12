@@ -54,15 +54,15 @@ func (tms TrustMarkInfos) Find(matcher func(info TrustMarkInfo) bool) *TrustMark
 
 // FindByID returns the (first) TrustMarkInfo with the passed id
 func (tms TrustMarkInfos) FindByID(id string) *TrustMarkInfo {
-	return tms.Find(func(info TrustMarkInfo) bool { return info.ID == id })
+	return tms.Find(func(info TrustMarkInfo) bool { return info.TrustMarkType == id })
 }
 
 // TrustMarkInfo is a type for holding a trust mark as represented in an EntityConfiguration
 type TrustMarkInfo struct {
-	ID           string                 `json:"trust_mark_id" yaml:"id"`
-	TrustMarkJWT string                 `json:"trust_mark" yaml:"trust_mark"`
-	Extra        map[string]interface{} `json:"-" yaml:"-"`
-	trustmark    *TrustMark
+	TrustMarkType string                 `json:"trust_mark_type" yaml:"type"`
+	TrustMarkJWT  string                 `json:"trust_mark" yaml:"trust_mark"`
+	Extra         map[string]interface{} `json:"-" yaml:"-"`
+	trustmark     *TrustMark
 }
 
 // MarshalJSON implements the json.Marshaler interface.
@@ -124,8 +124,8 @@ func (tm *TrustMarkInfo) VerifyFederation(ta *EntityStatementPayload) error {
 	if err != nil {
 		return err
 	}
-	if mark.ID != tm.ID {
-		return errors.Errorf("trust mark object claim 'trust_mark_id' does not match JWT claim")
+	if mark.TrustMarkType != tm.TrustMarkType {
+		return errors.Errorf("trust mark object claim 'trust_mark_type' does not match JWT claim")
 	}
 	return mark.VerifyFederation(ta)
 }
@@ -140,8 +140,8 @@ func (tm *TrustMarkInfo) VerifyExternal(
 	if err != nil {
 		return err
 	}
-	if mark.ID != tm.ID {
-		return errors.Errorf("trust mark object claim 'trust_mark_id' does not match JWT claim")
+	if mark.TrustMarkType != tm.TrustMarkType {
+		return errors.Errorf("trust mark object claim 'trust_mark_type' does not match JWT claim")
 	}
 	return mark.VerifyExternal(jwks, tmo...)
 }
@@ -150,7 +150,7 @@ func (tm *TrustMarkInfo) VerifyExternal(
 type TrustMark struct {
 	Issuer        string                 `json:"iss"`
 	Subject       string                 `json:"sub"`
-	ID            string                 `json:"trust_mark_id"`
+	TrustMarkType string                 `json:"trust_mark_type"`
 	IssuedAt      unixtime.Unixtime      `json:"iat"`
 	LogoURI       string                 `json:"logo_uri,omitempty"`
 	ExpiresAt     *unixtime.Unixtime     `json:"exp,omitempty"`
@@ -260,7 +260,7 @@ func getTrustMarkIssuerJWKS(
 // VerifyFederation verifies the TrustMark by using the passed trust anchor
 func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 	if ta.TrustMarkIssuers != nil {
-		if tmis, found := ta.TrustMarkIssuers[tm.ID]; found {
+		if tmis, found := ta.TrustMarkIssuers[tm.TrustMarkType]; found {
 			if !slices.Contains(tmis, tm.Issuer) {
 				return errors.New("verify trustmark: trust mark issuer is not allowed by trust anchor")
 			}
@@ -270,7 +270,7 @@ func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 	if err != nil {
 		return err
 	}
-	tmo, tmoFound := ta.TrustMarkOwners[tm.ID]
+	tmo, tmoFound := ta.TrustMarkOwners[tm.TrustMarkType]
 	if !tmoFound {
 		// no delegation
 		return tm.VerifyExternal(jwks)
@@ -299,7 +299,7 @@ func (tm *TrustMark) VerifyExternal(jwks jwks.JWKS, tmo ...TrustMarkOwnerSpec) e
 	if delegation == nil {
 		return errors.New("verify trustmark: no delegation jwt in trust mark")
 	}
-	if delegation.ID != tm.ID {
+	if delegation.TrustMarkType != tm.TrustMarkType {
 		return errors.New("verify trustmark: delegation jwt not for this trust mark")
 	}
 	if delegation.Subject != tm.Issuer {
@@ -313,14 +313,14 @@ func (tm *TrustMark) VerifyExternal(jwks jwks.JWKS, tmo ...TrustMarkOwnerSpec) e
 
 // DelegationJWT is a type for holding information about a delegation jwt
 type DelegationJWT struct {
-	Issuer    string                 `json:"iss"`
-	Subject   string                 `json:"sub"`
-	ID        string                 `json:"trust_mark_id"`
-	IssuedAt  unixtime.Unixtime      `json:"iat"`
-	ExpiresAt *unixtime.Unixtime     `json:"exp,omitempty"`
-	Ref       string                 `json:"ref,omitempty"`
-	Extra     map[string]interface{} `json:"-"`
-	jwtMsg    *jwx.ParsedJWT
+	Issuer        string                 `json:"iss"`
+	Subject       string                 `json:"sub"`
+	TrustMarkType string                 `json:"trust_mark_type"`
+	IssuedAt      unixtime.Unixtime      `json:"iat"`
+	ExpiresAt     *unixtime.Unixtime     `json:"exp,omitempty"`
+	Ref           string                 `json:"ref,omitempty"`
+	Extra         map[string]interface{} `json:"-"`
+	jwtMsg        *jwx.ParsedJWT
 }
 
 // MarshalJSON implements the json.Marshaler interface.
@@ -353,7 +353,7 @@ func (djwt DelegationJWT) VerifyFederation(ta *EntityStatementPayload) error {
 	if err := unixtime.VerifyTime(&djwt.IssuedAt, djwt.ExpiresAt); err != nil {
 		return errors.Wrap(err, "verify delegation jwt")
 	}
-	owner, ok := ta.TrustMarkOwners[djwt.ID]
+	owner, ok := ta.TrustMarkOwners[djwt.TrustMarkType]
 	if !ok {
 		return errors.New("verify delegation jwt: unknown trust mark owner")
 	}
@@ -379,7 +379,7 @@ type TrustMarkIssuer struct {
 
 // TrustMarkSpec describes a TrustMark for a TrustMarkIssuer
 type TrustMarkSpec struct {
-	ID                       string                     `json:"trust_mark_id" yaml:"trust_mark_id"`
+	TrustMarkType            string                     `json:"trust_mark_type" yaml:"trust_mark_type"`
 	Lifetime                 unixtime.DurationInSeconds `json:"lifetime" yaml:"lifetime"`
 	Ref                      string                     `json:"ref" yaml:"ref"`
 	LogoURI                  string                     `json:"logo_uri" yaml:"logo_uri"`
@@ -442,7 +442,7 @@ func NewTrustMarkIssuer(
 ) *TrustMarkIssuer {
 	trustMarks := make(map[string]TrustMarkSpec, len(trustMarkSpecs))
 	for _, tms := range trustMarkSpecs {
-		trustMarks[tms.ID] = tms
+		trustMarks[tms.TrustMarkType] = tms
 	}
 	return &TrustMarkIssuer{
 		EntityID:        entityID,
@@ -453,7 +453,7 @@ func NewTrustMarkIssuer(
 
 // AddTrustMark adds a TrustMarkSpec to the TrustMarkIssuer enabling it to issue the TrustMarkInfo
 func (tmi *TrustMarkIssuer) AddTrustMark(spec TrustMarkSpec) {
-	tmi.trustMarks[spec.ID] = spec
+	tmi.trustMarks[spec.TrustMarkType] = spec
 }
 
 // TrustMarkIDs returns a slice of the trust mark ids for which this TrustMarKIssuer can issue TrustMarks
@@ -476,7 +476,7 @@ func (tmi TrustMarkIssuer) IssueTrustMark(trustMarkID, sub string, lifetime ...t
 	tm := &TrustMark{
 		Issuer:        tmi.EntityID,
 		Subject:       sub,
-		ID:            spec.ID,
+		TrustMarkType: spec.TrustMarkType,
 		IssuedAt:      unixtime.Unixtime{Time: now},
 		LogoURI:       spec.LogoURI,
 		Ref:           spec.Ref,
@@ -499,10 +499,10 @@ func (tmi TrustMarkIssuer) IssueTrustMark(trustMarkID, sub string, lifetime ...t
 		extra = spec.Extra
 	}
 	return &TrustMarkInfo{
-		ID:           spec.ID,
-		TrustMarkJWT: string(jwt),
-		Extra:        extra,
-		trustmark:    tm,
+		TrustMarkType: spec.TrustMarkType,
+		TrustMarkJWT:  string(jwt),
+		Extra:         extra,
+		trustmark:     tm,
 	}, nil
 }
 
@@ -550,12 +550,12 @@ func (tmo TrustMarkOwner) DelegationJWT(trustMarkID, sub string, lifetime ...tim
 	}
 	now := time.Now()
 	delegation := &DelegationJWT{
-		Issuer:   tmo.EntityID,
-		Subject:  sub,
-		ID:       spec.ID,
-		IssuedAt: unixtime.Unixtime{Time: now},
-		Ref:      spec.Ref,
-		Extra:    spec.Extra,
+		Issuer:        tmo.EntityID,
+		Subject:       sub,
+		TrustMarkType: spec.ID,
+		IssuedAt:      unixtime.Unixtime{Time: now},
+		Ref:           spec.Ref,
+		Extra:         spec.Extra,
 	}
 	lf := spec.DelegationLifetime
 	if len(lifetime) > 0 {

@@ -86,8 +86,8 @@ func (f FederationEntity) EntityConfigurationPayload() *EntityStatementPayload {
 		}
 		tms = append(
 			tms, TrustMarkInfo{
-				ID:           tmc.TrustMarkID,
-				TrustMarkJWT: tm,
+				TrustMarkType: tmc.TrustMarkType,
+				TrustMarkJWT:  tm,
 			},
 		)
 	}

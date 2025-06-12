@@ -15,7 +15,7 @@ import (
 // EntityConfigurationTrustMarkConfig is a type for specifying the configuration of a TrustMark that should be
 // included in an EntityConfiguration
 type EntityConfigurationTrustMarkConfig struct {
-	TrustMarkID          string                     `yaml:"trust_mark_id"`
+	TrustMarkType        string                     `yaml:"trust_mark_type"`
 	TrustMarkIssuer      string                     `yaml:"trust_mark_issuer"`
 	SelfIssued           bool                       `yaml:"self_issued"`
 	SelfIssuanceSpec     TrustMarkSpec              `yaml:"self_issuance_spec"`
@@ -53,27 +53,27 @@ func (c *EntityConfigurationTrustMarkConfig) Verify(
 		c.expiration = unixtime.Unixtime{Time: exp}
 		c.TrustMarkIssuer, _ = parsed.Issuer()
 		internal.Logf("Extracted trust mark issuer: %s", c.TrustMarkIssuer)
-		err = parsed.Get("trust_mark_id", &c.TrustMarkID)
+		err = parsed.Get("trust_mark_type", &c.TrustMarkType)
 		if err != nil {
 			return errors.Wrap(err, "trustmark id not found in JWT")
 		}
-		internal.Logf("Extracted trust mark id: %s\n", c.TrustMarkID)
+		internal.Logf("Extracted trust mark id: %s\n", c.TrustMarkType)
 		return nil
 	}
 	c.Refresh = true
 	if c.SelfIssued {
-		c.SelfIssuanceSpec.ID = c.TrustMarkID
+		c.SelfIssuanceSpec.TrustMarkType = c.TrustMarkType
 		c.ownTrustMarkIssuer = NewTrustMarkIssuer(
 			sub, ownTrustMarkSigner,
 			[]TrustMarkSpec{c.SelfIssuanceSpec},
 		)
-		if c.TrustMarkID == "" {
-			return errors.New("trust_mark_id must be provided for self-issued trust marks")
+		if c.TrustMarkType == "" {
+			return errors.New("trust_mark_type must be provided for self-issued trust marks")
 		}
 		return nil
 	}
-	if c.TrustMarkID == "" || c.TrustMarkIssuer == "" {
-		return errors.New("either trust_mark_jwt or trust_mark_issuer and trust_mark_id must be specified")
+	if c.TrustMarkType == "" || c.TrustMarkIssuer == "" {
+		return errors.New("either trust_mark_jwt or trust_mark_issuer and trust_mark_type must be specified")
 	}
 	return nil
 }
@@ -102,7 +102,7 @@ func (c *EntityConfigurationTrustMarkConfig) refresh() error {
 	}
 	c.lastTried = unixtime.Now()
 	if c.SelfIssued {
-		tmi, err := c.ownTrustMarkIssuer.IssueTrustMark(c.TrustMarkID, c.sub)
+		tmi, err := c.ownTrustMarkIssuer.IssueTrustMark(c.TrustMarkType, c.sub)
 		if err != nil {
 			return err
 		}
@@ -131,7 +131,7 @@ func (c *EntityConfigurationTrustMarkConfig) refresh() error {
 		endpoint = tmi.Metadata.FederationEntity.FederationTrustMarkEndpoint
 	}
 	params := url.Values{}
-	params.Add("trust_mark_id", c.TrustMarkID)
+	params.Add("trust_mark_type", c.TrustMarkType)
 	params.Add("sub", c.sub)
 	res, errRes, err := http.Get(endpoint, params, nil)
 	if err != nil {

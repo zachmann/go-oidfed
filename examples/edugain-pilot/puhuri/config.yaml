@@ -21,17 +21,17 @@ endpoints:
   trust_mark_list:
     path: "/trustmark/list"
 trust_mark_specs:
-  - trust_mark_id: "https://puhuri.io"
+  - trust_mark_type: "https://puhuri.io"
     lifetime: 86400
 trust_mark_issuers:
   "https://puhuri.io":
     - "https://puhuri.fedservice.lh"
 trust_marks:
-  - trust_mark_id: "https://edugain.org/member"
+  - trust_mark_type: "https://edugain.org/member"
     trust_mark_issuer: "https://edugain.fedservice.lh"
-  - trust_mark_id: "https://puhuri.io"
+  - trust_mark_type: "https://puhuri.io"
     trust_mark_issuer: "https://puhuri.fedservice.lh"
-  - trust_mark_id: "https://refeds.org/sirtfi"
+  - trust_mark_type: "https://refeds.org/sirtfi"
     trust_mark_issuer: "https://haka.fedservice.lh"
-  - trust_mark_id: "https://studid.io/federations/HAKA/member"
+  - trust_mark_type: "https://studid.io/federations/HAKA/member"
     trust_mark_issuer: "https://haka.fedservice.lh"

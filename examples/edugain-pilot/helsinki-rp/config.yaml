@@ -11,7 +11,7 @@ filter_to_automatic_ops: false
 enable_debug_log: false
 
 trust_marks:
-  - trust_mark_id: "https://refeds.org/sirtfi"
+  - trust_mark_type: "https://refeds.org/sirtfi"
     trust_mark_issuer: "https://surfconext.fedservice.lh"
-  - trust_mark_id: "https://studid.io/federations/HAKA/member"
+  - trust_mark_type: "https://studid.io/federations/HAKA/member"
     trust_mark_issuer: "https://haka.fedservice.lh"

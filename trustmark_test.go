@@ -14,52 +14,52 @@ import (
 var tmi1 = newMockTrustMarkIssuer(
 	"https://tmi.example.org", []TrustMarkSpec{
 		{
-			ID:       "https://trustmarks.org/tm1",
-			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
+			TrustMarkType: "https://trustmarks.org/tm1",
+			Lifetime:      unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 		{
-			ID:       "https://trustmarks.org/tm2",
-			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
-			Ref:      "https://trustmarks.org/tm2/info",
-			LogoURI:  "https://trustmarks.org/tm2/logo",
+			TrustMarkType: "https://trustmarks.org/tm2",
+			Lifetime:      unixtime.DurationInSeconds{Duration: time.Hour},
+			Ref:           "https://trustmarks.org/tm2/info",
+			LogoURI:       "https://trustmarks.org/tm2/logo",
 		},
 		{
-			ID:       "https://trustmarks.org/tm3",
-			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
+			TrustMarkType: "https://trustmarks.org/tm3",
+			Lifetime:      unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 		{
-			ID:       "https://trustmarks.org/tm4",
-			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
+			TrustMarkType: "https://trustmarks.org/tm4",
+			Lifetime:      unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 		{
-			ID:       "https://trustmarks.org/tm-delegated",
-			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
+			TrustMarkType: "https://trustmarks.org/tm-delegated",
+			Lifetime:      unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 	},
 )
 var tmi2 = newMockTrustMarkIssuer(
 	"https://tmi2.example.com", []TrustMarkSpec{
 		{
-			ID:      "https://trustmarks.org/tm1",
-			Ref:     "https://trustmarks.org/tm1/info",
-			LogoURI: "https://trustmarks.org/tm1/logo",
+			TrustMarkType: "https://trustmarks.org/tm1",
+			Ref:           "https://trustmarks.org/tm1/info",
+			LogoURI:       "https://trustmarks.org/tm1/logo",
 			Extra: map[string]any{
 				"foo": "bar",
 			},
 			IncludeExtraClaimsInInfo: false,
 		},
 		{
-			ID:      "https://trustmarks.org/tm2",
-			Ref:     "https://trustmarks.org/tm2/info",
-			LogoURI: "https://trustmarks.org/tm2/logo",
+			TrustMarkType: "https://trustmarks.org/tm2",
+			Ref:           "https://trustmarks.org/tm2/info",
+			LogoURI:       "https://trustmarks.org/tm2/logo",
 			Extra: map[string]any{
 				"foo": "bar",
 			},
 			IncludeExtraClaimsInInfo: true,
 		},
 		{
-			ID:       "https://trustmarks.org/tm-delegated",
-			Lifetime: unixtime.DurationInSeconds{Duration: time.Hour},
+			TrustMarkType: "https://trustmarks.org/tm-delegated",
+			Lifetime:      unixtime.DurationInSeconds{Duration: time.Hour},
 		},
 	},
 )
@@ -126,7 +126,7 @@ func init() {
 	}
 	tmi1.AddTrustMark(
 		TrustMarkSpec{
-			ID:            "https://trustmarks.org/test",
+			TrustMarkType: "https://trustmarks.org/test",
 			Lifetime:      unixtime.DurationInSeconds{Duration: time.Hour},
 			DelegationJWT: string(delegation),
 		},
@@ -192,10 +192,10 @@ func TestTrustMarkOwner_DelegationJWT(t *testing.T) {
 					t.Errorf("could not parse the produced delegation JWT: %v", err)
 					return
 				}
-				if delegation.ID != test.trustMarkID {
+				if delegation.TrustMarkType != test.trustMarkID {
 					t.Errorf(
 						"parsed delegation JWT does not have matching ids: '%s' vs '%s'", test.trustMarkID,
-						delegation.ID,
+						delegation.TrustMarkType,
 					)
 					return
 				}

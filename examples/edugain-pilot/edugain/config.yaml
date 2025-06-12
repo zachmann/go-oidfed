@@ -19,7 +19,7 @@ endpoints:
   trust_mark_list:
     path: "/trustmark/list"
 trust_mark_specs:
-  - trust_mark_id: "https://edugain.org/member"
+  - trust_mark_type: "https://edugain.org/member"
     lifetime: 7200
     logo_uri: "https://edugain.org/wp-content/uploads/2018/02/eduGAIN.jpg"
     checker:
@@ -47,5 +47,5 @@ trust_mark_owners:
     entity_id: "https://refeds.fedservice.lh"
     jwks: %REFEDS_JWKS%
 trust_marks:
-  - trust_mark_id: "https://edugain.org/member"
+  - trust_mark_type: "https://edugain.org/member"
     trust_mark_issuer: "https://edugain.fedservice.lh"

@@ -13,5 +13,5 @@ endpoints:
   list:
     path: "/list"
 trust_marks:
-  - trust_mark_id: "https://studid.io/federations/HAKA/member"
+  - trust_mark_type: "https://studid.io/federations/HAKA/member"
     trust_mark_issuer: "https://haka.fedservice.lh"

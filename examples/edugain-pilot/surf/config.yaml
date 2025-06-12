@@ -19,7 +19,7 @@ endpoints:
   trust_mark_list:
     path: "/trustmark/list"
 trust_mark_specs:
-  - trust_mark_id: "https://refeds.org/sirtfi"
+  - trust_mark_type: "https://refeds.org/sirtfi"
     lifetime: 86400
     ref: "https://refeds.org/wp-content/uploads/2022/08/Sirtfi-v2.pdf"
     delegation_jwt: %REFEDS_DELEGATION_JWT_SURFCONEXT%
@@ -30,5 +30,5 @@ trust_mark_owners:
     entity_id: "https://refeds.fedservice.lh"
     jwks: %REFEDS_JWKS%
 trust_marks:
-  - trust_mark_id: "https://edugain.org/member"
+  - trust_mark_type: "https://edugain.org/member"
     trust_mark_issuer: "https://edugain.fedservice.lh"

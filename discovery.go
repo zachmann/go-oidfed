@@ -317,7 +317,7 @@ func (d *SimpleEntityCollector) collect(
 								includeEntity = false
 							}
 
-							for _, trustMarkID := range req.TrustMarkIDs {
+							for _, trustMarkID := range req.TrustMarkTypes {
 								trustMarkInfo := entityConfig.TrustMarks.FindByID(trustMarkID)
 								if trustMarkInfo == nil {
 									includeEntity = false

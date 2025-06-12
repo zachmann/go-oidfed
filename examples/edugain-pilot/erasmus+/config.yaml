@@ -14,10 +14,10 @@ endpoints:
   trust_mark_list:
     path: "/trustmark/list"
 trust_mark_specs:
-  - trust_mark_id: "https://erasmus-plus.ec.europa.eu"
+  - trust_mark_type: "https://erasmus-plus.ec.europa.eu"
     lifetime: 86400
     ref: "https://erasmus-plues.ec.europa.eu/ref"
     logo_uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Erasmus%2B_Logo.svg/799px-Erasmus%2B_Logo.svg.png"
 trust_marks:
-  - trust_mark_id: "https://edugain.org/member"
+  - trust_mark_type: "https://edugain.org/member"
     trust_mark_issuer: "https://edugain.fedservice.lh"

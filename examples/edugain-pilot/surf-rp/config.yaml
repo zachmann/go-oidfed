@@ -11,9 +11,9 @@ filter_to_automatic_ops: false
 enable_debug_log: false
 
 trust_marks:
-  - trust_mark_id: "https://edugain.org/member"
+  - trust_mark_type: "https://edugain.org/member"
     trust_mark_issuer: "https://edugain.fedservice.lh"
-  - trust_mark_id: "https://puhuri.io"
+  - trust_mark_type: "https://puhuri.io"
     trust_mark_issuer: "https://puhuri.fedservice.lh"
-  - trust_mark_id: "https://refeds.org/sirtfi"
+  - trust_mark_type: "https://refeds.org/sirtfi"
     trust_mark_issuer: "https://surfconext.fedservice.lh"
