@@ -15,8 +15,8 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/go-oidfed/lib/internal/utils"
-	"github.com/go-oidfed/lib/pkg/jwk"
-	"github.com/go-oidfed/lib/pkg/unixtime"
+	"github.com/go-oidfed/lib/jwks"
+	"github.com/go-oidfed/lib/unixtime"
 )
 
 type marshalData struct {
@@ -247,7 +247,7 @@ func TestEntityStatementMarshalAndUnmarshalMsgpack(t *testing.T) {
 		{
 			name: "jwks",
 			data: EntityStatementPayload{
-				JWKS: jwk.KeyToJWKS(sk.Public(), jwa.ES512()),
+				JWKS: jwks.KeyToJWKS(sk.Public(), jwa.ES512()),
 			},
 		}, // this is hard to compare
 	}

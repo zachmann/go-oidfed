@@ -16,12 +16,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-set/strset"
 
+	"github.com/go-oidfed/lib/apimodel"
+	"github.com/go-oidfed/lib/cache"
+	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal"
 	"github.com/go-oidfed/lib/internal/http"
 	"github.com/go-oidfed/lib/internal/utils"
-	"github.com/go-oidfed/lib/pkg/apimodel"
-	"github.com/go-oidfed/lib/pkg/cache"
-	"github.com/go-oidfed/lib/pkg/unixtime"
+	"github.com/go-oidfed/lib/unixtime"
 )
 
 const defaultSubordinateListingCacheTime = time.Hour
@@ -661,7 +662,7 @@ func EntityCollectionFilterOPSupportsExplicitRegistration(
 				return false
 			}
 			return slices.Contains(
-				metadata.OpenIDProvider.ClientRegistrationTypesSupported, ClientRegistrationTypeExplicit,
+				metadata.OpenIDProvider.ClientRegistrationTypesSupported, constants.ClientRegistrationTypeExplicit,
 			)
 		},
 	)
@@ -683,7 +684,7 @@ func EntityCollectionFilterOPSupportsAutomaticRegistration(
 				return false
 			}
 			return slices.Contains(
-				metadata.OpenIDProvider.ClientRegistrationTypesSupported, ClientRegistrationTypeAutomatic,
+				metadata.OpenIDProvider.ClientRegistrationTypesSupported, constants.ClientRegistrationTypeAutomatic,
 			)
 		},
 	)

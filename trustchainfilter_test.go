@@ -5,18 +5,19 @@ import (
 
 	arrops "github.com/adam-hanna/arrayOperations"
 
+	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal/utils"
 )
 
 var rp1 = newMockRP(
 	"https://rp1.example.com",
-	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{ClientRegistrationTypeAutomatic}},
+	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{constants.ClientRegistrationTypeAutomatic}},
 )
 
 var op1 = newMockOP(
 	"https://op1.example.com",
 	&OpenIDProviderMetadata{
-		ClientRegistrationTypesSupported: []string{ClientRegistrationTypeAutomatic},
+		ClientRegistrationTypesSupported: []string{constants.ClientRegistrationTypeAutomatic},
 		ScopesSupported: []string{
 			"openid",
 			"profile",
@@ -28,7 +29,7 @@ var op1 = newMockOP(
 var op2 = newMockOP(
 	"https://op2.example.com",
 	&OpenIDProviderMetadata{
-		ClientRegistrationTypesSupported: []string{ClientRegistrationTypeAutomatic},
+		ClientRegistrationTypesSupported: []string{constants.ClientRegistrationTypeAutomatic},
 		ScopesSupported: []string{
 			"openid",
 			"profile",
@@ -38,7 +39,7 @@ var op2 = newMockOP(
 var op3 = newMockOP(
 	"https://op3.example.com",
 	&OpenIDProviderMetadata{
-		ClientRegistrationTypesSupported: []string{ClientRegistrationTypeAutomatic},
+		ClientRegistrationTypesSupported: []string{constants.ClientRegistrationTypeAutomatic},
 		ScopesSupported: []string{
 			"openid",
 			"profile",
@@ -49,9 +50,9 @@ var op3 = newMockOP(
 
 var proxy = newMockProxy(
 	"https://proxy.example.org",
-	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{ClientRegistrationTypeAutomatic}},
+	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{constants.ClientRegistrationTypeAutomatic}},
 	&OpenIDProviderMetadata{
-		ClientRegistrationTypesSupported: []string{ClientRegistrationTypeAutomatic},
+		ClientRegistrationTypesSupported: []string{constants.ClientRegistrationTypeAutomatic},
 		ScopesSupported: []string{
 			"openid",
 			"profile",

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-oidfed/lib/pkg/unixtime"
+	"github.com/go-oidfed/lib/unixtime"
 )
 
 func TestTrustChains_ExpiresAt(t *testing.T) {

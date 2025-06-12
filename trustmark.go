@@ -8,11 +8,11 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
+	"github.com/go-oidfed/lib/apimodel"
+	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal/jwx"
-	"github.com/go-oidfed/lib/pkg/apimodel"
-	"github.com/go-oidfed/lib/pkg/constants"
-	"github.com/go-oidfed/lib/pkg/jwk"
-	"github.com/go-oidfed/lib/pkg/unixtime"
+	"github.com/go-oidfed/lib/jwks"
+	"github.com/go-oidfed/lib/unixtime"
 )
 
 // TrustMarkInfos is a slice of TrustMarkInfo
@@ -30,7 +30,10 @@ func (tms TrustMarkInfos) VerifiedFederation(ta *EntityStatementPayload) (verifi
 
 // VerifiedExternal verifies all TrustMarkInfos by using the passed trust mark issuer jwks and optionally the passed
 // trust mark owner jwks and returns only the valid TrustMarkInfos
-func (tms TrustMarkInfos) VerifiedExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec) (verified TrustMarkInfos) {
+func (tms TrustMarkInfos) VerifiedExternal(
+	jwks jwks.JWKS,
+	tmo ...TrustMarkOwnerSpec,
+) (verified TrustMarkInfos) {
 	for _, tm := range tms {
 		if err := tm.VerifyExternal(jwks, tmo...); err == nil {
 			verified = append(verified, tm)
@@ -129,7 +132,10 @@ func (tm *TrustMarkInfo) VerifyFederation(ta *EntityStatementPayload) error {
 
 // VerifyExternal verifies the TrustMarkInfo by using the passed trust mark issuer jwks and optionally the passed
 // trust mark owner jwks
-func (tm *TrustMarkInfo) VerifyExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec) error {
+func (tm *TrustMarkInfo) VerifyExternal(
+	jwks jwks.JWKS,
+	tmo ...TrustMarkOwnerSpec,
+) error {
 	mark, err := tm.TrustMark()
 	if err != nil {
 		return err
@@ -212,7 +218,7 @@ func (tm *TrustMark) Delegation() (*DelegationJWT, error) {
 func getTrustMarkIssuerJWKS(
 	trustMarkIssuer string,
 	ta *EntityStatementPayload,
-) (jwks jwk.JWKS, err error) {
+) (jwks jwks.JWKS, err error) {
 	if trustMarkIssuer == ta.Subject {
 		jwks = ta.JWKS
 		return
@@ -274,7 +280,7 @@ func (tm *TrustMark) VerifyFederation(ta *EntityStatementPayload) error {
 
 // VerifyExternal verifies the TrustMark by using the passed trust mark issuer jwks and optionally the passed
 // trust mark owner jwks
-func (tm *TrustMark) VerifyExternal(jwks jwk.JWKS, tmo ...TrustMarkOwnerSpec) error {
+func (tm *TrustMark) VerifyExternal(jwks jwks.JWKS, tmo ...TrustMarkOwnerSpec) error {
 	if err := unixtime.VerifyTime(&tm.IssuedAt, tm.ExpiresAt); err != nil {
 		return err
 	}
@@ -356,7 +362,7 @@ func (djwt DelegationJWT) VerifyFederation(ta *EntityStatementPayload) error {
 }
 
 // VerifyExternal verifies the DelegationJWT by using the passed trust mark owner jwks
-func (djwt DelegationJWT) VerifyExternal(jwks jwk.JWKS) error {
+func (djwt DelegationJWT) VerifyExternal(jwks jwks.JWKS) error {
 	if err := unixtime.VerifyTime(&djwt.IssuedAt, djwt.ExpiresAt); err != nil {
 		return errors.Wrap(err, "verify delegation jwt")
 	}

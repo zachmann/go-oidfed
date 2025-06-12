@@ -1,4 +1,4 @@
-package jwk
+package jwks
 
 import (
 	"bytes"

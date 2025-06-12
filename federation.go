@@ -7,11 +7,11 @@ import (
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/pkg/errors"
 
+	"github.com/go-oidfed/lib/apimodel"
+	"github.com/go-oidfed/lib/cache"
 	"github.com/go-oidfed/lib/internal"
-	"github.com/go-oidfed/lib/pkg/apimodel"
-	"github.com/go-oidfed/lib/pkg/cache"
-	"github.com/go-oidfed/lib/pkg/jwk"
-	"github.com/go-oidfed/lib/pkg/unixtime"
+	"github.com/go-oidfed/lib/jwks"
+	"github.com/go-oidfed/lib/unixtime"
 )
 
 // FederationEntity is a type for an entity participating in federations.
@@ -23,7 +23,7 @@ type FederationEntity struct {
 	AuthorityHints        []string
 	ConfigurationLifetime int64
 	*EntityStatementSigner
-	jwks             jwk.JWKS
+	jwks             jwks.JWKS
 	TrustMarks       []*EntityConfigurationTrustMarkConfig
 	TrustMarkIssuers AllowedTrustMarkIssuers
 	TrustMarkOwners  TrustMarkOwners

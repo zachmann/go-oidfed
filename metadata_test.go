@@ -333,39 +333,36 @@ func TestMetadata_UnmarshalJSON(t *testing.T) {
 }
 
 func TestMetadata_FindEntityMetadata(t *testing.T) {
-	type AnotherEntityMetadata struct {}
+	type AnotherEntityMetadata struct{}
 	var metadata Metadata
 	if err := json.Unmarshal(metadataMarshalData["extra metadata"].Data, &metadata); err != nil {
 		t.Fatal(err)
 	}
 
 	testCases := map[string]struct {
-		metadataType string
+		metadataType    string
 		deserializeInto any
-		shouldSucceed bool
-	} {
+		shouldSucceed   bool
+	}{
 		"Metadata is present and in an explicit struct field": {
-			metadataType: "federation_entity",
+			metadataType:    "federation_entity",
 			deserializeInto: FederationEntityMetadata{},
-			shouldSucceed: true,
+			shouldSucceed:   true,
 		},
-		"Metadata is present and in extra metadata":
-		{
-			metadataType: "another-entity",
+		"Metadata is present and in extra metadata": {
+			metadataType:    "another-entity",
 			deserializeInto: AnotherEntityMetadata{},
-			shouldSucceed: true,
+			shouldSucceed:   true,
 		},
-		"Metadata is absent and would be in an explicit struct field":
-		{
-			metadataType: "openid_provider",
+		"Metadata is absent and would be in an explicit struct field": {
+			metadataType:    "openid_provider",
 			deserializeInto: OpenIDProviderMetadata{},
-			shouldSucceed: false,
+			shouldSucceed:   false,
 		},
-		"Metadata is absent and would be in extra metadata":
-		{
-			metadataType: "no-such-metadata",
+		"Metadata is absent and would be in extra metadata": {
+			metadataType:    "no-such-metadata",
 			deserializeInto: struct{}{},
-			shouldSucceed: false,
+			shouldSucceed:   false,
 		},
 	}
 

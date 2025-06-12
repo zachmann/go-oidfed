@@ -1,5 +1,8 @@
 package constants
 
+// FederationSuffix is the well-known openid-federation suffix
+const FederationSuffix = "/.well-known/openid-federation"
+
 // Constants for JWT Types
 const (
 	ContentTypeEntityStatement              = "application/entity-statement+jwt"
@@ -24,4 +27,10 @@ const (
 	EntityTypeOpenIDProvider         = "openid_provider"
 	EntityTypeOAuthClient            = "oauth_client"
 	EntityTypeOAuthProtectedResource = "oauth_resource"
+)
+
+// Constants for registration types
+const (
+	ClientRegistrationTypeAutomatic = "automatic"
+	ClientRegistrationTypeExplicit  = "explicit"
 )

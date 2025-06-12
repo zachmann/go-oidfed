@@ -73,7 +73,7 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/go-oidfed/lib/pkg/jwk"
+	"github.com/go-oidfed/lib/jwks"
 	
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"

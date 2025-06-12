@@ -1,13 +1,13 @@
 package pkg
 
 import (
-	"github.com/go-oidfed/lib/pkg/jwk"
+	"github.com/go-oidfed/lib/jwks"
 )
 
 // TrustAnchor is a type for specifying trust anchors
 type TrustAnchor struct {
-	EntityID string   `yaml:"entity_id" json:"entity_id"`
-	JWKS     jwk.JWKS `yaml:"jwks" json:"jwks"`
+	EntityID string    `yaml:"entity_id" json:"entity_id"`
+	JWKS     jwks.JWKS `yaml:"jwks" json:"jwks"`
 }
 
 // TrustAnchors is a slice of TrustAnchor
@@ -21,7 +21,7 @@ func (anchors TrustAnchors) EntityIDs() (entityIDs []string) {
 	return
 }
 
-// NewTrustAnchorsFromEntityIDs returns TrustAnchors for the passed entity ids; this does not set jwk.JWKS
+// NewTrustAnchorsFromEntityIDs returns TrustAnchors for the passed entity ids; this does not set jwks.JWKS
 func NewTrustAnchorsFromEntityIDs(anchorIDs ...string) (anchors TrustAnchors) {
 	for _, id := range anchorIDs {
 		anchors = append(anchors, TrustAnchor{EntityID: id})

@@ -7,12 +7,12 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 	"gopkg.in/yaml.v3"
 
+	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal"
 	"github.com/go-oidfed/lib/internal/jwx"
 	"github.com/go-oidfed/lib/internal/utils"
-	"github.com/go-oidfed/lib/pkg/constants"
-	"github.com/go-oidfed/lib/pkg/jwk"
-	"github.com/go-oidfed/lib/pkg/unixtime"
+	"github.com/go-oidfed/lib/jwks"
+	"github.com/go-oidfed/lib/unixtime"
 
 	"github.com/fatih/structs"
 )
@@ -27,7 +27,7 @@ type EntityStatement struct {
 }
 
 // Verify verifies that the EntityStatement jwt is valid
-func (e EntityStatement) Verify(keys jwk.JWKS) bool {
+func (e EntityStatement) Verify(keys jwks.JWKS) bool {
 	_, err := e.jwtMsg.VerifyWithSet(keys)
 	if err != nil {
 		internal.Log(err)
@@ -70,7 +70,7 @@ type EntityStatementPayload struct {
 	Subject            string                   `json:"sub"`
 	IssuedAt           unixtime.Unixtime        `json:"iat"`
 	ExpiresAt          unixtime.Unixtime        `json:"exp"`
-	JWKS               jwk.JWKS                 `json:"jwks"`
+	JWKS               jwks.JWKS                `json:"jwks"`
 	Audience           string                   `json:"aud,omitempty"`
 	AuthorityHints     []string                 `json:"authority_hints,omitempty"`
 	Metadata           *Metadata                `json:"metadata,omitempty"`
@@ -215,8 +215,8 @@ type TrustMarkOwners map[string]TrustMarkOwnerSpec
 
 // TrustMarkOwnerSpec describes the owner of a trust mark
 type TrustMarkOwnerSpec struct {
-	ID   string   `json:"sub" yaml:"entity_id"`
-	JWKS jwk.JWKS `json:"jwks" yaml:"jwks"`
+	ID   string    `json:"sub" yaml:"entity_id"`
+	JWKS jwks.JWKS `json:"jwks" yaml:"jwks"`
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.

@@ -8,9 +8,9 @@ import (
 	"github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/pkg/errors"
 
+	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal/jwx"
-	"github.com/go-oidfed/lib/pkg/constants"
-	myjwk "github.com/go-oidfed/lib/pkg/jwk"
+	"github.com/go-oidfed/lib/jwks"
 )
 
 // JWTSigner is an interface that can give signed jwts
@@ -47,9 +47,9 @@ func (s GeneralJWTSigner) JWT(i any, headerType string) (jwt []byte, err error) 
 	return
 }
 
-// JWKS returns the jwk.JWKS used with this signer
-func (s *GeneralJWTSigner) JWKS() myjwk.JWKS {
-	return myjwk.KeyToJWKS(s.key.Public(), s.alg)
+// JWKS returns the jwks.JWKS used with this signer
+func (s *GeneralJWTSigner) JWKS() jwks.JWKS {
+	return jwks.KeyToJWKS(s.key.Public(), s.alg)
 }
 
 // Typed returns a TypedJWTSigner for the passed header type using the same crypto.Signer

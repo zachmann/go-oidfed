@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/vmihailenco/msgpack/v5"
 
-	myjwk "github.com/go-oidfed/lib/pkg/jwk"
-	"github.com/go-oidfed/lib/pkg/unixtime"
+	myjwk "github.com/go-oidfed/lib/jwks"
+	"github.com/go-oidfed/lib/unixtime"
 )
 
 // ParsedJWT is a type extending jws.Message by holding the original jwt

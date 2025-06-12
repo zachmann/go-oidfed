@@ -6,10 +6,10 @@ import (
 	"golang.org/x/crypto/sha3"
 	"tideland.dev/go/slices"
 
+	"github.com/go-oidfed/lib/cache"
 	"github.com/go-oidfed/lib/internal"
 	"github.com/go-oidfed/lib/internal/utils"
-	"github.com/go-oidfed/lib/pkg/cache"
-	"github.com/go-oidfed/lib/pkg/unixtime"
+	"github.com/go-oidfed/lib/unixtime"
 )
 
 // TrustChain is a slice of *EntityStatements

@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-oidfed/lib/internal"
 	"github.com/go-oidfed/lib/internal/http"
-	"github.com/go-oidfed/lib/pkg/unixtime"
+	"github.com/go-oidfed/lib/unixtime"
 )
 
 // EntityConfigurationTrustMarkConfig is a type for specifying the configuration of a TrustMark that should be
