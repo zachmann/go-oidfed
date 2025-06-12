@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"encoding/json"
@@ -12,11 +12,11 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/go-oidfed/lib/cache"
-	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal"
 	"github.com/go-oidfed/lib/internal/http"
 	"github.com/go-oidfed/lib/internal/jwx"
 	"github.com/go-oidfed/lib/internal/utils"
+	"github.com/go-oidfed/lib/oidfedconst"
 	"github.com/go-oidfed/lib/unixtime"
 )
 
@@ -555,7 +555,7 @@ func obtainAndSetEntityStatementOrConfiguration(
 func httpGetEntityConfiguration(
 	entityID string,
 ) (*EntityStatement, error) {
-	uri := strings.TrimSuffix(entityID, "/") + constants.FederationSuffix
+	uri := strings.TrimSuffix(entityID, "/") + oidfedconst.FederationSuffix
 	internal.Logf("Obtaining entity configuration from %+q", uri)
 	res, errRes, err := http.Get(uri, nil, nil)
 	if err != nil {

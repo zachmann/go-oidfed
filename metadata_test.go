@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"bytes"
@@ -367,14 +367,16 @@ func TestMetadata_FindEntityMetadata(t *testing.T) {
 	}
 
 	for name, testCase := range testCases {
-		t.Run(name, func(t *testing.T) {
-			err := metadata.FindEntityMetadata(testCase.metadataType, &testCase.deserializeInto)
-			if testCase.shouldSucceed && err != nil {
-				t.Error(err)
-			} else if !testCase.shouldSucceed && err == nil {
-				t.Errorf("finding %s metadata should fail", testCase.metadataType)
-				t.Logf("%+v", testCase.deserializeInto)
-			}
-		})
+		t.Run(
+			name, func(t *testing.T) {
+				err := metadata.FindEntityMetadata(testCase.metadataType, &testCase.deserializeInto)
+				if testCase.shouldSucceed && err != nil {
+					t.Error(err)
+				} else if !testCase.shouldSucceed && err == nil {
+					t.Errorf("finding %s metadata should fail", testCase.metadataType)
+					t.Logf("%+v", testCase.deserializeInto)
+				}
+			},
+		)
 	}
 }

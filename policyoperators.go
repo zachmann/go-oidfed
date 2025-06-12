@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"reflect"

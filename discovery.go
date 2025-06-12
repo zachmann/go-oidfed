@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"encoding/json"
@@ -18,10 +18,10 @@ import (
 
 	"github.com/go-oidfed/lib/apimodel"
 	"github.com/go-oidfed/lib/cache"
-	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal"
 	"github.com/go-oidfed/lib/internal/http"
 	"github.com/go-oidfed/lib/internal/utils"
+	"github.com/go-oidfed/lib/oidfedconst"
 	"github.com/go-oidfed/lib/unixtime"
 )
 
@@ -661,7 +661,7 @@ func EntityCollectionFilterOPSupportsExplicitRegistration(
 				return false
 			}
 			return slices.Contains(
-				metadata.OpenIDProvider.ClientRegistrationTypesSupported, constants.ClientRegistrationTypeExplicit,
+				metadata.OpenIDProvider.ClientRegistrationTypesSupported, oidfedconst.ClientRegistrationTypeExplicit,
 			)
 		},
 	)
@@ -683,7 +683,7 @@ func EntityCollectionFilterOPSupportsAutomaticRegistration(
 				return false
 			}
 			return slices.Contains(
-				metadata.OpenIDProvider.ClientRegistrationTypesSupported, constants.ClientRegistrationTypeAutomatic,
+				metadata.OpenIDProvider.ClientRegistrationTypesSupported, oidfedconst.ClientRegistrationTypeAutomatic,
 			)
 		},
 	)

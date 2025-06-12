@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"encoding/json"
@@ -9,9 +9,9 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/go-oidfed/lib/apimodel"
-	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal/jwx"
 	"github.com/go-oidfed/lib/jwks"
+	"github.com/go-oidfed/lib/oidfedconst"
 	"github.com/go-oidfed/lib/unixtime"
 )
 
@@ -82,8 +82,8 @@ func ParseTrustMark(data []byte) (*TrustMark, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !m.VerifyType(constants.JWTTypeTrustMark) {
-		return nil, errors.Errorf("trustmark jwt does not have '%s' JWT type", constants.JWTTypeTrustMark)
+	if !m.VerifyType(oidfedconst.JWTTypeTrustMark) {
+		return nil, errors.Errorf("trustmark jwt does not have '%s' JWT type", oidfedconst.JWTTypeTrustMark)
 	}
 	t := &TrustMark{jwtMsg: m}
 	if err = json.Unmarshal(m.Payload(), t); err != nil {
@@ -191,9 +191,9 @@ func parseDelegationJWT(delegationJWT []byte) (*DelegationJWT, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !m.VerifyType(constants.JWTTypeTrustMarkDelegation) {
+	if !m.VerifyType(oidfedconst.JWTTypeTrustMarkDelegation) {
 		return nil, errors.Errorf(
-			"trustmark delegation jwt does not have '%s' JWT type", constants.JWTTypeTrustMarkDelegation,
+			"trustmark delegation jwt does not have '%s' JWT type", oidfedconst.JWTTypeTrustMarkDelegation,
 		)
 	}
 	d := &DelegationJWT{jwtMsg: m}

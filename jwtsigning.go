@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"crypto"
@@ -8,9 +8,9 @@ import (
 	"github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/pkg/errors"
 
-	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal/jwx"
 	"github.com/go-oidfed/lib/jwks"
+	"github.com/go-oidfed/lib/oidfedconst"
 )
 
 // JWTSigner is an interface that can give signed jwts
@@ -81,7 +81,7 @@ func (s *GeneralJWTSigner) ResolveResponseSigner() *ResolveResponseSigner {
 	return &ResolveResponseSigner{s}
 }
 
-// ResolveResponseSigner is a JWTSigner for constants.JWTTypeResolveResponse
+// ResolveResponseSigner is a JWTSigner for oidfedconst.JWTTypeResolveResponse
 type ResolveResponseSigner struct {
 	*GeneralJWTSigner
 }
@@ -92,34 +92,34 @@ type TrustMarkDelegationSigner struct {
 	*GeneralJWTSigner
 }
 
-// TrustMarkSigner is a JWTSigner for constants.JWTTypeTrustMark
+// TrustMarkSigner is a JWTSigner for oidfedconst.JWTTypeTrustMark
 type TrustMarkSigner struct {
 	*GeneralJWTSigner
 }
 
-// EntityStatementSigner is a JWTSigner for constants.JWTTypeEntityStatement
+// EntityStatementSigner is a JWTSigner for oidfedconst.JWTTypeEntityStatement
 type EntityStatementSigner struct {
 	*GeneralJWTSigner
 }
 
 // JWT implements the JWTSigner interface
 func (s ResolveResponseSigner) JWT(i any) (jwt []byte, err error) {
-	return s.GeneralJWTSigner.JWT(i, constants.JWTTypeResolveResponse)
+	return s.GeneralJWTSigner.JWT(i, oidfedconst.JWTTypeResolveResponse)
 }
 
 // JWT implements the JWTSigner interface
 func (s TrustMarkDelegationSigner) JWT(i any) (jwt []byte, err error) {
-	return s.GeneralJWTSigner.JWT(i, constants.JWTTypeTrustMarkDelegation)
+	return s.GeneralJWTSigner.JWT(i, oidfedconst.JWTTypeTrustMarkDelegation)
 }
 
 // JWT implements the JWTSigner interface
 func (s TrustMarkSigner) JWT(i any) (jwt []byte, err error) {
-	return s.GeneralJWTSigner.JWT(i, constants.JWTTypeTrustMark)
+	return s.GeneralJWTSigner.JWT(i, oidfedconst.JWTTypeTrustMark)
 }
 
 // JWT implements the JWTSigner interface
 func (s EntityStatementSigner) JWT(i any) (jwt []byte, err error) {
-	return s.GeneralJWTSigner.JWT(i, constants.JWTTypeEntityStatement)
+	return s.GeneralJWTSigner.JWT(i, oidfedconst.JWTTypeEntityStatement)
 }
 
 // NewEntityStatementSigner creates a new EntityStatementSigner

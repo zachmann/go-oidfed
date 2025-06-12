@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/jarcoal/httpmock"
 
-	"github.com/go-oidfed/lib/constants"
+	"github.com/go-oidfed/lib/oidfedconst"
 )
 
 type mockedEntityConfigurationSigner interface {
@@ -20,7 +20,7 @@ type mockedSubordinateLister interface {
 }
 
 func mockEntityConfiguration(entityID string, signer mockedEntityConfigurationSigner) {
-	uri := strings.TrimSuffix(entityID, "/") + constants.FederationSuffix
+	uri := strings.TrimSuffix(entityID, "/") + oidfedconst.FederationSuffix
 	httpmock.RegisterResponder(
 		"GET", uri, func(_ *http.Request) (*http.Response, error) {
 			res, err := signer.EntityConfigurationJWT()

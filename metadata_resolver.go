@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"encoding/json"
@@ -7,10 +7,10 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/go-oidfed/lib/apimodel"
-	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal"
 	"github.com/go-oidfed/lib/internal/http"
 	"github.com/go-oidfed/lib/internal/jwx"
+	"github.com/go-oidfed/lib/oidfedconst"
 )
 
 // MetadataResolver is type for resolving the metadata from a StartingEntity to
@@ -186,8 +186,8 @@ func ParseResolveResponse(body []byte) (*ResolveResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !r.VerifyType(constants.JWTTypeResolveResponse) {
-		return nil, errors.Errorf("response does not have '%s' JWT type", constants.JWTTypeResolveResponse)
+	if !r.VerifyType(oidfedconst.JWTTypeResolveResponse) {
+		return nil, errors.Errorf("response does not have '%s' JWT type", oidfedconst.JWTTypeResolveResponse)
 	}
 	var res ResolveResponse
 	if err = json.Unmarshal(r.Payload(), &res); err != nil {

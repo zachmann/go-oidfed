@@ -1,23 +1,23 @@
-package pkg
+package oidfed
 
 import (
 	"testing"
 
 	arrops "github.com/adam-hanna/arrayOperations"
 
-	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal/utils"
+	"github.com/go-oidfed/lib/oidfedconst"
 )
 
 var rp1 = newMockRP(
 	"https://rp1.example.com",
-	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{constants.ClientRegistrationTypeAutomatic}},
+	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{oidfedconst.ClientRegistrationTypeAutomatic}},
 )
 
 var op1 = newMockOP(
 	"https://op1.example.com",
 	&OpenIDProviderMetadata{
-		ClientRegistrationTypesSupported: []string{constants.ClientRegistrationTypeAutomatic},
+		ClientRegistrationTypesSupported: []string{oidfedconst.ClientRegistrationTypeAutomatic},
 		ScopesSupported: []string{
 			"openid",
 			"profile",
@@ -29,7 +29,7 @@ var op1 = newMockOP(
 var op2 = newMockOP(
 	"https://op2.example.com",
 	&OpenIDProviderMetadata{
-		ClientRegistrationTypesSupported: []string{constants.ClientRegistrationTypeAutomatic},
+		ClientRegistrationTypesSupported: []string{oidfedconst.ClientRegistrationTypeAutomatic},
 		ScopesSupported: []string{
 			"openid",
 			"profile",
@@ -39,7 +39,7 @@ var op2 = newMockOP(
 var op3 = newMockOP(
 	"https://op3.example.com",
 	&OpenIDProviderMetadata{
-		ClientRegistrationTypesSupported: []string{constants.ClientRegistrationTypeAutomatic},
+		ClientRegistrationTypesSupported: []string{oidfedconst.ClientRegistrationTypeAutomatic},
 		ScopesSupported: []string{
 			"openid",
 			"profile",
@@ -50,9 +50,9 @@ var op3 = newMockOP(
 
 var proxy = newMockProxy(
 	"https://proxy.example.org",
-	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{constants.ClientRegistrationTypeAutomatic}},
+	&OpenIDRelyingPartyMetadata{ClientRegistrationTypes: []string{oidfedconst.ClientRegistrationTypeAutomatic}},
 	&OpenIDProviderMetadata{
-		ClientRegistrationTypesSupported: []string{constants.ClientRegistrationTypeAutomatic},
+		ClientRegistrationTypesSupported: []string{oidfedconst.ClientRegistrationTypeAutomatic},
 		ScopesSupported: []string{
 			"openid",
 			"profile",

@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"github.com/go-oidfed/lib/internal"

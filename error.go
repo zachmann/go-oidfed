@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 // Error is type for holding an error
 type Error struct {

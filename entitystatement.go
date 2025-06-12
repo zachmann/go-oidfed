@@ -1,4 +1,4 @@
-package pkg
+package oidfed
 
 import (
 	"encoding/json"
@@ -7,11 +7,11 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 	"gopkg.in/yaml.v3"
 
-	"github.com/go-oidfed/lib/constants"
 	"github.com/go-oidfed/lib/internal"
 	"github.com/go-oidfed/lib/internal/jwx"
 	"github.com/go-oidfed/lib/internal/utils"
 	"github.com/go-oidfed/lib/jwks"
+	"github.com/go-oidfed/lib/oidfedconst"
 	"github.com/go-oidfed/lib/unixtime"
 
 	"github.com/fatih/structs"
@@ -247,8 +247,8 @@ func ParseEntityStatement(statementJWT []byte) (*EntityStatement, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !m.VerifyType(constants.JWTTypeEntityStatement) {
-		return nil, errors.Errorf("entity statement does not have '%s' JWT type", constants.JWTTypeEntityStatement)
+	if !m.VerifyType(oidfedconst.JWTTypeEntityStatement) {
+		return nil, errors.Errorf("entity statement does not have '%s' JWT type", oidfedconst.JWTTypeEntityStatement)
 	}
 	statement := &EntityStatement{
 		jwtMsg:                 m,
