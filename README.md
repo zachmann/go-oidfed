@@ -4,6 +4,7 @@
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/go-oidfed/lib)
 [![Go Report](https://goreportcard.com/badge/github.com/go-oidfed/lib)](https://goreportcard.com/report/github.com/go-oidfed/lib)
 [![DeepSource](https://deepsource.io/gh/go-oidfed/lib.svg/?label=active+issues&show_trend=true)](https://deepsource.io/gh/go-oidfed/lib/?ref=repository-badge)
+[![DeepSource](https://app.deepsource.com/gh/go-oidfed/lib.svg/?label=code+coverage&show_trend=true&token=tg4V3nrOjmjOHR6b7yJxHzfx)](https://app.deepsource.com/gh/go-oidfed/lib/)
 
 This repository holds a work-in-process implementation of
 [OpenID Federation](https://openid.github.io/federation/main.html) in the `go` language with the goal to enable go applications to make 
