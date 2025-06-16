@@ -27,6 +27,7 @@ type FederationEntity struct {
 	TrustMarks       []*EntityConfigurationTrustMarkConfig
 	TrustMarkIssuers AllowedTrustMarkIssuers
 	TrustMarkOwners  TrustMarkOwners
+	Extra            map[string]any
 }
 
 // FederationLeaf is a type for a leaf entity and holds all relevant information about it; it can also be used to
@@ -40,7 +41,7 @@ type FederationLeaf struct {
 // NewFederationEntity creates a new FederationEntity with the passed properties
 func NewFederationEntity(
 	entityID string, authorityHints []string, metadata *Metadata,
-	signer *EntityStatementSigner, configurationLifetime int64,
+	signer *EntityStatementSigner, configurationLifetime int64, extra map[string]any,
 ) (*FederationEntity, error) {
 	if configurationLifetime <= 0 {
 		configurationLifetime = defaultEntityConfigurationLifetime
@@ -52,6 +53,7 @@ func NewFederationEntity(
 		EntityStatementSigner: signer,
 		ConfigurationLifetime: configurationLifetime,
 		jwks:                  signer.JWKS(),
+		Extra:                 extra,
 	}, nil
 }
 
@@ -59,10 +61,10 @@ func NewFederationEntity(
 func NewFederationLeaf(
 	entityID string, authorityHints []string, trustAnchors TrustAnchors, metadata *Metadata,
 	signer *EntityStatementSigner, configurationLifetime int64,
-	oidcSigningKey crypto.Signer, oidcSigningAlg jwa.SignatureAlgorithm,
+	oidcSigningKey crypto.Signer, oidcSigningAlg jwa.SignatureAlgorithm, extra map[string]any,
 ) (*FederationLeaf, error) {
 	fed, err := NewFederationEntity(
-		entityID, authorityHints, metadata, signer, configurationLifetime,
+		entityID, authorityHints, metadata, signer, configurationLifetime, extra,
 	)
 	if err != nil {
 		return nil, err
@@ -102,6 +104,7 @@ func (f FederationEntity) EntityConfigurationPayload() *EntityStatementPayload {
 		TrustMarks:       tms,
 		TrustMarkIssuers: f.TrustMarkIssuers,
 		TrustMarkOwners:  f.TrustMarkOwners,
+		Extra:            f.Extra,
 	}
 }
 

@@ -17,7 +17,7 @@ federation entity to support higher level functionality.
 - This repository contains:
     - The basic go-oidfed library with the core oidfed functionalities.
     - It can be used to build all kind of oidfed capable entities.
-- The LightHouse repository at https://github.com/go-oidfed/lighthouse contains
+- The LightHouse repository at https://github.com/go-oidfed/lighthouse contains:
     - Higher level implementation for various federation endpoints
     - The LightHouse federation entity. This is a configurable and flexible 
       federation entity that can be used as a
