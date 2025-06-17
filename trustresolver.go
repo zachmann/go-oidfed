@@ -20,7 +20,10 @@ import (
 	"github.com/go-oidfed/lib/unixtime"
 )
 
-const cacheGracePeriod = time.Hour
+// ResolverCacheGracePeriod is a grace period for the resolver.
+// If a cached statement is not yet expired but will expire within that period,
+// the cached statement will be used but a fresh statement will be requested in the background.
+var ResolverCacheGracePeriod = time.Hour
 
 // ResolveResponse is a type describing the response of a resolve request
 type ResolveResponse struct {
@@ -523,7 +526,7 @@ func getEntityStatementOrConfiguration(
 	if stmt := entityStmtCacheGet(subID, issID); stmt != nil {
 		internal.Log("Obtained entity statement from cache")
 		go func() {
-			if time.Until(stmt.ExpiresAt.Time) <= cacheGracePeriod {
+			if time.Until(stmt.ExpiresAt.Time) <= ResolverCacheGracePeriod {
 				internal.Log("Within grace period, refreshing entity statement")
 				_, err := obtainAndSetEntityStatementOrConfiguration(
 					subID,
