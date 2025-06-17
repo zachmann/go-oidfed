@@ -22,8 +22,20 @@ import (
 
 // ResolverCacheGracePeriod is a grace period for the resolver.
 // If a cached statement is not yet expired but will expire within that period,
-// the cached statement will be used but a fresh statement will be requested in the background.
+// the cached statement will be used but a fresh statement might be requested in the background (
+// see also ResolverCacheLifetimeElapsedGraceFactor).
 var ResolverCacheGracePeriod = time.Hour
+
+// ResolverCacheLifetimeElapsedGraceFactor is a factor relevant for the grace period for the resolver.
+// If a cached stmt will expire within the ResolverCacheGracePeriod it might be requested in the background before
+// expiration. A fresh statement will only be requested if a certain time already has elapsed.
+// This factor defines how much time (relative to the total lifetime of that statement) must have elapsed so that the
+// statement is refreshed. E.g. a factor of 0.
+// 75 means that a statement will only be refreshed if the statement expires within the ResolverCacheGracePeriod and
+// 75% of the statement's lifetime already have elapsed.
+// The purpose of this factor is to allow a bigger ResolverCacheGracePeriod and still deal with smaller statement
+// lifetimes.
+var ResolverCacheLifetimeElapsedGraceFactor = 0.5
 
 // ResolveResponse is a type describing the response of a resolve request
 type ResolveResponse struct {
@@ -526,7 +538,9 @@ func getEntityStatementOrConfiguration(
 	if stmt := entityStmtCacheGet(subID, issID); stmt != nil {
 		internal.Log("Obtained entity statement from cache")
 		go func() {
-			if time.Until(stmt.ExpiresAt.Time) <= ResolverCacheGracePeriod {
+			remainingLifetime := time.Until(stmt.ExpiresAt.Time)
+			totalLifetime := stmt.ExpiresAt.Sub(stmt.IssuedAt.Time)
+			if remainingLifetime <= ResolverCacheGracePeriod && float64(remainingLifetime)/float64(totalLifetime) > ResolverCacheLifetimeElapsedGraceFactor {
 				internal.Log("Within grace period, refreshing entity statement")
 				_, err := obtainAndSetEntityStatementOrConfiguration(
 					subID,
